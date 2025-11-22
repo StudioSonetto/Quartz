@@ -324,7 +324,7 @@ export function useElementRenderer() {
   const { currentComponents } = storeToRefs(useDeckStore());
 
   function findComponent(node: Tree, type: ComponentType) {
-    return currentComponents.value.find(
+    return currentComponents.value?.find(
       (component) => component.type === type && component.node === node.id,
     );
   }
@@ -403,7 +403,7 @@ export function useElementRenderer() {
             textAlign: typography.alignment,
             top: `${yPercent}%`,
             transform: `scale(${transform.scale * scale.value})`,
-            zIndex: transform.z,
+            zIndex: transform.position.z,
             whiteSpace: "pre-line",
           },
         };
@@ -417,8 +417,8 @@ export function useElementRenderer() {
         const sceneComponent = findComponent(node, "scene")!.data;
         const cameraComponent = findComponent(node, "camera")!.data;
 
-        const xPercent = (transform.x / 1920) * 100;
-        const yPercent = (transform.y / 1080) * 100;
+        const xPercent = (transform.position.x / 1920) * 100;
+        const yPercent = (transform.position.y / 1080) * 100;
 
         watch(
           () => transform.width / transform.height,

@@ -1,6 +1,5 @@
 <template>
   <div class="field">
-    <label>{{ props.name }}</label>
     <select
       :class="{
         'cursor-not-allowed': props.disabled,
@@ -28,7 +27,6 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  name: string;
   value: string;
   options: string[];
   disabled?: boolean;

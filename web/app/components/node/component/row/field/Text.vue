@@ -1,6 +1,5 @@
 <template>
   <div class="field">
-    <label>{{ props.name }}</label>
     <textarea
       :class="{
         'cursor-not-allowed opacity-60': props.disabled,
@@ -19,7 +18,6 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  name: string;
   isParagraph?: boolean;
   value: string;
   disabled?: boolean;

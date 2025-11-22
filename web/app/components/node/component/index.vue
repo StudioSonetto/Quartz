@@ -10,7 +10,7 @@
         class="arrow"
       ></div>
     </header>
-    <div v-if="isOpen" class="fields">
+    <div v-if="isOpen" class="rows">
       <slot />
     </div>
   </div>
@@ -41,10 +41,10 @@
     }
   }
 
-  .fields {
+  .rows {
     @apply px-6 pb-6;
 
-    &:deep(.field) {
+    &:deep(.row) {
       @apply flex ui-text-3;
 
       &:not(:last-child) {
@@ -55,16 +55,16 @@
         @apply ui-text-3 w-1/3;
       }
 
-      .inputs {
+      .fields {
         @apply flex flex-1 gap-6;
 
-        > * {
-          @apply p-0 w-0 flex-1;
-        }
-      }
+        .field {
+          @apply w-full flex;
 
-      > *:not(label) {
-        @apply p-0 flex-1;
+          > * {
+            @apply w-0 p-0 flex-1;
+          }
+        }
       }
     }
   }

@@ -1,9 +1,10 @@
 <template>
   <NodeComponent name="scene">
-    <NodeComponentFieldColour
-      name="background"
-      v-model:value="props.component.data.background"
-    />
+    <NodeComponentRow name="background">
+      <NodeComponentRowFieldColour
+        v-model:value="props.component.data.background"
+      />
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 

@@ -42,20 +42,19 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode, currentComponents } = storeToRefs(
-  useDeckStore()
-);
+const { currentTree, selectedNode, currentComponents } =
+  storeToRefs(useDeckStore());
 
 // https://github.com/nuxt/nuxt/issues/14036
 const resolvedComponents = {
-  animation: resolveComponent("NodeComponentAnimation"),
-  base: resolveComponent("NodeComponentBase"),
-  camera: resolveComponent("NodeComponentCamera"),
-  layout: resolveComponent("NodeComponentLayout"),
-  mesh: resolveComponent("NodeComponentMesh"),
-  scene: resolveComponent("NodeComponentScene"),
-  transform: resolveComponent("NodeComponentTransform"),
-  typography: resolveComponent("NodeComponentTypography"),
+  animation: resolveComponent("LazyNodeComponentAnimation"),
+  base: resolveComponent("LazyNodeComponentBase"),
+  camera: resolveComponent("LazyNodeComponentCamera"),
+  layout: resolveComponent("LazyNodeComponentLayout"),
+  mesh: resolveComponent("LazyNodeComponentMesh"),
+  scene: resolveComponent("LazyNodeComponentScene"),
+  transform: resolveComponent("LazyNodeComponentTransform"),
+  typography: resolveComponent("LazyNodeComponentTypography"),
 };
 
 const nodeComponents = computed<ComponentModel[]>(() => {
@@ -65,6 +64,8 @@ const nodeComponents = computed<ComponentModel[]>(() => {
 });
 
 function searchNodeComponents(node: string): ComponentModel[] {
+  if (!currentComponents.value) return [];
+
   return currentComponents.value
     .filter((component) => component.node === node)
     .sort((a, b) => a.type.localeCompare(b.type));

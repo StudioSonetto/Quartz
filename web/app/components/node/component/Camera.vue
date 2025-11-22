@@ -1,20 +1,10 @@
 <template>
   <NodeComponent name="camera">
-    <NodeComponentFieldNumber
-      name="x"
-      v-model:value="component.data.x"
-      :fields="{ label: 'x', value: component.data.x }"
-    />
-    <NodeComponentFieldNumber
-      name="y"
-      v-model:value="component.data.y"
-      :fields="{ label: 'y', value: component.data.y }"
-    />
-    <NodeComponentFieldNumber
-      name="z"
-      v-model:value="component.data.z"
-      :fields="{ label: 'z', value: component.data.z }"
-    />
+    <NodeComponentRow name="position">
+      <NodeComponentRowFieldNumber name="x" v-model:value="component.data.x" />
+      <NodeComponentRowFieldNumber name="y" v-model:value="component.data.y" />
+      <NodeComponentRowFieldNumber name="z" v-model:value="component.data.z" />
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 

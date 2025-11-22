@@ -1,6 +1,5 @@
 <template>
   <div class="field">
-    <label>{{ props.name }}</label>
     <fieldset>
       <button
         v-for="option in props.options"
@@ -32,7 +31,6 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  name: string;
   value: string | string[];
   options: {
     value: string;
@@ -60,7 +58,7 @@ function selectOption(value: string) {
     if (currentValues.includes(value)) {
       emit(
         "update:value",
-        currentValues.filter((option) => option !== value)
+        currentValues.filter((option) => option !== value),
       );
     } else {
       emit("update:value", [...currentValues, value]);

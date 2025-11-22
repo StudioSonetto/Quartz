@@ -1,10 +1,8 @@
 <template>
   <NodeComponent name="base">
-    <NodeComponentFieldText
-      name="reference"
-      :disabled="isRoot"
-      v-model:value="reference"
-    />
+    <NodeComponentRow name="reference">
+      <NodeComponentRowFieldText v-model:value="reference" :disabled="isRoot" />
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 

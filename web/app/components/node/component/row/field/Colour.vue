@@ -1,6 +1,5 @@
 <template>
   <div class="field">
-    <label>{{ props.name }}</label>
     <input
       type="color"
       :value="props.value ?? '#000000'"
@@ -11,7 +10,6 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  name: string;
   value: string;
 }>();
 

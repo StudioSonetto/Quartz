@@ -1,51 +1,55 @@
 <template>
   <NodeComponent name="model">
-    <NodeComponentFieldSelect
-      name="type"
-      v-model:value="props.component.data.type"
-      :options="[
-        ...primitiveTypes,
-        ...useAssetsStore().models.map((model) => model.name),
-      ]"
-    />
-    <NodeComponentFieldSelect
-      name="fallback"
-      :disabled="primitiveTypes.includes(props.component.data.type)"
-      v-model:value="props.component.data.fallback"
-      :options="['none', ...primitiveTypes]"
-    />
-    <NodeComponentFieldColour
-      name="colour"
-      v-model:value="props.component.data.colour"
-    />
-    <NodeComponentFieldSelect
-      name="texture"
-      v-model:value="props.component.data.texture"
-      :options="[
-        'default',
-        ...useAssetsStore().images.map((image) => image.name),
-      ]"
-    />
-    <NodeComponentFieldNumber
-      name="x"
-      v-model:value="props.component.data.x"
-      :fields="{ label: 'x', value: props.component.data.x }"
-    />
-    <NodeComponentFieldNumber
-      name="y"
-      v-model:value="props.component.data.y"
-      :fields="{ label: 'y', value: props.component.data.y }"
-    />
-    <NodeComponentFieldNumber
-      name="z"
-      v-model:value="props.component.data.z"
-      :fields="{ label: 'z', value: props.component.data.z }"
-    />
-    <NodeComponentFieldNumber
-      name="scale"
-      v-model:value="props.component.data.scale"
-      :fields="{ label: 'scale', value: props.component.data.scale }"
-    />
+    <NodeComponentRow name="type">
+      <NodeComponentRowFieldSelect
+        v-model:value="props.component.data.type"
+        :options="[
+          ...primitiveTypes,
+          ...useAssetsStore().models.map((model) => model.name),
+        ]"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="fallback">
+      <NodeComponentRowFieldSelect
+        :disabled="primitiveTypes.includes(props.component.data.type)"
+        v-model:value="props.component.data.fallback"
+        :options="['none', ...primitiveTypes]"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="colour">
+      <NodeComponentRowFieldColour
+        v-model:value="props.component.data.colour"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="texture">
+      <NodeComponentRowFieldSelect
+        v-model:value="props.component.data.texture"
+        :options="[
+          'default',
+          ...useAssetsStore().images.map((image) => image.name),
+        ]"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="position">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.x"
+        name="x"
+      />
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.y"
+        name="y"
+      />
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.z"
+        name="z"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="scale">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.scale"
+        name="scale"
+      />
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 

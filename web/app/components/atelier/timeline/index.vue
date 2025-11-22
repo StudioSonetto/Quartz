@@ -112,7 +112,7 @@ watchThrottled(
       wheelDelta.value = 0;
     }
   },
-  { throttle }
+  { throttle },
 );
 
 async function insertNewSlides() {
@@ -121,7 +121,7 @@ async function insertNewSlides() {
   try {
     isLoading.value = true;
 
-    await deckStore.insertNewSlides(useRoute().params.id.toString());
+    await deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
   } finally {
     setTimeout(() => {
       isLoading.value = false;

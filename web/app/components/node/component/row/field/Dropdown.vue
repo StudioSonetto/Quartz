@@ -1,6 +1,5 @@
 <template>
   <div class="field">
-    <label>{{ props.name }}</label>
     <div>
       <input
         ref="input"
@@ -54,7 +53,6 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  name: string;
   value: string;
   options: string[];
 }>();
@@ -69,7 +67,7 @@ const { focused } = useFocus(input);
 
 const filteredOptions = computed(() => {
   return props.options.filter((option) =>
-    option.toLowerCase().includes(input.value?.value.toLowerCase() ?? "")
+    option.toLowerCase().includes(input.value?.value.toLowerCase() ?? ""),
   );
 });
 
@@ -83,7 +81,7 @@ function selectOption(option: string) {
 
 watch(focused, (value) => {
   if (!value && input.value?.value) {
-    selectOption(filteredOptions.value[0]);
+    selectOption(filteredOptions.value[0] ?? "");
   }
 });
 </script>
