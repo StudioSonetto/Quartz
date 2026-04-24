@@ -18,11 +18,11 @@
     @apply flex items-center gap-6;
 
     .option {
-      @apply opacity-60 hover:opacity-100 transition-opacity;
+      @apply opacity-40 hover:opacity-100 transition-opacity;
       @apply ui-text-3;
 
       &.selected {
-        @apply opacity-100;
+        @apply opacity-100 text-accent;
       }
     }
   }

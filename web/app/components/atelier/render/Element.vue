@@ -37,7 +37,8 @@
 
 <script setup lang="ts">
 const { renderer, setupCanvas } = useElementRenderer();
-const { selectedNode, currentComponents } = storeToRefs(useDeckStore());
+const { selectedNode } = storeToRefs(useDeckStore());
+const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
@@ -152,7 +153,7 @@ watchThrottled(
   ([newX, newY]) => {
     if (props.isLocked) return;
 
-    const transform = getTransformComponent();
+    const transform = getNodeComponent(props.node.id, "transform");
 
     if (!transform) return;
 
@@ -184,7 +185,7 @@ watchThrottled(
     transform.data.position.x = Math.round(snappedPos.x);
     transform.data.position.y = Math.round(snappedPos.y);
   },
-  { throttle }
+  { throttle },
 );
 
 watch(isDragging, (newState) => {
@@ -219,13 +220,6 @@ function selectNode(event: Event) {
 
 function cancelSelection() {
   selectedNode.value = null;
-}
-
-function getTransformComponent() {
-  return currentComponents.value.find(
-    (component) =>
-      component.type === "transform" && component.node === props.node.id
-  );
 }
 
 onMounted(() => {

@@ -53,7 +53,7 @@ export interface RenderResult {
   style?: Record<string, string | number>;
 }
 
-export interface ElementRenderer {
+export interface NodeRenderer {
   element: string;
   render: (node: Tree) => RenderResult;
 }
@@ -74,6 +74,9 @@ export interface CanvasContext {
 export interface ContextMenuItem {
   label: string;
   action: () => void;
+  icon?: string;
+  shortcut?: string;
+  danger?: boolean;
 }
 
 export interface ContextMenuEvent extends CustomEvent {

@@ -1,10 +1,10 @@
 <template>
   <header class="atelier-header">
-    <NuxtLink class="border-r" to="/atelier">
+    <NuxtLink class="header-btn border-r" to="/atelier">
       <div class="i-carbon-switcher"></div>
     </NuxtLink>
     <input type="text" maxlength="30" v-model.lazy="title" />
-    <button @click="modal?.open()">
+    <button class="header-btn" @click="modal?.open()">
       <div class="i-carbon-run"></div>
     </button>
     <Modal ref="modal" title="Presentation mode">
@@ -15,7 +15,7 @@
             <div class="whitespace"></div>
             <p>Your regular presentation experience.</p>
           </div>
-          <button type="submit" class="primaryButton">Confirm</button>
+          <UIButton type="submit">Confirm</UIButton>
         </div>
         <div class="divider">
           <span>OR</span>
@@ -26,7 +26,7 @@
             <div class="whitespace"></div>
             <p>Audience can join the presentation, and interact with you.</p>
           </div>
-          <button class="primaryButton disabled">Confirm</button>
+          <UIButton :disabled="true">Confirm</UIButton>
         </div>
       </form>
     </Modal>
@@ -39,17 +39,12 @@
   @apply bg-dark-500 h-20;
   @apply border-solid border-0 border-b-2 border-dark-200;
 
-  a,
-  button {
-    @apply h-full flex items-center transition-colors;
-    @apply hover-bg-light-200 hover-text-dark-500;
+  .header-btn {
+    @apply h-full w-20 flex items-center justify-center transition-colors;
+    @apply hover:bg-light-200 hover:text-dark-500;
 
     [class*="i-"] {
-      @apply ui-text-5 w-[80px];
-    }
-
-    &:first-child {
-      @apply w-[80px];
+      @apply ui-text-5;
     }
   }
 
@@ -68,7 +63,7 @@
       }
 
       button {
-        @apply h-auto! text-sm w-1/2 mx-auto;
+        @apply w-1/2 mx-auto;
       }
     }
 
@@ -118,11 +113,11 @@ const title = computed({
   },
 });
 
-function onSubmit() {
+async function onSubmit() {
   modal.value?.close();
 
   selectedNode.value = null;
 
-  navigateTo(`/live/${useRoute().params.id}`);
+  await navigateTo(`/live/${useRoute().params.id}`);
 }
 </script>

@@ -2,10 +2,9 @@
   <Title>Dashboard | Quartz</Title>
   <div class="flex">
     <DashboardSidebar />
-    <div class="flex-1">
+    <div class="flex-1 overflow-auto">
       <DashboardHeader />
-      <div class="whitespace"></div>
-      <div class="flex flex-wrap gap-6 p-6 pt-0">
+      <div class="flex flex-wrap gap-6 p-6">
         <DashboardDeck
           v-for="deck in decks"
           :title="deck.title"
@@ -27,19 +26,16 @@ let realtimeChannel: RealtimeChannel;
 
 const { data: decks, refresh: refreshDecks } = await useAsyncData(
   "decks",
-  async () => await useDeckStore().fetchAllDecks()
+  async () => await useDeckStore().fetchAllDecks(),
 );
 
 onMounted(() => {
-  // Temporary workaround for https://github.com/supabase/gotrue-js/issues/455
-  useRouter().replace({ hash: "" });
-
   realtimeChannel = client
     .channel("public:decks")
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
-      () => refreshDecks()
+      () => refreshDecks(),
     );
 
   realtimeChannel.subscribe();

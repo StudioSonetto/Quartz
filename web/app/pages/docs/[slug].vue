@@ -1,6 +1,26 @@
 <template>
-  <ContentRenderer v-if="page" :value="page" />
+  <div class="docs">
+    <aside>Sidebar</aside>
+    <div class="content">
+      <ContentRenderer v-if="page" :value="page" />
+    </div>
+  </div>
 </template>
+
+<style scoped lang="postcss">
+.docs {
+  @apply flex;
+
+  aside {
+    @apply bg-dark-500 w-sm h-screen;
+    @apply flex flex-col relative border-r;
+  }
+
+  .content {
+    @apply flex-1 p-12;
+  }
+}
+</style>
 
 <script setup lang="ts">
 const route = useRoute();

@@ -18,10 +18,20 @@
 
 <style scoped lang="postcss">
 .component {
-  @apply w-full bg-dark-900;
+  @apply w-full bg-dark-900 relative;
   @apply border-solid border-0 border-b-2 border-dark-200;
   @apply opacity-60 hover:opacity-100;
   @apply transition-opacity duration-150;
+
+  &:has(.rows) {
+    @apply opacity-100;
+
+    &::before {
+      content: "";
+      @apply absolute left-0 top-0 bottom-0 w-0.5;
+      @apply bg-accent;
+    }
+  }
 
   header {
     @apply flex items-center justify-between p-6 cursor-pointer;
@@ -32,7 +42,7 @@
       @apply flex items-center gap-2;
 
       .icon {
-        @apply ui-text-4;
+        @apply ui-text-4 transition-colors;
       }
     }
 

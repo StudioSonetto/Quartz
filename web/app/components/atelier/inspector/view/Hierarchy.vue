@@ -32,15 +32,15 @@
             </option>
           </select>
         </Field>
-        <button
+        <UIButton
           type="submit"
-          :class="{ disabled: !meta.valid }"
-          class="primaryButton w-full text-sm mt-10"
+          size="sm"
+          :disabled="!meta.valid"
+          class="w-full mt-10"
         >
           Confirm
-        </button>
-        <div v-if="error" class="whitespace"></div>
-        <p v-if="error" class="text-center text-red-500">ERROR: {{ error }}</p>
+        </UIButton>
+        <p v-if="error" class="text-center text-red-500 mt-6">ERROR: {{ error }}</p>
       </form>
     </Modal>
   </AtelierInspectorView>

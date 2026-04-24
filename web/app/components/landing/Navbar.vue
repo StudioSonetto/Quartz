@@ -22,11 +22,9 @@
         <div class="i-carbon-logo-github" />
         <span>{{ stargazers }}</span>
       </a>
-      <NuxtLink v-if="!isSignedIn" class="primaryButton" to="/auth">
-        Sign In
-      </NuxtLink>
+      <NuxtLink v-if="!isSignedIn" class="btn" to="/auth"> Sign In </NuxtLink>
       <div v-else class="user">
-        <NuxtLink class="primaryButton" to="/atelier">Dashboard</NuxtLink>
+        <NuxtLink class="btn" to="/atelier">Dashboard</NuxtLink>
         <div class="avatar">
           <div class="i-carbon-user" />
         </div>
@@ -69,6 +67,13 @@
       @apply text-light-200/80 hover:text-light-200 hover:bg-light-200/10;
     }
 
+    .btn {
+      @apply inline-flex justify-center items-center gap-2;
+      @apply border-solid border-1 border-light-200 border-rd;
+      @apply px-4 py-2 ui-text-3 transition-all;
+      @apply hover:bg-light-200 hover:text-dark-900 active:opacity-80;
+    }
+
     .user {
       @apply flex items-center gap-4;
 
@@ -103,7 +108,7 @@ const stargazers = ref(0);
 const fetchStargazers = async () => {
   try {
     const response = await $fetch<{ stargazers_count: number }>(
-      "https://api.github.com/repos/StudioConcertos/Quartz"
+      "https://api.github.com/repos/StudioConcertos/Quartz",
     );
 
     stargazers.value = response.stargazers_count;

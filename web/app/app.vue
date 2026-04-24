@@ -32,6 +32,11 @@ textarea {
   @apply border-solid border-0 border-b-1 border-neutral-500;
 }
 
+input::placeholder,
+textarea::placeholder {
+  @apply text-neutral-500;
+}
+
 input[type="color"] {
   @apply w-full h-auto;
   @apply cursor-pointer;
@@ -108,17 +113,6 @@ textarea {
 
 .fade-enter-active {
   @apply transition-opacity duration-500;
-}
-
-.primaryButton {
-  @apply flex justify-center items-center;
-  @apply border-solid border-1 border-light-200 border-rd;
-  @apply px-4 py-2 ui-text-3 transition-all;
-  @apply hover-bg-light-200 hover-text-dark-900;
-
-  [class*="i-"] {
-    @apply text-2xl;
-  }
 }
 
 .sortable-ghost {

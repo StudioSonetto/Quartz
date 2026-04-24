@@ -36,6 +36,9 @@ export default defineConfig({
   ],
   transformers: [transformerDirectives()],
   theme: {
+    colors: {
+      accent: "#4a6578",
+    },
     breakpoints: {
       sm: "640px",
       md: "768px",

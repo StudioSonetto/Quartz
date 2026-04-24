@@ -9,7 +9,7 @@ export const useAuthStore = defineStore("auth", () => {
   client.auth.onAuthStateChange((event, session) => {
     user.value = session?.user || null;
 
-    if (event === "SIGNED_IN" && useRoute().path !== "/") {
+    if (event === "SIGNED_IN" && useRoute().path.startsWith("/auth")) {
       navigateTo("/atelier", { replace: true });
     } else if (event === "SIGNED_OUT") {
       navigateTo("/auth", { replace: true });

@@ -343,7 +343,7 @@ export function useElementRenderer() {
     return Math.min(width.value / 1920, height.value / 1080);
   });
 
-  const renderer: Record<NodeType, ElementRenderer> = {
+  const renderer: Record<NodeType, NodeRenderer> = {
     group: {
       element: "div",
       render: (node: Tree) => {

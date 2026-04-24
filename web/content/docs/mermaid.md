@@ -1,14 +1,27 @@
 ---
-title: "Mermaid Test"
+title: "Row<Number>"
 description: ""
 ---
 
-# Mermaid Test
+# `Row<Number>`
+
+<br><hr><br>
 
 <Mermaid>
-graph TD;
-  A-->B;
-  A-->C;
-  B-->D;
-  C-->D;
+classDiagram
+  class Row~Number~ {
+    +string name
+    +Field field?
+    +Object~boolean, Field[]~ isMultiple?
+    +update()
+  }
+  class Field~Number~ {
+    +string label
+    +number value
+    +number min?
+    +number max?
+    +number step?
+    +emit("update:value", label, value)
+  }
+  Row~T~ "1" *-- "1..*" Field~T~
 </Mermaid>

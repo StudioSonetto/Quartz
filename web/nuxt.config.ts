@@ -20,12 +20,10 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: "/auth",
       callback: "/auth/callback",
-      exclude: ["/"],
+      exclude: ["/", "/docs"],
     },
   },
-  pinia: {
-    storesDirs: ["./stores/**"],
-  },
+
   tres: {
     devtools: true,
     glsl: true,

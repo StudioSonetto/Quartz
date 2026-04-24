@@ -5,9 +5,6 @@ export default defineContentConfig({
     docs: defineCollection({
       type: "page",
       source: "docs/*.md",
-      schema: z.object({
-        date: z.string(),
-      }),
     }),
   },
 });

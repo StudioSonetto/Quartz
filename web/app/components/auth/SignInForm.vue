@@ -7,14 +7,10 @@
       <FormInput name="password" type="password" placeholder="Password" />
     </div>
     <div class="whitespace"></div>
-    <button
-      type="submit"
-      :class="{ disabled: !meta.valid }"
-      class="primaryButton py-4!"
-    >
+    <UIButton type="submit" size="lg" :disabled="!meta.valid">
       Sign In
-      <div class="i-carbon-login ml-2" />
-    </button>
+      <div class="i-carbon-login" />
+    </UIButton>
     <div class="whitespace"></div>
     <p v-if="error" class="text-center text-red-500">ERROR: {{ error }}</p>
   </form>

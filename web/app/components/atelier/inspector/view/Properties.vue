@@ -42,8 +42,8 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode, currentComponents } =
-  storeToRefs(useDeckStore());
+const { currentTree, selectedNode } = storeToRefs(useDeckStore());
+const { getNodeComponents } = useNodeComponents();
 
 // https://github.com/nuxt/nuxt/issues/14036
 const resolvedComponents = {
@@ -60,14 +60,6 @@ const resolvedComponents = {
 const nodeComponents = computed<ComponentModel[]>(() => {
   if (!selectedNode.value?.id || !currentTree.value) return [];
 
-  return searchNodeComponents(selectedNode.value.id);
+  return getNodeComponents(selectedNode.value.id);
 });
-
-function searchNodeComponents(node: string): ComponentModel[] {
-  if (!currentComponents.value) return [];
-
-  return currentComponents.value
-    .filter((component) => component.node === node)
-    .sort((a, b) => a.type.localeCompare(b.type));
-}
 </script>
