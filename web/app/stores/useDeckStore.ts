@@ -1,7 +1,7 @@
 // TODO: Refactor this whole mess.
 
 export const useDeckStore = defineStore("deck", () => {
-  const client = useSupabaseClient<Database>();
+  const apiFetch = useRequestFetch();
 
   const slides = ref<SlidesModel[]>([]);
   const currentSlides = computed(() => slides.value[currentSlidesIndex.value]);
@@ -28,8 +28,6 @@ export const useDeckStore = defineStore("deck", () => {
 
   watch(slides, (newSlides) => {
     if (trees.value.length >= newSlides.length) return;
-
-    // Initialise data for new slides.
     trees.value.push(EMPTY_TREE);
     components.value.push([]);
   });
@@ -40,8 +38,6 @@ export const useDeckStore = defineStore("deck", () => {
       !pendingChanges.value.components.length
     )
       return;
-
-    // Upsert pending changes if any.
     await saveChanges();
   });
 
@@ -51,14 +47,11 @@ export const useDeckStore = defineStore("deck", () => {
       slidesInLoading.value.has(currentSlidesIndex.value)
     )
       return;
-
-    // Fetch nodes for the current slides, then load the rest in parallel.
     await fetchAllNodes(currentSlidesIndex.value);
     await parallelLoad();
   });
 
   watch(currentSlidesIndex, async () => {
-    // Reset the selected node.
     selectedNode.value = null;
   });
 
@@ -75,7 +68,6 @@ export const useDeckStore = defineStore("deck", () => {
     { deep: true },
   );
 
-  // Autosave nodes and components.
   watchDebounced(
     pendingChanges,
     async (changes) => {
@@ -87,41 +79,15 @@ export const useDeckStore = defineStore("deck", () => {
   );
 
   async function fetchAllDecks() {
-    const { data, error } = await client
-      .from("decks")
-      .select("*")
-      .match({ lapidarist: useAuthStore().user?.id })
-      .order("last_modified", { ascending: true });
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch("/api/decks");
   }
 
   async function fetchDeck(id: string) {
-    const { data, error } = await client
-      .from("decks")
-      .select("*")
-      .match({ lapidarist: useAuthStore().user?.id })
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch(`/api/decks/${id}`);
   }
 
   async function insertNewDeck() {
-    const { data, error } = await client
-      .from("decks")
-      .insert({
-        lapidarist: `${useAuthStore().user?.id}`,
-        title: "Unnamed Deck",
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const data = await apiFetch<{ id: string }>("/api/decks", { method: "POST" });
 
     navigateTo(`/atelier/${data?.id}`, {
       external: true,
@@ -134,28 +100,20 @@ export const useDeckStore = defineStore("deck", () => {
   async function updateDeckTitle(value: string) {
     if (!value.length) return;
 
-    await client
-      .from("decks")
-      .update({ title: value })
-      .eq("id", useRoute().params.id as string);
+    await apiFetch(`/api/decks/${useRoute().params.id}`, {
+      method: "PATCH",
+      body: { title: value },
+    });
   }
 
   async function deleteDeck(id: string) {
-    const { data, error } = await client.from("decks").delete().eq("id", id);
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch(`/api/decks/${id}`, { method: "DELETE" });
   }
 
   async function fetchAllSlides(deck: string) {
-    const { data, error } = await client
-      .from("slides")
-      .select("*")
-      .eq("deck", deck)
-      .order("index", { ascending: true });
-
-    if (error) throw error;
+    const data = await apiFetch<SlidesModel[]>("/api/slides", {
+      query: { deck },
+    });
 
     if (data) slides.value = data;
 
@@ -163,30 +121,14 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function fetchSlides(deck: string, index: number) {
-    const { data, error } = await client
-      .from("slides")
-      .select("*")
-      .eq("deck", deck)
-      .eq("index", index)
-      .single();
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch<SlidesModel>("/api/slides", { query: { deck, index } });
   }
 
   async function insertNewSlides(deck: string) {
-    const { data, error } = await client
-      .from("slides")
-      .insert({
-        deck: deck,
-        index: slides.value.length,
-      })
-      .select();
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch("/api/slides", {
+      method: "POST",
+      body: { deck, index: slides.value.length },
+    });
   }
 
   async function fetchAllNodes(
@@ -199,23 +141,14 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!id) return [];
 
-    const { data, error } = await client
-      .from("nodes")
-      .select("*")
-      .eq("slides", id)
-      .order("path", { ascending: true });
-
-    if (error) throw error;
+    const [data, fetchedComponents] = await Promise.all([
+      apiFetch<NodeModel[]>("/api/nodes", { query: { slides: id } }),
+      apiFetch<ComponentModel[]>("/api/components", { query: { slides: id } }),
+    ]);
 
     if (data) {
-      const fetchedComponents = await Promise.all(
-        data.map((node) => fetchNodeComponents(node.id)),
-      );
-
-      components.value[index] = fetchedComponents.flat();
-
+      components.value[index] = fetchedComponents ?? [];
       trees.value[index] = buildTree(data);
-
       return trees.value[index].children;
     }
 
@@ -223,15 +156,12 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function insertNewNode(slides: string, name: string, type: NodeType) {
-    const { data: id, error } = await client.rpc("generate_uuid");
-
-    if (error) throw error;
+    const id = crypto.randomUUID();
 
     const path = selectedNode.value
       ? `${selectedNode.value?.path}.${name}`
       : `root.${name}`;
 
-    // Add node to pending changes.
     const node: PendingNode = {
       id: id,
       slides: slides,
@@ -241,8 +171,6 @@ export const useDeckStore = defineStore("deck", () => {
       reference: "",
     };
 
-    // TODO: Move this to a separate function.
-    // Create default components
     const defaultComponents: ComponentModel[] = [
       {
         type: "base",
@@ -365,15 +293,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function fetchNodeComponents(node: string) {
-    const { data, error } = await client
-      .from("components")
-      .select("*")
-      .eq("node", node)
-      .order("type", { ascending: true });
-
-    if (error) throw error;
-
-    return data;
+    return apiFetch<ComponentModel[]>(`/api/components/${node}`);
   }
 
   async function updateNodeComponent(component: ComponentModel) {
@@ -429,77 +349,41 @@ export const useDeckStore = defineStore("deck", () => {
   async function saveChanges() {
     if (!currentSlides.value) return;
 
-    const nodesToUpsert = pendingChanges.value.nodes.filter(
-      (node) => node.id && !node._deleted,
+    const nodesToUpsert = pendingChanges.value.nodes
+      .filter((node) => node.id && !node._deleted)
+      .map(({ id, slides, name, path, type, reference }) => ({
+        id,
+        slides,
+        name,
+        path,
+        type,
+        reference: reference || null,
+      }));
+
+    const nodesToDelete = pendingChanges.value.nodes
+      .filter((node) => node._deleted && !node._pending)
+      .map((node) => ({ path: node.path, slides: node.slides }));
+
+    const validNodes = new Set(
+      (trees.value[currentSlidesIndex.value]
+        ? flattenTree(trees.value[currentSlidesIndex.value]!)
+        : []
+      ).map((node) => node.id),
     );
-    const nodesToInsert = pendingChanges.value.nodes.filter(
-      (node) => !node.id && !node._deleted,
-    );
-    const nodesToDelete = pendingChanges.value.nodes.filter(
-      (node) => node._deleted,
+
+    const componentsToUpsert = pendingChanges.value.components.filter(
+      (component) => validNodes.has(component.node),
     );
 
-    // Node insert.
-    if (nodesToInsert.length) {
-      const { error } = await client
-        .from("nodes")
-        // Remove the id and _deleted fields.
-        .insert(nodesToInsert.map(({ id, _deleted, ...node }) => node))
-        .select();
+    await apiFetch("/api/nodes/save", {
+      method: "POST",
+      body: { nodesToUpsert, nodesToDelete, componentsToUpsert },
+    });
 
-      if (error) throw error;
+    if (componentsToUpsert.length) {
+      await useSnapshot().capture();
+      await useSnapshot().fetch(currentSlides.value.deck, currentSlides.value.id);
     }
-
-    // Node update.
-    if (nodesToUpsert.length) {
-      const { error } = await client.from("nodes").upsert(nodesToUpsert, {
-        onConflict: "id",
-        ignoreDuplicates: false,
-      });
-
-      if (error) throw error;
-    }
-
-    // Node delete.
-    if (nodesToDelete.length) {
-      for (const node of nodesToDelete) {
-        if (node._pending) return;
-
-        const { error } = await client.rpc("delete_node_and_children", {
-          node_path: node.path,
-          slides_id: node.slides,
-        });
-
-        if (error) throw error;
-      }
-    }
-
-    // Component upsert.
-    if (pendingChanges.value.components.length) {
-      const validNodes = new Set(
-        (trees.value[currentSlidesIndex.value]
-          ? flattenTree(trees.value[currentSlidesIndex.value]!)
-          : []
-        ).map((node) => node.id),
-      );
-
-      // Filter nodes that still exists.
-      const componentsToUpsert = pendingChanges.value.components.filter(
-        (component) => validNodes.has(component.node),
-      );
-
-      const { error } = await client
-        .from("components")
-        .upsert(componentsToUpsert, {
-          onConflict: "node, type",
-          ignoreDuplicates: false,
-        });
-
-      if (error) throw error;
-    }
-
-    await useSnapshot().capture();
-    await useSnapshot().fetch(currentSlides.value.deck, currentSlides.value.id);
 
     pendingChanges.value = {
       nodes: [],
@@ -519,7 +403,6 @@ export const useDeckStore = defineStore("deck", () => {
           !slidesInLoading.value.has(index),
       );
 
-    // Load all in parallel.
     await Promise.all(
       slidesToLoad.map(async (index) => {
         slidesInLoading.value.add(index);

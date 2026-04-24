@@ -7,7 +7,8 @@
     "dev": "nuxt dev --dotenv ../.env",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "db:pull": "bunx drizzle-kit pull --config=drizzle.config.ts"
   },
   "dependencies": {
     "@iconify-json/carbon": "^1.2.20",
@@ -18,6 +19,7 @@
     "@supabase/supabase-js": "^2.104.0",
     "@tresjs/cientos": "^4.3.1",
     "@tresjs/nuxt": "^3.0.8",
+    "@types/node": "^25.6.0",
     "@types/sortablejs": "^1.15.9",
     "@types/three": "^0.175.0",
     "@unocss/nuxt": "latest",
@@ -28,16 +30,22 @@
     "@vueuse/core": "^10.11.1",
     "@vueuse/nuxt": "^10.11.1",
     "better-sqlite3": "^12.9.0",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "beta",
     "html2canvas": "^1.4.1",
     "mermaid": "^11.14.0",
     "nuxt": "^4.4.2",
     "nuxt-resend": "^0.0.2",
     "pinia": "^3.0.4",
+    "postgres": "^3.4.9",
     "sortablejs": "^1.15.7",
     "supabase": "2.2.1",
     "three": "^0.167.1",
     "vue": "latest",
     "vue-router": "latest",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "drizzle-kit": "beta"
   }
 }
