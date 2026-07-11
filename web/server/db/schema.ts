@@ -5,6 +5,7 @@ import {
   index,
   jsonb,
   pgEnum,
+  pgPolicy,
   pgTable,
   primaryKey,
   smallint,
@@ -13,6 +14,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { authenticatedRole } from "drizzle-orm/supabase";
 
 // Drizzle doesn't support ltree, so a custom type is needed.
 const ltree = customType<{ data: string }>({ dataType: () => "ltree" });
@@ -43,7 +45,14 @@ export const lapidaries = pgTable.withRLS(
       .primaryKey(),
     name: text("name"),
   },
-  (t) => [unique("lapidaries_id_key").on(t.id)],
+  (t) => [
+    unique("lapidaries_id_key").on(t.id),
+    pgPolicy("lapidaries_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${t.id} = auth.uid()`,
+    }),
+  ],
 );
 
 export const decks = pgTable.withRLS(
@@ -66,6 +75,11 @@ export const decks = pgTable.withRLS(
     })
       .onDelete("cascade")
       .onUpdate("cascade"),
+    pgPolicy("decks_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${t.lapidarist} = auth.uid()`,
+    }),
   ],
 );
 
@@ -86,6 +100,11 @@ export const slides = pgTable.withRLS(
       .onDelete("cascade")
       .onUpdate("cascade"),
     index("slides_deck_idx").on(t.deck),
+    pgPolicy("slides_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`exists (select 1 from decks d where d.id = ${t.deck} and d.lapidarist = auth.uid())`,
+    }),
   ],
 );
 
@@ -108,6 +127,11 @@ export const nodes = pgTable.withRLS(
       .onDelete("cascade")
       .onUpdate("cascade"),
     index("nodes_slides_idx").on(t.slides),
+    pgPolicy("nodes_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`exists (select 1 from slides s join decks d on d.id = s.deck where s.id = ${t.slides} and d.lapidarist = auth.uid())`,
+    }),
   ],
 );
 
@@ -127,5 +151,10 @@ export const components = pgTable.withRLS(
     })
       .onDelete("cascade")
       .onUpdate("cascade"),
+    pgPolicy("components_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`exists (select 1 from nodes n join slides s on s.id = n.slides join decks d on d.id = s.deck where n.id = ${t.node} and d.lapidarist = auth.uid())`,
+    }),
   ],
 );
