@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import { RealtimeChannel } from "@supabase/supabase-js";
 
-const client = useSupabaseClient<Database>();
+const client = useSupabaseClient();
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { fetchAssets } = useAssetsStore();

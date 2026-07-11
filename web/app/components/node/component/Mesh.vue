@@ -54,8 +54,6 @@
 </template>
 
 <script setup lang="ts">
-import { primitiveTypes } from "~/composables/node-renderer/useThreeObjects";
-
 const { updateNodeComponent } = useDeckStore();
 
 const props = defineProps<{

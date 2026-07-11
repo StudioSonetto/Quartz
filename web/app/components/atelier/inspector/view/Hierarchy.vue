@@ -69,7 +69,7 @@ import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
 
-const client = useSupabaseClient<Database>();
+const client = useSupabaseClient();
 
 let nodesRC: RealtimeChannel;
 

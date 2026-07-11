@@ -1,7 +1,7 @@
 import type { FileObject } from "@supabase/storage-js";
 
 export const useAssetsStore = defineStore("assets", () => {
-  const client = useSupabaseClient<Database>();
+  const client = useSupabaseClient();
 
   const assets = ref<(FileObject & { url: URL })[]>([]);
 

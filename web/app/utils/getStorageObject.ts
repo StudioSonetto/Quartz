@@ -1,6 +1,6 @@
 export default async (bucket: string, deck: string, name: string) => {
   const config = useRuntimeConfig();
-  const client = useSupabaseClient<Database>();
+  const client = useSupabaseClient();
 
   const url = new URL(
     `${config.public.supabaseUrl}/storage/v1/object/authenticated/${bucket}/${deck}/${name}`
