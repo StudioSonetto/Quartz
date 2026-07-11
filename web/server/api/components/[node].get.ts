@@ -3,9 +3,11 @@ import { db } from "~~/server/db";
 import { components } from "~~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event);
+  const user = await requireUser(event);
 
   const node = getRouterParam(event, "node")!;
+
+  await requireNodeOwner(node, user.id);
 
   return db
     .select()

@@ -1,7 +1,7 @@
 import html2canvas from "html2canvas";
 
 export function useSnapshot() {
-  const client = useSupabaseClient<Database>();
+  const client = useSupabaseClient();
 
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 

@@ -1,12 +1,20 @@
+import { z } from "zod";
 import { db } from "~~/server/db";
 import { slides } from "~~/server/db/schema";
 
+const bodySchema = z.object({
+  deck: z.string().uuid(),
+  index: z.number().int().nonnegative(),
+});
+
 export default defineEventHandler(async (event) => {
-  await requireUser(event);
+  const user = await requireUser(event);
 
-  const { deck, index } = await readBody<{ deck: string; index: number }>(
-    event,
-  );
+  const { deck, index } = await validateBody(event, bodySchema);
 
-  return db.insert(slides).values({ deck, index }).returning();
+  await requireDeckOwner(deck, user.id);
+
+  const [slide] = await db.insert(slides).values({ deck, index }).returning();
+
+  return slide;
 });

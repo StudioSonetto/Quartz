@@ -11,6 +11,16 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
+import type { components, decks, nodes, slides } from "~~/server/db/schema";
+
+export type DeckModel = typeof decks.$inferSelect;
+export type SlidesModel = typeof slides.$inferSelect;
+export type NodeModel = typeof nodes.$inferSelect;
+export type ComponentModel = typeof components.$inferSelect;
+
+export type NodeType = NodeModel["type"];
+export type ComponentType = ComponentModel["type"];
+
 export interface Tree extends NodeModel {
   type: NodeType;
   children: Tree[];

@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "~~/server/db";
 import { decks } from "~~/server/db/schema";
 
@@ -9,5 +9,5 @@ export default defineEventHandler(async (event) => {
     .select()
     .from(decks)
     .where(eq(decks.lapidarist, user.id))
-    .orderBy(asc(decks.last_modified));
+    .orderBy(desc(decks.last_modified));
 });

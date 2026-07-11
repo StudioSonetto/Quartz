@@ -3,9 +3,11 @@ import { db } from "~~/server/db";
 import { components, nodes } from "~~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event);
+  const user = await requireUser(event);
 
   const { slides: slidesId } = getQuery(event) as { slides: string };
+
+  await requireSlideOwner(slidesId, user.id);
 
   return db
     .select({

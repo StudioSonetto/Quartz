@@ -131,7 +131,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import type Modal from "@/components/Modal.vue";
 
-const client = useSupabaseClient<Database>();
+const client = useSupabaseClient();
 
 const { currentSlides } = storeToRefs(useDeckStore());
 
