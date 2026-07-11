@@ -127,6 +127,7 @@ export const nodes = pgTable.withRLS(
       .onDelete("cascade")
       .onUpdate("cascade"),
     index("nodes_slides_idx").on(t.slides),
+    index("nodes_path_idx").using("gist", t.path),
     pgPolicy("nodes_select_own", {
       for: "select",
       to: authenticatedRole,

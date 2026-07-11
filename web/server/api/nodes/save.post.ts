@@ -1,4 +1,4 @@
-import { and, eq, inArray, like, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~~/server/db";
 import {
@@ -107,7 +107,10 @@ export default defineEventHandler(async (event) => {
       await tx
         .delete(nodes)
         .where(
-          and(eq(nodes.slides, node.slides), like(nodes.path, `${node.path}%`)),
+          and(
+            eq(nodes.slides, node.slides),
+            sql`${nodes.path} <@ ${node.path}::ltree`,
+          ),
         );
     }
 
