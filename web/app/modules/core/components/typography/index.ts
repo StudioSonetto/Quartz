@@ -1,9 +1,9 @@
-import Typography from "~/components/node/component/Typography.vue";
+import Panel from "./Panel.vue";
 
 export default {
   type: "typography",
   icon: "i-carbon-text-font",
-  inspector: Typography,
+  inspector: Panel,
   defaultData: () => ({
     alignment: "left",
     colour: "#151515",

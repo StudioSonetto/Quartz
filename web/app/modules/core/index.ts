@@ -7,6 +7,6 @@ export const core = defineModule({
     import.meta.glob("./nodes/*.ts", { eager: true, import: "default" }),
   ) as NodeTypeDef[],
   componentTypes: Object.values(
-    import.meta.glob("./components/*.ts", { eager: true, import: "default" }),
+    import.meta.glob("./components/*/index.ts", { eager: true, import: "default" }),
   ) as ComponentTypeDef[],
 });

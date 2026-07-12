@@ -1,8 +1,8 @@
-import Base from "~/components/node/component/Base.vue";
+import Panel from "./Panel.vue";
 
 export default {
   type: "base",
   icon: "i-carbon-term",
-  inspector: Base,
+  inspector: Panel,
   defaultData: () => ({}),
 } satisfies ComponentTypeDef;

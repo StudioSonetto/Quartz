@@ -1,9 +1,9 @@
-import Model from "~/components/node/component/Model.vue";
+import Panel from "./Panel.vue";
 
 export default {
   type: "model",
   icon: "i-carbon-model-alt",
-  inspector: Model,
+  inspector: Panel,
   defaultData: () => ({
     type: "box",
     fallback: "none",

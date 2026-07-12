@@ -1,8 +1,8 @@
-import Scene from "~/components/node/component/Scene.vue";
+import Panel from "./Panel.vue";
 
 export default {
   type: "scene",
   icon: "i-carbon-web-services-container",
-  inspector: Scene,
+  inspector: Panel,
   defaultData: () => ({ background: "#151515" }),
 } satisfies ComponentTypeDef;
