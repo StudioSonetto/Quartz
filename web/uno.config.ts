@@ -35,13 +35,10 @@ export default defineConfig({
     }),
   ],
   transformers: [transformerDirectives()],
-  // Registry module defs hold icon classes as string literals; UnoCSS doesn't
-  // scan plain .ts by default, so add them to the extraction pipeline.
   content: {
     pipeline: {
       include: [
-        /\.(vue|svelte|[jt]sx|vine.ts|mdx?|astro|elm|php|phtml|marko|html)($|\?)/,
-        // registry module defs (plain .ts) hold icon classes as string literals
+        /\.vue($|\?)/,
         /[\\/]modules[\\/].*\.ts($|\?)/,
       ],
     },
