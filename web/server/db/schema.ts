@@ -31,7 +31,7 @@ export const componentType = pgEnum("component_type", [
   "base",
   "camera",
   "layout",
-  "mesh",
+  "model",
   "scene",
   "transform",
   "typography",

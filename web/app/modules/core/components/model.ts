@@ -1,7 +1,7 @@
 export default {
-  type: "mesh",
+  type: "model",
   icon: "i-carbon-model-alt",
-  inspector: "LazyNodeComponentMesh",
+  inspector: "LazyNodeComponentModel",
   defaultData: () => ({
     type: "box",
     fallback: "none",

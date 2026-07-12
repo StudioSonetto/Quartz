@@ -51,7 +51,7 @@ const resolvedComponents = {
   base: resolveComponent("LazyNodeComponentBase"),
   camera: resolveComponent("LazyNodeComponentCamera"),
   layout: resolveComponent("LazyNodeComponentLayout"),
-  mesh: resolveComponent("LazyNodeComponentMesh"),
+  model: resolveComponent("LazyNodeComponentModel"),
   scene: resolveComponent("LazyNodeComponentScene"),
   transform: resolveComponent("LazyNodeComponentTransform"),
   typography: resolveComponent("LazyNodeComponentTypography"),

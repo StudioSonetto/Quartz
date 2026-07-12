@@ -421,22 +421,22 @@ export function useElementRenderer() {
   }
 
   function syncObject(context: CanvasContext, node: Tree) {
-    const mesh = findComponent(node, "mesh")!.data;
+    const model = findComponent(node, "model")!.data;
 
-    const isPrimitive = primitiveTypes.includes(mesh.type);
+    const isPrimitive = primitiveTypes.includes(model.type);
     const existingObject = context.objects.get(node.id);
 
     if (!existingObject) {
-      startInstantiate(context, node, mesh);
+      startInstantiate(context, node, model);
 
       return;
     }
 
-    updateObject(existingObject, mesh);
+    updateObject(existingObject, model);
 
     const needsRecreation = shouldRecreateObject(
       existingObject,
-      mesh,
+      model,
       isPrimitive,
     );
 
@@ -449,7 +449,7 @@ export function useElementRenderer() {
       // instead of recreating again while the replacement loads.
       context.objects.delete(node.id);
 
-      startInstantiate(context, node, mesh);
+      startInstantiate(context, node, model);
     }
   }
 
