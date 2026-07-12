@@ -1,9 +1,7 @@
-import { resolveComponent } from "vue";
-
 export default {
   type: "typography",
   icon: "i-carbon-text-font",
-  inspector: resolveComponent("LazyNodeComponentTypography"),
+  inspector: "LazyNodeComponentTypography",
   defaultData: () => ({
     alignment: "left",
     colour: "#151515",

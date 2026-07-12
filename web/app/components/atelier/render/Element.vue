@@ -200,8 +200,6 @@ watch(isDragging, (newState) => {
 const render = computed(() => {
   if (!isMounted.value) return;
 
-  console.log("Rendering", props.node.type);
-
   const result = renderer[props.node.type];
 
   return {

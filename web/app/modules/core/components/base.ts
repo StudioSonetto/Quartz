@@ -1,8 +1,6 @@
-import { resolveComponent } from "vue";
-
 export default {
   type: "base",
   icon: "i-carbon-term",
-  inspector: resolveComponent("LazyNodeComponentBase"),
+  inspector: "LazyNodeComponentBase",
   defaultData: () => ({}),
 } satisfies ComponentTypeDef;

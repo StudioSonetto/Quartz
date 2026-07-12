@@ -1,9 +1,7 @@
-import { resolveComponent } from "vue";
-
 export default {
   type: "mesh",
   icon: "i-carbon-model-alt",
-  inspector: resolveComponent("LazyNodeComponentMesh"),
+  inspector: "LazyNodeComponentMesh",
   defaultData: () => ({
     type: "box",
     fallback: "none",
