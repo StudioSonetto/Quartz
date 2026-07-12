@@ -1,4 +1,4 @@
-export const group: NodeTypeDef = {
+export default {
   type: "group",
   label: "Group",
   icon: "i-carbon-caret-down",
@@ -18,4 +18,4 @@ export const group: NodeTypeDef = {
       };
     },
   },
-};
+} satisfies NodeTypeDef;

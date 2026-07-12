@@ -1,7 +1,8 @@
 import { resolveComponent } from "vue";
-export const base: ComponentTypeDef = {
+
+export default {
   type: "base",
   icon: "i-carbon-term",
   inspector: resolveComponent("LazyNodeComponentBase"),
   defaultData: () => ({}),
-};
+} satisfies ComponentTypeDef;

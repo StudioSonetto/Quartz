@@ -1,7 +1,8 @@
 import { resolveComponent } from "vue";
-export const animation: ComponentTypeDef = {
+
+export default {
   type: "animation",
   icon: "i-carbon-motion",
   inspector: resolveComponent("LazyNodeComponentAnimation"),
   defaultData: () => ({}),
-};
+} satisfies ComponentTypeDef;

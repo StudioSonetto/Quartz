@@ -1,4 +1,4 @@
-export const text: NodeTypeDef = {
+export default {
   type: "text",
   label: "Text",
   icon: "i-carbon-text-short-paragraph",
@@ -38,7 +38,8 @@ export const text: NodeTypeDef = {
           fontSize: `${typography.size}px`,
           fontWeight: typography.weight,
           fontStyle,
-          textDecoration: textDecorations.length > 0 ? textDecorations.join(" ") : "none",
+          textDecoration:
+            textDecorations.length > 0 ? textDecorations.join(" ") : "none",
           left: `${xPercent}%`,
           textAlign: typography.alignment,
           top: `${yPercent}%`,
@@ -49,4 +50,4 @@ export const text: NodeTypeDef = {
       };
     },
   },
-};
+} satisfies NodeTypeDef;

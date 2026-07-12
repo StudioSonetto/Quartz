@@ -1,4 +1,4 @@
-export const webglCanvas: NodeTypeDef = {
+export default {
   type: "webgl_canvas",
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
@@ -26,4 +26,4 @@ export const webglCanvas: NodeTypeDef = {
       };
     },
   },
-};
+} satisfies NodeTypeDef;

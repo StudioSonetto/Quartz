@@ -1,4 +1,4 @@
-export const webglObject: NodeTypeDef = {
+export default {
   type: "webgl_object",
   label: "3D Object",
   icon: "i-carbon-cube",
@@ -13,4 +13,4 @@ export const webglObject: NodeTypeDef = {
       return {};
     },
   },
-};
+} satisfies NodeTypeDef;

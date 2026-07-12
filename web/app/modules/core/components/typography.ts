@@ -1,5 +1,6 @@
 import { resolveComponent } from "vue";
-export const typography: ComponentTypeDef = {
+
+export default {
   type: "typography",
   icon: "i-carbon-text-font",
   inspector: resolveComponent("LazyNodeComponentTypography"),
@@ -12,4 +13,4 @@ export const typography: ComponentTypeDef = {
     style: [],
     weight: 300,
   }),
-};
+} satisfies ComponentTypeDef;

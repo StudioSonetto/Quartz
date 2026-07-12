@@ -1,5 +1,6 @@
 import { resolveComponent } from "vue";
-export const mesh: ComponentTypeDef = {
+
+export default {
   type: "mesh",
   icon: "i-carbon-model-alt",
   inspector: resolveComponent("LazyNodeComponentMesh"),
@@ -13,4 +14,4 @@ export const mesh: ComponentTypeDef = {
     z: 0,
     scale: 1,
   }),
-};
+} satisfies ComponentTypeDef;
