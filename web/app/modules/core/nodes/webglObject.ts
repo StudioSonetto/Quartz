@@ -1,0 +1,16 @@
+export const webglObject: NodeTypeDef = {
+  type: "webgl_object",
+  label: "3D Object",
+  icon: "i-carbon-cube",
+  creatable: true,
+  defaultComponents: ["base", "transform", "mesh"],
+  renderer: {
+    element: "",
+    render: (node, ctx) => {
+      const context = ctx.getCanvasContext(node.parent!.id);
+      if (!context) return {};
+      ctx.syncObject(context, node);
+      return {};
+    },
+  },
+};
