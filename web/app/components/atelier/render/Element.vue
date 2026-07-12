@@ -36,7 +36,7 @@
 </style>
 
 <script setup lang="ts">
-const { renderer, setupCanvas } = useElementRenderer();
+const { resolveRender, setupCanvas } = useElementRenderer();
 const { selectedNode } = storeToRefs(useDeckStore());
 const { getNodeComponent } = useNodeComponents();
 
@@ -200,12 +200,7 @@ watch(isDragging, (newState) => {
 const render = computed(() => {
   if (!isMounted.value) return;
 
-  const result = renderer[props.node.type];
-
-  return {
-    element: result.element,
-    ...result.render(props.node),
-  };
+  return resolveRender(props.node);
 });
 
 function selectNode(event: Event) {
