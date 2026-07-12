@@ -1,3 +1,7 @@
+export function defineModule(m: ModuleDefinition): ModuleDefinition {
+  return m;
+}
+
 const nodeTypes = new Map<NodeType, NodeTypeDef>();
 const componentTypes = new Map<ComponentType, ComponentTypeDef>();
 
