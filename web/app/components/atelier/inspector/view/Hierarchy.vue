@@ -12,7 +12,7 @@
   >
     <ul class="tree">
       <Node
-        v-if="!isEmptyTree(currentTree)"
+        v-if="currentTree && !isEmptyTree(currentTree)"
         :id="currentTree.id"
         data-path="root"
         data-type="group"
@@ -27,8 +27,12 @@
         <FormInput name="name" type="text" placeholder="Name" :maxlength="20" />
         <Field name="type" v-slot="{ field }">
           <select v-bind="field">
-            <option v-for="type in types.options" :value="type">
-              {{ type.charAt(0).toUpperCase() + type.slice(1) }}
+            <option
+              v-for="node in creatableTypes"
+              :key="node.type"
+              :value="node.type"
+            >
+              {{ node.label }}
             </option>
           </select>
         </Field>
@@ -40,7 +44,9 @@
         >
           Confirm
         </UIButton>
-        <p v-if="error" class="text-center text-red-500 mt-6">ERROR: {{ error }}</p>
+        <p v-if="error" class="text-center text-red-500 mt-6">
+          ERROR: {{ error }}
+        </p>
       </form>
     </Modal>
   </AtelierInspectorView>
@@ -69,29 +75,34 @@ import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
 
+import { creatableNodeTypes } from "~/modules/registry";
+
 const client = useSupabaseClient();
 
 let nodesRC: RealtimeChannel;
 
-const { currentTree, currentSlides, selectedNode } = storeToRefs(
-  useDeckStore()
-);
+const { currentTree, currentSlides, selectedNode } =
+  storeToRefs(useDeckStore());
 
 const modal = ref<typeof Modal>();
 
-const types = zod.enum(["group", "text", "webgl_canvas", "webgl_object"]);
+const creatableTypes = creatableNodeTypes();
+const typeValues = creatableTypes.map((t) => t.type) as [
+  NodeType,
+  ...NodeType[],
+];
 
 const nodeSchema = toTypedSchema(
   zod.object({
     name: zod.string().min(1, "Required"),
-    type: zod.enum(types.options),
-  })
+    type: zod.enum(typeValues),
+  }),
 );
 
 const { handleSubmit, meta, resetForm } = useForm({
   validationSchema: nodeSchema,
   initialValues: {
-    type: types.options[0],
+    type: typeValues[0],
   },
 });
 
@@ -101,10 +112,12 @@ const onSubmit = handleSubmit(async (values) => {
   try {
     error.value = "";
 
+    if (!currentSlides.value) return;
+
     await useDeckStore().insertNewNode(
       `${currentSlides.value.id}`,
       `${values.name}`,
-      values.type
+      values.type,
     );
 
     modal.value?.close();
@@ -121,7 +134,7 @@ onMounted(() => {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "nodes" },
-      () => useDeckStore().fetchAllNodes()
+      () => useDeckStore().fetchAllNodes(),
     )
     .subscribe();
 });
