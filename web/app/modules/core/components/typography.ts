@@ -1,7 +1,9 @@
+import Typography from "~/components/node/component/Typography.vue";
+
 export default {
   type: "typography",
   icon: "i-carbon-text-font",
-  inspector: "LazyNodeComponentTypography",
+  inspector: Typography,
   defaultData: () => ({
     alignment: "left",
     colour: "#151515",

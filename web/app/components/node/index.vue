@@ -115,6 +115,8 @@
 <script setup lang="ts">
 import Sortable from "sortablejs";
 
+import { getNodeType } from "~/modules/registry";
+
 const { deleteSelectedNode, updateNode } = useDeckStore();
 const { selectedNode } = storeToRefs(useDeckStore());
 
@@ -138,21 +140,9 @@ const nodeName = computed({
   },
 });
 
-const nodeIcon = computed(() => {
-  switch (props.node.type) {
-    case "group":
-      return "i-carbon-caret-down";
-
-    case "text":
-      return "i-carbon-text-short-paragraph";
-
-    case "webgl_canvas":
-      return "i-carbon-assembly-cluster";
-
-    case "webgl_object":
-      return "i-carbon-cube";
-  }
-});
+const nodeIcon = computed(
+  () => getNodeType(props.node.type)?.icon ?? "i-carbon-help",
+);
 
 const isSelected = computed(() => {
   return selectedNode.value?.id === props.node.id;

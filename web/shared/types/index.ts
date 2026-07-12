@@ -11,6 +11,8 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
+import type { Component } from "vue";
+
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
 
 export type DeckModel = typeof decks.$inferSelect;
@@ -79,7 +81,7 @@ export interface NodeRenderer {
 export interface ComponentTypeDef {
   type: ComponentType;
   icon: string;
-  inspector: string;
+  inspector: Component;
   defaultData: () => Record<string, any>;
 }
 

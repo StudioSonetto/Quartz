@@ -1,7 +1,9 @@
+import Model from "~/components/node/component/Model.vue";
+
 export default {
   type: "model",
   icon: "i-carbon-model-alt",
-  inspector: "LazyNodeComponentModel",
+  inspector: Model,
   defaultData: () => ({
     type: "box",
     fallback: "none",

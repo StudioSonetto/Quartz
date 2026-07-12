@@ -1,12 +1,19 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="[]">
     <div v-if="selectedNode" class="view" @contextmenu.prevent>
-      <Component
+      <template
         v-for="component in nodeComponents"
         :key="`${component.node}-${component.type}`"
-        :is="resolvedComponents[component.type]"
-        :component="component"
-      />
+      >
+        <Component
+          v-if="getComponentType(component.type)"
+          :is="getComponentType(component.type)!.inspector"
+          :component="component"
+        />
+        <div v-else class="unavailable">
+          Unavailable component: {{ component.type }}
+        </div>
+      </template>
     </div>
     <div v-else class="placeholder" @contextmenu.prevent>
       <div class="i-carbon-error"></div>
@@ -39,23 +46,17 @@
     @apply ui-text-6 mb-6;
   }
 }
+
+.unavailable {
+  @apply p-6 ui-text-3 opacity-60 italic;
+}
 </style>
 
 <script setup lang="ts">
 const { currentTree, selectedNode } = storeToRefs(useDeckStore());
 const { getNodeComponents } = useNodeComponents();
 
-// https://github.com/nuxt/nuxt/issues/14036
-const resolvedComponents = {
-  animation: resolveComponent("LazyNodeComponentAnimation"),
-  base: resolveComponent("LazyNodeComponentBase"),
-  camera: resolveComponent("LazyNodeComponentCamera"),
-  layout: resolveComponent("LazyNodeComponentLayout"),
-  model: resolveComponent("LazyNodeComponentModel"),
-  scene: resolveComponent("LazyNodeComponentScene"),
-  transform: resolveComponent("LazyNodeComponentTransform"),
-  typography: resolveComponent("LazyNodeComponentTypography"),
-};
+import { getComponentType } from "~/modules/registry";
 
 const nodeComponents = computed<ComponentModel[]>(() => {
   if (!selectedNode.value?.id || !currentTree.value) return [];

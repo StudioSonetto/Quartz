@@ -82,36 +82,17 @@
 </style>
 
 <script setup lang="ts">
+import { getComponentType } from "~/modules/registry";
+
 const props = defineProps<{
-  name: string;
+  name: ComponentType;
 }>();
 
 const isOpen = ref(false);
 
-const icon = computed(() => {
-  switch (props.name) {
-    case "base":
-      return "i-carbon-term";
-
-    case "camera":
-      return "i-carbon-camera";
-
-    case "layout":
-      return "i-carbon-template";
-
-    case "model":
-      return "i-carbon-model-alt";
-
-    case "scene":
-      return "i-carbon-web-services-container";
-
-    case "transform":
-      return "i-carbon-shapes";
-
-    case "typography":
-      return "i-carbon-text-font";
-  }
-});
+const icon = computed(
+  () => getComponentType(props.name)?.icon ?? "i-carbon-help",
+);
 
 function toggleComponent() {
   isOpen.value = !isOpen.value;
