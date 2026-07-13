@@ -14,7 +14,7 @@
     @apply ui-text-3;
     @apply font-normal text-center;
     @apply bg-dark-200 border-rd;
-    @apply p-2 mt-8 transition-opacity;
+    @apply p-2 mt-8 transition-opacity z-99;
   }
 }
 
