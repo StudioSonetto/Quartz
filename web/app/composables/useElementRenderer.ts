@@ -235,15 +235,15 @@ function getObjectModelType(object: Mesh | Group): string | undefined {
 async function instantiateObject(
   context: CanvasContext,
   node: Tree,
-  mesh: any,
+  model: any,
 ) {
-  const isPrimitive = primitiveTypes.includes(mesh.type);
-  const textureUrl = getTextureUrl(mesh.texture);
+  const isPrimitive = primitiveTypes.includes(model.type);
+  const textureUrl = getTextureUrl(model.texture);
 
   const newObject = isPrimitive
-    ? createPrimitiveMesh(mesh.type, mesh.colour)
-    : await loadModel(context, mesh.type, mesh.fallback).then((geometry) =>
-        createModel(geometry ?? null, mesh.colour, textureUrl),
+    ? createPrimitiveMesh(model.type, model.colour)
+    : await loadModel(context, model.type, model.fallback).then((geometry) =>
+        createModel(geometry ?? null, model.colour, textureUrl),
       );
 
   if (!newObject) {
@@ -251,24 +251,26 @@ async function instantiateObject(
   }
 
   if (!isPrimitive) {
-    setObjectMetadata(newObject, mesh.type);
+    setObjectMetadata(newObject, model.type);
   }
 
-  newObject.position.set(mesh.x, mesh.y, mesh.z);
-  newObject.scale.set(mesh.scale, mesh.scale, mesh.scale);
+  newObject.position.set(model.x, model.y, model.z);
+  newObject.scale.set(model.scale, model.scale, model.scale);
 
   context.objects.set(node.id, newObject);
   context.scene.add(newObject);
 }
 
-function startInstantiate(context: CanvasContext, node: Tree, mesh: any) {
+function startInstantiate(context: CanvasContext, node: Tree, model: any) {
   if (loadingObjects.has(node.id)) return;
 
   loadingObjects.add(node.id);
 
-  Promise.resolve(instantiateObject(context, node, mesh)).finally(() => {
-    loadingObjects.delete(node.id);
-  });
+  Promise.resolve(instantiateObject(context, node, model))
+    .catch((error) => console.error("Failed to instantiate object", error))
+    .finally(() => {
+      loadingObjects.delete(node.id);
+    });
 }
 
 function hasTypeConflict(
@@ -283,42 +285,42 @@ function hasTypeConflict(
 
 function hasPrimitiveGeometryChanged(
   existingObject: Mesh | Group,
-  mesh: any,
+  model: any,
   isPrimitive: boolean,
 ): boolean {
   return (
     existingObject instanceof Mesh &&
     isPrimitive &&
-    existingObject.geometry.type.toLowerCase() !== mesh.type.toLowerCase()
+    existingObject.geometry.type !== getPrimitiveGeometry(model.type)?.type
   );
 }
 
 function hasModelTypeChanged(
   existingObject: Mesh | Group,
-  mesh: any,
+  model: any,
   isPrimitive: boolean,
 ): boolean {
-  return !isPrimitive && getObjectModelType(existingObject) !== mesh.type;
+  return !isPrimitive && getObjectModelType(existingObject) !== model.type;
 }
 
 function shouldRecreateObject(
   existingObject: Mesh | Group,
-  mesh: any,
+  model: any,
   isPrimitive: boolean,
 ): boolean {
   if (hasTypeConflict(existingObject, isPrimitive)) {
     return true;
   }
 
-  if (hasPrimitiveGeometryChanged(existingObject, mesh, isPrimitive)) {
+  if (hasPrimitiveGeometryChanged(existingObject, model, isPrimitive)) {
     return true;
   }
 
-  if (hasModelTypeChanged(existingObject, mesh, isPrimitive)) {
+  if (hasModelTypeChanged(existingObject, model, isPrimitive)) {
     return true;
   }
 
-  return checkTextureChanged(existingObject, mesh.texture);
+  return checkTextureChanged(existingObject, model.texture);
 }
 
 function disposeObject(object: Mesh | Group) {
@@ -331,10 +333,10 @@ function disposeObject(object: Mesh | Group) {
   }
 }
 
-function updateObject(object: Mesh | Group, mesh: any) {
-  updateObjectColour(object, mesh.colour);
-  object.position.set(mesh.x, mesh.y, mesh.z);
-  object.scale.set(mesh.scale, mesh.scale, mesh.scale);
+function updateObject(object: Mesh | Group, model: any) {
+  updateObjectColour(object, model.colour);
+  object.position.set(model.x, model.y, model.z);
+  object.scale.set(model.scale, model.scale, model.scale);
 }
 
 export function useElementRenderer() {

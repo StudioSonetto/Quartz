@@ -2,14 +2,10 @@
   <AtelierInspectorView name="Properties" :actions="[]">
     <div v-if="selectedNode" class="view" @contextmenu.prevent>
       <template
-        v-for="component in nodeComponents"
+        v-for="{ component, def } in panels"
         :key="`${component.node}-${component.type}`"
       >
-        <Component
-          v-if="getComponentType(component.type)"
-          :is="getComponentType(component.type)!.inspector"
-          :component="component"
-        />
+        <Component v-if="def" :is="def.inspector" :component="component" />
         <div v-else class="unavailable">
           Unavailable component: {{ component.type }}
         </div>
@@ -63,4 +59,11 @@ const nodeComponents = computed<ComponentModel[]>(() => {
 
   return getNodeComponents(selectedNode.value.id);
 });
+
+const panels = computed(() =>
+  nodeComponents.value.map((component) => ({
+    component,
+    def: getComponentType(component.type),
+  })),
+);
 </script>

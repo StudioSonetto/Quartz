@@ -7,16 +7,18 @@ import {
   __resetRegistry,
 } from "./registry";
 
-const nodeDef = (type: string, creatable = true) =>
-  ({ type, label: type, icon: "i", creatable, defaultComponents: [], renderer: { element: "div", render: () => ({}) } }) as any;
-const compDef = (type: string) =>
-  ({ type, icon: "i", inspector: {}, defaultData: () => ({}) }) as any;
+const node = (type: string, creatable = true) => ({ type, creatable }) as any;
+const component = (type: string) => ({ type }) as any;
 
 describe("registry", () => {
-  beforeEach(() => __resetRegistry());
+  beforeEach(__resetRegistry);
 
-  it("registers and retrieves node and component types", () => {
-    registerModule({ id: "m", nodeTypes: [nodeDef("group")], componentTypes: [compDef("base")] });
+  it("registers and retrieves types", () => {
+    registerModule({
+      id: "m",
+      nodeTypes: [node("group")],
+      componentTypes: [component("base")],
+    });
     expect(getNodeType("group")?.type).toBe("group");
     expect(getComponentType("base")?.type).toBe("base");
   });
@@ -26,14 +28,22 @@ describe("registry", () => {
     expect(getComponentType("nope")).toBeUndefined();
   });
 
-  it("creatableNodeTypes filters on the creatable flag", () => {
-    registerModule({ id: "m", nodeTypes: [nodeDef("group", true), nodeDef("hidden", false)], componentTypes: [] });
+  it("filters creatable node types", () => {
+    registerModule({
+      id: "m",
+      nodeTypes: [node("group"), node("hidden", false)],
+      componentTypes: [],
+    });
     expect(creatableNodeTypes().map((n) => n.type)).toEqual(["group"]);
   });
 
-  it("last registration wins for a duplicate type", () => {
-    registerModule({ id: "a", nodeTypes: [nodeDef("group")], componentTypes: [] });
-    registerModule({ id: "b", nodeTypes: [{ ...nodeDef("group"), label: "second" }], componentTypes: [] });
+  it("last registration wins", () => {
+    registerModule({ id: "a", nodeTypes: [node("group")], componentTypes: [] });
+    registerModule({
+      id: "b",
+      nodeTypes: [{ ...node("group"), label: "second" }],
+      componentTypes: [],
+    });
     expect(getNodeType("group")?.label).toBe("second");
   });
 });
