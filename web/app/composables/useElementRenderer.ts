@@ -24,7 +24,14 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
+import { getNodeType } from "~/modules/registry";
+
 const contexts = new Map<string, CanvasContext>();
+
+// Node ids whose object is currently being (re)instantiated. Guards against the
+// async `instantiateObject` being fired repeatedly across render evaluations
+// before a load resolves, which would add duplicate meshes to the scene.
+const loadingObjects = new Set<string>();
 
 const isAnimating = ref(false);
 
@@ -254,6 +261,16 @@ async function instantiateObject(
   context.scene.add(newObject);
 }
 
+function startInstantiate(context: CanvasContext, node: Tree, mesh: any) {
+  if (loadingObjects.has(node.id)) return;
+
+  loadingObjects.add(node.id);
+
+  Promise.resolve(instantiateObject(context, node, mesh)).finally(() => {
+    loadingObjects.delete(node.id);
+  });
+}
+
 function hasTypeConflict(
   existingObject: Mesh | Group,
   isPrimitive: boolean,
@@ -343,191 +360,117 @@ export function useElementRenderer() {
     return Math.min(width.value / 1920, height.value / 1080);
   });
 
-  const renderer: Record<NodeType, NodeRenderer> = {
-    group: {
-      element: "div",
-      render: (node: Tree) => {
-        const layout = findComponent(node, "layout")?.data || {};
+  function ensureCanvasContext(node: Tree) {
+    const transform = findComponent(node, "transform")!.data;
 
-        return {
-          style: {
-            margin: `${layout.margin}px`,
-            display: "flex",
-            alignItems: layout.align,
-            justifyContent: layout.justify,
-          },
-        };
-      },
-    },
-    text: {
-      element: "p",
-      render: (node: Tree) => {
-        const typography = findComponent(node, "typography")!.data;
-        const transform = findComponent(node, "transform")!.data;
+    const sceneComponent = findComponent(node, "scene")!.data;
+    const cameraComponent = findComponent(node, "camera")!.data;
 
-        const xPercent = (transform.position.x / 1920) * 100;
-        const yPercent = (transform.position.y / 1080) * 100;
+    if (!contexts.has(node.id)) {
+      contexts.set(node.id, {
+        scene: new Scene(),
+        camera: new PerspectiveCamera(
+          75,
+          transform.width / transform.height,
+          0.1,
+          1000,
+        ),
+        renderer: new WebGLRenderer({ antialias: true }),
+        loaders: {
+          fbx: new FBXLoader(),
+          gltf: new GLTFLoader(),
+          obj: new OBJLoader(),
+        },
+        objects: new Map(),
+        cache: new Map(),
+      });
 
-        const textDecorations: string[] = [];
+      const ambientLight = new AmbientLight(0xffffff, 0.5);
+      const directionalLight = new DirectionalLight(0xffffff, 1);
 
-        let fontStyle = "normal";
+      directionalLight.position.set(5, 5, 5);
 
-        typography.style.forEach((style: string) => {
-          switch (style) {
-            case "italic":
-              fontStyle = "italic";
+      contexts.get(node.id)!.scene.add(ambientLight);
+      contexts.get(node.id)!.scene.add(directionalLight);
 
-              break;
-            case "underline":
-              textDecorations.push("underline");
+      watch(
+        () => transform.width / transform.height,
+        (newAspectRatio) => {
+          const context = contexts.get(node.id);
 
-              break;
-            case "strikethrough":
-              textDecorations.push("line-through");
+          if (!context) return;
 
-              break;
-          }
-        });
+          context.camera.aspect = newAspectRatio;
+          context.camera.updateProjectionMatrix();
 
-        return {
-          content: typography.content,
-          style: {
-            color: typography.colour,
-            fontFamily: typography.font,
-            fontSize: `${typography.size}px`,
-            fontWeight: typography.weight,
-            fontStyle,
-            textDecoration:
-              textDecorations.length > 0 ? textDecorations.join(" ") : "none",
-            left: `${xPercent}%`,
-            textAlign: typography.alignment,
-            top: `${yPercent}%`,
-            transform: `scale(${transform.scale * scale.value})`,
-            zIndex: transform.position.z,
-            whiteSpace: "pre-line",
-          },
-        };
-      },
-    },
-    webgl_canvas: {
-      element: "div",
-      render: (node: Tree) => {
-        const transform = findComponent(node, "transform")!.data;
+          context.renderer.setSize(transform.width, transform.height);
+        },
+      );
+    }
 
-        const sceneComponent = findComponent(node, "scene")!.data;
-        const cameraComponent = findComponent(node, "camera")!.data;
+    const context = contexts.get(node.id);
 
-        const xPercent = (transform.position.x / 1920) * 100;
-        const yPercent = (transform.position.y / 1080) * 100;
+    context?.renderer.setSize(transform.width, transform.height);
+    context?.renderer.setClearColor(sceneComponent.background);
 
-        watch(
-          () => transform.width / transform.height,
-          (newAspectRatio) => {
-            const context = contexts.get(node.id);
+    context?.camera.position.set(
+      cameraComponent.x,
+      cameraComponent.y,
+      cameraComponent.z,
+    );
+  }
 
-            if (!context) return;
+  function syncObject(context: CanvasContext, node: Tree) {
+    const model = findComponent(node, "model")!.data;
 
-            context.camera.aspect = newAspectRatio;
-            context.camera.updateProjectionMatrix();
+    const isPrimitive = primitiveTypes.includes(model.type);
+    const existingObject = context.objects.get(node.id);
 
-            context.renderer.setSize(transform.width, transform.height);
-          },
-        );
+    if (!existingObject) {
+      startInstantiate(context, node, model);
 
-        if (!contexts.has(node.id)) {
-          contexts.set(node.id, {
-            scene: new Scene(),
-            camera: new PerspectiveCamera(
-              75,
-              transform.width / transform.height,
-              0.1,
-              1000,
-            ),
-            renderer: new WebGLRenderer({ antialias: true }),
-            loaders: {
-              fbx: new FBXLoader(),
-              gltf: new GLTFLoader(),
-              obj: new OBJLoader(),
-            },
-            objects: new Map(),
-            cache: new Map(),
-          });
+      return;
+    }
 
-          const ambientLight = new AmbientLight(0xffffff, 0.5);
-          const directionalLight = new DirectionalLight(0xffffff, 1);
+    updateObject(existingObject, model);
 
-          directionalLight.position.set(5, 5, 5);
+    const needsRecreation = shouldRecreateObject(
+      existingObject,
+      model,
+      isPrimitive,
+    );
 
-          contexts.get(node.id)!.scene.add(ambientLight);
-          contexts.get(node.id)!.scene.add(directionalLight);
-        }
+    if (needsRecreation) {
+      disposeObject(existingObject);
 
-        const context = contexts.get(node.id);
+      context.scene.remove(existingObject);
 
-        context?.renderer.setSize(transform.width, transform.height);
-        context?.renderer.setClearColor(sceneComponent.background);
+      // Stop tracking so the next render re-enters the guarded initial path
+      // instead of recreating again while the replacement loads.
+      context.objects.delete(node.id);
 
-        context?.camera.position.set(
-          cameraComponent.x,
-          cameraComponent.y,
-          cameraComponent.z,
-        );
+      startInstantiate(context, node, model);
+    }
+  }
 
-        return {
-          style: {
-            top: `${yPercent}%`,
-            left: `${xPercent}%`,
-            zIndex: transform.z,
-            width: `${transform.width}px`,
-            height: `${transform.height}px`,
-            transform: `scale(${transform.scale * scale.value})`,
-          },
-        };
-      },
-    },
-    webgl_object: {
-      element: "",
-      render: (node: Tree) => {
-        const context = contexts.get(node.parent!.id);
+  function resolveRender(node: Tree) {
+    const def = getNodeType(node.type);
 
-        if (!context) return {};
+    if (!def) return undefined;
 
-        const mesh = findComponent(node, "mesh")!.data;
+    const ctx: RenderContext = {
+      findComponent,
+      scale: scale.value,
+      ensureCanvasContext,
+      getCanvasContext: (id: string) => contexts.get(id),
+      syncObject,
+    };
 
-        const isPrimitive = primitiveTypes.includes(mesh.type);
-        const existingObject = context.objects.get(node.id);
-
-        if (!existingObject) {
-          instantiateObject(context, node, mesh);
-
-          return {};
-        }
-
-        updateObject(existingObject, mesh);
-
-        const needsRecreation = shouldRecreateObject(
-          existingObject,
-          mesh,
-          isPrimitive,
-        );
-
-        if (needsRecreation) {
-          disposeObject(existingObject);
-
-          context.scene.remove(existingObject);
-
-          instantiateObject(context, node, mesh);
-
-          return {};
-        }
-
-        return {};
-      },
-    },
-  };
+    return { element: def.renderer.element, ...def.renderer.render(node, ctx) };
+  }
 
   return {
-    renderer,
+    resolveRender,
     setupCanvas,
   };
 }

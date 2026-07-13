@@ -9,7 +9,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "db:pull": "bunx drizzle-kit pull --config=drizzle.config.ts",
-    "db:push": "bunx drizzle-kit push --config=drizzle.config.ts"
+    "db:push": "bunx drizzle-kit push --config=drizzle.config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@iconify-json/carbon": "^1.2.20",
@@ -46,6 +48,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "drizzle-kit": "1.0.0-beta.23"
+    "drizzle-kit": "1.0.0-beta.23",
+    "vitest": "^4.1.10"
   }
 }

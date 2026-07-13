@@ -35,6 +35,14 @@ export default defineConfig({
     }),
   ],
   transformers: [transformerDirectives()],
+  content: {
+    pipeline: {
+      include: [
+        /\.vue($|\?)/,
+        /[\\/]modules[\\/].*\.ts($|\?)/,
+      ],
+    },
+  },
   theme: {
     colors: {
       accent: "#4a6578",

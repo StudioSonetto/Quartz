@@ -1,5 +1,7 @@
 // TODO: Refactor this whole mess.
 
+import { getNodeType, getComponentType } from "~/modules/registry";
+
 export const useDeckStore = defineStore("deck", () => {
   const apiFetch = useRequestFetch();
 
@@ -171,92 +173,15 @@ export const useDeckStore = defineStore("deck", () => {
       reference: "",
     };
 
-    const defaultComponents: ComponentModel[] = [
-      {
-        type: "base",
+    const nodeDef = getNodeType(type);
+
+    const defaultComponents: ComponentModel[] = (nodeDef?.defaultComponents ?? []).map(
+      (componentType) => ({
+        type: componentType,
         node: id,
-        data: {},
-      },
-      {
-        type: "transform",
-        node: id,
-        data: {
-          position: {
-            x: 0,
-            y: 0,
-            z: 0,
-          },
-          scale: 1,
-        },
-      },
-    ];
-
-    switch (type) {
-      case "group":
-        defaultComponents.push({
-          type: "layout",
-          node: id,
-          data: {},
-        });
-
-        break;
-
-      case "text":
-        defaultComponents.push({
-          type: "typography",
-          node: id,
-          data: {
-            alignment: "left",
-            colour: "#151515",
-            content: "New Text",
-            font: "Azeret Mono",
-            size: 30,
-            style: [],
-            weight: 300,
-          },
-        });
-
-        break;
-
-      case "webgl_canvas":
-        defaultComponents.push({
-          type: "scene",
-          node: id,
-          data: {
-            background: "#151515",
-          },
-        });
-
-        defaultComponents.push({
-          type: "camera",
-          node: id,
-          data: {
-            x: 0,
-            y: 0,
-            z: 5,
-          },
-        });
-
-        break;
-
-      case "webgl_object":
-        defaultComponents.push({
-          type: "mesh",
-          node: id,
-          data: {
-            type: "box",
-            fallback: "none",
-            colour: "#FAFAFA",
-            texture: "default",
-            x: 0,
-            y: 0,
-            z: 0,
-            scale: 1,
-          },
-        });
-
-        break;
-    }
+        data: getComponentType(componentType)?.defaultData() ?? {},
+      }),
+    );
 
     pendingChanges.value.nodes.push(node);
 
