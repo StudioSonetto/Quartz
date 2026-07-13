@@ -44,13 +44,13 @@
 </template>
 
 <script setup lang="ts">
-const { updateNodeComponent } = useDeckStore();
+const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
 }>();
 
 watch(props.component.data, () => {
-  updateNodeComponent(props.component);
+  updateComponent(props.component);
 });
 </script>

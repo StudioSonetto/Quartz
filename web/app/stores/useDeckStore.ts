@@ -1,11 +1,13 @@
-// TODO: Refactor this whole mess.
-
 import { getNodeType, getComponentType } from "~/modules/registry";
+import { buildTree } from "~/utils/tree";
+import { ROOT_PATH, childPath } from "~/utils/nodePath";
 
 export const useDeckStore = defineStore("deck", () => {
   const apiFetch = useRequestFetch();
+  const sync = useDeckSync();
 
   const slides = ref<SlidesModel[]>([]);
+  const currentSlidesIndex = ref<number>(0);
   const currentSlides = computed(() => slides.value[currentSlidesIndex.value]);
 
   const trees = ref<Tree[]>([EMPTY_TREE]);
@@ -16,17 +18,8 @@ export const useDeckStore = defineStore("deck", () => {
     () => components.value[currentSlidesIndex.value],
   );
 
-  const currentSlidesIndex = ref<number>(0);
   const selectedNode = ref<Tree | null>(null);
   const slidesInLoading = ref<Set<number>>(new Set());
-
-  const pendingChanges = ref<{
-    nodes: PendingNode[];
-    components: ComponentModel[];
-  }>({
-    nodes: [],
-    components: [],
-  });
 
   watch(slides, (newSlides) => {
     if (trees.value.length >= newSlides.length) return;
@@ -34,98 +27,82 @@ export const useDeckStore = defineStore("deck", () => {
     components.value.push([]);
   });
 
-  watch(currentSlides, async () => {
-    if (
-      !pendingChanges.value.nodes.length ||
-      !pendingChanges.value.components.length
-    )
-      return;
-    await saveChanges();
-  });
-
+  // Load nodes for a slide the first time it becomes current.
   watch(currentTree, async () => {
-    if (
-      currentTree.value?.id ||
-      slidesInLoading.value.has(currentSlidesIndex.value)
-    )
+    if (currentTree.value?.id || slidesInLoading.value.has(currentSlidesIndex.value))
       return;
     await fetchAllNodes(currentSlidesIndex.value);
     await parallelLoad();
   });
 
-  watch(currentSlidesIndex, async () => {
+  watch(currentSlidesIndex, () => {
     selectedNode.value = null;
+    sync.flush(); // best-effort flush on slide switch (non-blocking)
   });
 
-  watch(
-    () => pendingChanges.value.nodes,
-    async (pendingNodes) => {
-      if (!pendingNodes.length) return;
+  const flattenTree = (tree: Tree): Tree[] => [
+    tree,
+    ...tree.children.flatMap(flattenTree),
+  ];
 
-      trees.value[currentSlidesIndex.value] = buildTree([
-        ...(currentTree.value ? flattenTree(currentTree.value) : []),
-        ...pendingNodes,
-      ]);
-    },
-    { deep: true },
-  );
+  function currentFlat(): Tree[] {
+    const tree = trees.value[currentSlidesIndex.value];
+    return tree ? flattenTree(tree) : [];
+  }
 
-  watchDebounced(
-    pendingChanges,
-    async (changes) => {
-      if (!changes.nodes.length && !changes.components.length) return;
+  // ---- Selectors used by the sync layer ----
 
-      await saveChanges();
-    },
-    { debounce: 5000, deep: true },
-  );
+  function getNodeById(id: string): NodeModel | undefined {
+    for (const tree of trees.value) {
+      const found = flattenTree(tree).find((n) => n.id === id);
+      if (found) {
+        const { children, parent, ...node } = found;
+        return node;
+      }
+    }
+    return undefined;
+  }
+
+  function getComponent(node: string, type: string): ComponentModel | undefined {
+    for (const slideComponents of components.value) {
+      const found = slideComponents.find(
+        (c) => c.node === node && c.type === type,
+      );
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  // ---- Deck / slide CRUD (thin API passthroughs) ----
 
   async function fetchAllDecks() {
     return apiFetch("/api/decks");
   }
-
   async function fetchDeck(id: string) {
     return apiFetch(`/api/decks/${id}`);
   }
-
   async function insertNewDeck() {
     const data = await apiFetch<{ id: string }>("/api/decks", { method: "POST" });
-
-    navigateTo(`/atelier/${data?.id}`, {
-      external: true,
-      open: {
-        target: "_blank",
-      },
-    });
+    navigateTo(`/atelier/${data?.id}`, { external: true, open: { target: "_blank" } });
   }
-
   async function updateDeckTitle(value: string) {
     if (!value.length) return;
-
     await apiFetch(`/api/decks/${useRoute().params.id}`, {
       method: "PATCH",
       body: { title: value },
     });
   }
-
   async function deleteDeck(id: string) {
     return apiFetch(`/api/decks/${id}`, { method: "DELETE" });
   }
-
   async function fetchAllSlides(deck: string) {
-    const data = await apiFetch<SlidesModel[]>("/api/slides", {
-      query: { deck },
-    });
-
+    const data = await apiFetch<SlidesModel[]>("/api/slides", { query: { deck } });
     if (data) slides.value = data;
-
     return data;
   }
-
   async function fetchSlides(deck: string, index: number) {
     return apiFetch<SlidesModel>("/api/slides", { query: { deck, index } });
   }
-
   async function insertNewSlides(deck: string) {
     return apiFetch("/api/slides", {
       method: "POST",
@@ -137,10 +114,7 @@ export const useDeckStore = defineStore("deck", () => {
     index: number = currentSlidesIndex.value,
     deck?: string,
   ) {
-    const id = deck
-      ? (await fetchSlides(deck, index))?.id
-      : slides.value?.[index]?.id;
-
+    const id = deck ? (await fetchSlides(deck, index))?.id : slides.value?.[index]?.id;
     if (!id) return [];
 
     const [data, fetchedComponents] = await Promise.all([
@@ -153,172 +127,15 @@ export const useDeckStore = defineStore("deck", () => {
       trees.value[index] = buildTree(data);
       return trees.value[index].children;
     }
-
     return [];
-  }
-
-  async function insertNewNode(slides: string, name: string, type: NodeType) {
-    const id = crypto.randomUUID();
-
-    const path = selectedNode.value
-      ? `${selectedNode.value?.path}.${name}`
-      : `root.${name}`;
-
-    const node: PendingNode = {
-      id: id,
-      slides: slides,
-      name: name,
-      path: path,
-      type: type,
-      reference: "",
-    };
-
-    const nodeDef = getNodeType(type);
-
-    const defaultComponents: ComponentModel[] = (nodeDef?.defaultComponents ?? []).map(
-      (componentType) => ({
-        type: componentType,
-        node: id,
-        data: getComponentType(componentType)?.defaultData() ?? {},
-      }),
-    );
-
-    pendingChanges.value.nodes.push(node);
-
-    pendingChanges.value.components.push(...defaultComponents);
-
-    components.value[currentSlidesIndex.value]!.push(...defaultComponents);
-
-    selectedNode.value = node as Tree;
-  }
-
-  async function deleteSelectedNode() {
-    if (!selectedNode.value || selectedNode.value.path === "root") return;
-
-    pendingChanges.value.nodes.push({
-      ...selectedNode.value,
-      _deleted: true,
-    });
-
-    selectedNode.value = null;
-  }
-
-  function updateNode(tree: Tree) {
-    const { children, ...node } = tree;
-
-    const index = pendingChanges.value.nodes.findIndex(
-      (pending) => pending.id === node.id,
-    );
-
-    if (index !== -1) {
-      pendingChanges.value.nodes.splice(index, 1);
-    }
-
-    pendingChanges.value.nodes.push(node);
   }
 
   async function fetchNodeComponents(node: string) {
     return apiFetch<ComponentModel[]>(`/api/components/${node}`);
   }
 
-  async function updateNodeComponent(component: ComponentModel) {
-    const index = pendingChanges.value.components.findIndex(
-      (c) => c.node === component.node && c.type === component.type,
-    );
-
-    if (index !== -1) {
-      pendingChanges.value.components[index] = component;
-    } else {
-      pendingChanges.value.components.push(component);
-    }
-  }
-
-  function buildTree(nodes: NodeModel[] | PendingNode[]): Tree {
-    const lookup: Record<string, Tree> = {};
-
-    // Process existing nodes.
-    nodes.forEach((node) => {
-      lookup[node.path] = {
-        ...node,
-        children: [],
-      };
-    });
-
-    // Process pending nodes.
-    pendingChanges.value.nodes.forEach((node: PendingNode) => {
-      if (!node._deleted) {
-        lookup[node.path] = {
-          ...node,
-          children: [],
-        };
-      } else {
-        delete lookup[node.path];
-      }
-    });
-
-    Object.values(lookup).forEach((node) => {
-      const parentPath = node.path.split(".").slice(0, -1).join(".");
-      const parentNode = lookup[parentPath];
-
-      if (parentNode) {
-        node.parent = parentNode;
-
-        parentNode.children.push(node);
-      }
-    });
-
-    return lookup["root"] || EMPTY_TREE;
-  }
-
-  // TODO: Too complex, find a better way to do this.
-  async function saveChanges() {
-    if (!currentSlides.value) return;
-
-    const nodesToUpsert = pendingChanges.value.nodes
-      .filter((node) => node.id && !node._deleted)
-      .map(({ id, slides, name, path, type, reference }) => ({
-        id,
-        slides,
-        name,
-        path,
-        type,
-        reference: reference || null,
-      }));
-
-    const nodesToDelete = pendingChanges.value.nodes
-      .filter((node) => node._deleted && !node._pending)
-      .map((node) => ({ path: node.path, slides: node.slides }));
-
-    const validNodes = new Set(
-      (trees.value[currentSlidesIndex.value]
-        ? flattenTree(trees.value[currentSlidesIndex.value]!)
-        : []
-      ).map((node) => node.id),
-    );
-
-    const componentsToUpsert = pendingChanges.value.components.filter(
-      (component) => validNodes.has(component.node),
-    );
-
-    await apiFetch("/api/nodes/save", {
-      method: "POST",
-      body: { nodesToUpsert, nodesToDelete, componentsToUpsert },
-    });
-
-    if (componentsToUpsert.length) {
-      await useSnapshot().capture();
-      await useSnapshot().fetch(currentSlides.value.deck, currentSlides.value.id);
-    }
-
-    pendingChanges.value = {
-      nodes: [],
-      components: [],
-    };
-  }
-
   async function parallelLoad() {
     if (slidesInLoading.value.size >= slides.value.length) return;
-
     const slidesToLoad = slides.value
       .map((_, index) => index)
       .filter(
@@ -327,7 +144,6 @@ export const useDeckStore = defineStore("deck", () => {
           !trees.value[index]?.id &&
           !slidesInLoading.value.has(index),
       );
-
     await Promise.all(
       slidesToLoad.map(async (index) => {
         slidesInLoading.value.add(index);
@@ -340,20 +156,117 @@ export const useDeckStore = defineStore("deck", () => {
     );
   }
 
-  const flattenTree = (tree: Tree): NodeModel[] => [
-    tree,
-    ...tree.children.flatMap(flattenTree),
-  ];
+  // ---- Mutations: mutate local state synchronously, then enqueue ----
+
+  function nextSiblingOrder(parentPath: string): number {
+    const siblings = currentFlat().filter(
+      (n) => n.path.split(".").slice(0, -1).join(".") === parentPath,
+    );
+    return siblings.reduce((max, n) => Math.max(max, n.sort_order), -1) + 1;
+  }
+
+  function createNode(name: string, type: NodeType) {
+    if (!currentSlides.value) return;
+
+    const id = crypto.randomUUID();
+    const parentPath = selectedNode.value?.path ?? ROOT_PATH;
+    const path = childPath(parentPath, id);
+
+    const node: NodeModel = {
+      id,
+      slides: currentSlides.value.id,
+      name,
+      path,
+      type,
+      reference: null,
+      sort_order: nextSiblingOrder(parentPath),
+    };
+
+    const nodeDef = getNodeType(type);
+    const defaultComponents: ComponentModel[] = (nodeDef?.defaultComponents ?? []).map(
+      (componentType) => ({
+        type: componentType,
+        node: id,
+        data: getComponentType(componentType)?.defaultData() ?? {},
+      }),
+    );
+
+    trees.value[currentSlidesIndex.value] = buildTree([
+      ...currentFlat().map(({ children, parent, ...n }) => n),
+      node,
+    ]);
+    components.value[currentSlidesIndex.value]!.push(...defaultComponents);
+
+    sync.enqueueNode(id);
+    for (const c of defaultComponents) sync.enqueueComponent(c.node, c.type);
+
+    selectedNode.value = getNodeAsTree(id);
+  }
+
+  function getNodeAsTree(id: string): Tree | null {
+    for (const tree of trees.value) {
+      const found = flattenTree(tree).find((n) => n.id === id);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function updateNode(
+    id: string,
+    patch: Partial<Pick<NodeModel, "name" | "reference">>,
+  ) {
+    const target = getNodeAsTree(id);
+    if (!target) return;
+    Object.assign(target, patch);
+    // Path is id-based, so name changes never touch the path — no reorder.
+    sync.enqueueNode(id);
+  }
+
+  function deleteSelectedNode() {
+    const node = selectedNode.value;
+    if (!node || node.path === ROOT_PATH) return;
+
+    const slideComponents = components.value[currentSlidesIndex.value] ?? [];
+    const removed = currentFlat().filter(
+      (n) => n.path === node.path || n.path.startsWith(`${node.path}.`),
+    );
+    const removedIds = new Set(removed.map((n) => n.id));
+
+    // Remove the node and its subtree from local state.
+    trees.value[currentSlidesIndex.value] = buildTree(
+      currentFlat()
+        .filter((n) => !removedIds.has(n.id))
+        .map(({ children, parent, ...n }) => n),
+    );
+    // Purge the removed subtree's components so they can't resolve in flush().
+    components.value[currentSlidesIndex.value] = slideComponents.filter(
+      (c) => !removedIds.has(c.node),
+    );
+
+    // Drop every removed id from the outbox before enqueuing the delete.
+    for (const n of removed) sync.dropNode(n.id);
+    sync.enqueueDelete({ path: node.path, slides: node.slides }, node.id);
+    selectedNode.value = null;
+  }
+
+  function updateComponent(component: ComponentModel) {
+    const slideComponents = components.value[currentSlidesIndex.value];
+    if (!slideComponents) return;
+    const index = slideComponents.findIndex(
+      (c) => c.node === component.node && c.type === component.type,
+    );
+    if (index !== -1) slideComponents[index] = component;
+    else slideComponents.push(component);
+
+    sync.enqueueComponent(component.node, component.type);
+  }
 
   function nextSlides() {
     if (currentSlidesIndex.value >= slides.value.length - 1) return;
-
     currentSlidesIndex.value++;
   }
-
   function prevSlides() {
     if (currentSlidesIndex.value <= 0) return;
-
     currentSlidesIndex.value--;
   }
 
@@ -366,6 +279,8 @@ export const useDeckStore = defineStore("deck", () => {
     components,
     currentComponents,
     selectedNode,
+    getNodeById,
+    getComponent,
     fetchAllDecks,
     fetchDeck,
     insertNewDeck,
@@ -375,11 +290,11 @@ export const useDeckStore = defineStore("deck", () => {
     fetchSlides,
     insertNewSlides,
     fetchAllNodes,
-    insertNewNode,
-    deleteSelectedNode,
     fetchNodeComponents,
+    createNode,
     updateNode,
-    updateNodeComponent,
+    deleteSelectedNode,
+    updateComponent,
     nextSlides,
     prevSlides,
   };

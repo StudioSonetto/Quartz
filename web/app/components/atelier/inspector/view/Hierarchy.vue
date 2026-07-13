@@ -70,16 +70,11 @@
 </style>
 
 <script setup lang="ts">
-import { RealtimeChannel } from "@supabase/supabase-js";
 import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
 
 import { creatableNodeTypes } from "~/modules/registry";
-
-const client = useSupabaseClient();
-
-let nodesRC: RealtimeChannel;
 
 const { currentTree, currentSlides, selectedNode } =
   storeToRefs(useDeckStore());
@@ -114,11 +109,7 @@ const onSubmit = handleSubmit(async (values) => {
 
     if (!currentSlides.value) return;
 
-    await useDeckStore().insertNewNode(
-      `${currentSlides.value.id}`,
-      `${values.name}`,
-      values.type,
-    );
+    useDeckStore().createNode(`${values.name}`, values.type);
 
     modal.value?.close();
 
@@ -126,20 +117,5 @@ const onSubmit = handleSubmit(async (values) => {
   } catch (err) {
     error.value = (err as Error).message;
   }
-});
-
-onMounted(() => {
-  nodesRC = client
-    .channel("public:nodes")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "nodes" },
-      () => useDeckStore().fetchAllNodes(),
-    )
-    .subscribe();
-});
-
-onUnmounted(() => {
-  client.removeChannel(nodesRC);
 });
 </script>

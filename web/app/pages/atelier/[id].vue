@@ -35,6 +35,8 @@ const { fetchAssets } = useAssetsStore();
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
+const snapshotScheduler = useSnapshotScheduler();
+
 const { data: deck, refresh: refreshDeck } = await useAsyncData(
   "deck",
   async () => await fetchDeck(useRoute().params.id as string)
@@ -46,6 +48,8 @@ const { refresh: refreshSlides } = await useAsyncData(
 );
 
 onMounted(async () => {
+  snapshotScheduler.start();
+
   deckRC = client
     .channel("public:decks")
     .on(
@@ -82,6 +86,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  snapshotScheduler.stop();
   client.removeAllChannels();
 });
 </script>

@@ -117,6 +117,7 @@ export const nodes = pgTable.withRLS(
     reference: text("reference"),
     slides: uuid("slides").notNull(),
     type: nodeType("type").notNull(),
+    sort_order: smallint("sort_order").notNull().default(0),
   },
   (t) => [
     foreignKey({

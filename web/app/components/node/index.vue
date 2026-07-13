@@ -133,10 +133,7 @@ const nodeName = computed({
   set(value) {
     if (value.length > 30 || !value.length) return;
 
-    updateNode({
-      ...props.node,
-      name: value,
-    });
+    updateNode(props.node.id, { name: value });
   },
 });
 

@@ -20,6 +20,7 @@ const bodySchema = z.object({
         path: z.string(),
         reference: z.string().nullable().optional(),
         type: z.enum(nodeType.enumValues),
+        sort_order: z.number().int().default(0),
       }),
     )
     .default([]),
@@ -99,6 +100,7 @@ export default defineEventHandler(async (event) => {
             path: sql`excluded.path`,
             reference: sql`excluded.reference`,
             type: sql`excluded.type`,
+            sort_order: sql`excluded.sort_order`,
           },
         });
     }

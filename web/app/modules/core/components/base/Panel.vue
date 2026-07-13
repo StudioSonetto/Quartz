@@ -17,12 +17,9 @@ const reference = computed({
     return selectedNode.value?.reference ?? "";
   },
   set(value) {
-    if (isRoot.value) return;
+    if (isRoot.value || !selectedNode.value) return;
 
-    updateNode({
-      ...selectedNode.value,
-      reference: value,
-    } as Tree);
+    updateNode(selectedNode.value.id, { reference: value });
   },
 });
 </script>

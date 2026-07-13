@@ -47,18 +47,11 @@ export const EMPTY_TREE: Tree = {
   path: "",
   type: "group",
   reference: "",
+  sort_order: 0,
   children: [],
 };
 
-export interface PendingNode extends NodeModel {
-  _pending?: true;
-  _deleted?: boolean;
-}
-
-export type PendingChanges = {
-  nodes: PendingNode[];
-  components: ComponentModel[];
-};
+export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
 export interface RenderResult {
   content?: string;

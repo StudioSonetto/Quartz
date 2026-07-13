@@ -1,12 +1,13 @@
-import { defineConfig } from "vitest/config";
+import { defineVitestConfig } from "@nuxt/test-utils/config";
 
-// The module registry is pure logic (no Vue/Nuxt runtime), so it runs in a
-// plain Node environment — fast and pristine. When a future test needs the
-// Nuxt runtime (auto-imports, component mounting), adopt @nuxt/test-utils's
-// defineVitestConfig with a nuxt environment for that test then.
-export default defineConfig({
+export default defineVitestConfig({
   test: {
-    include: ["app/modules/**/*.test.ts"],
+    include: [
+      "app/modules/**/*.test.ts",
+      "app/utils/**/*.test.ts",
+      "app/**/__tests__/**/*.test.ts",
+    ],
     environment: "node",
+    environmentMatchGlobs: [["**/*.nuxt.test.ts", "nuxt"]],
   },
 });
