@@ -85,7 +85,7 @@ export const useAssetsStore = defineStore("assets", () => {
   async function serveAllFonts() {
     for (const font of fonts.value) {
       try {
-        const fontName = font.name.split(".")[0];
+        const fontName = font.name.split(".")[0] ?? font.name;
         const fontFace = new FontFace(fontName, `url(${font.url})`);
 
         await fontFace.load();

@@ -6,7 +6,11 @@ export function useSnapshot() {
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 
   const capture = async () => {
-    if (isEmptyTree(trees.value[currentSlides.value.index])) return;
+    const slides = currentSlides.value;
+    if (!slides) return;
+
+    const tree = trees.value[slides.index];
+    if (!tree || isEmptyTree(tree)) return;
 
     const blob = await html2canvas(document.querySelector(".render")!, {
       width: 192,
@@ -33,7 +37,7 @@ export function useSnapshot() {
     const { error } = await client.storage
       .from("snapshots")
       .upload(
-        `${currentSlides.value.deck}/${currentSlides.value.id}.png`,
+        `${slides.deck}/${slides.id}.png`,
         blob,
         {
           upsert: true,
@@ -45,13 +49,13 @@ export function useSnapshot() {
   };
 
   const fetch = async (
-    deck: string = currentSlides.value.deck,
-    slides: string = currentSlides.value.id
+    deck: string = currentSlides.value?.deck ?? "",
+    slides: string = currentSlides.value?.id ?? ""
   ) => {
-    if (currentSlides.value?.id === slides) {
-      if (isEmptyTree(trees.value[currentSlides.value.index])) {
-        return;
-      }
+    const current = currentSlides.value;
+    if (current?.id === slides) {
+      const tree = trees.value[current.index];
+      if (!tree || isEmptyTree(tree)) return;
     }
 
     const { data, error } = await client.storage.from("snapshots").list(deck, {

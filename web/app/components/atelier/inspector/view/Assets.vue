@@ -17,7 +17,8 @@
           useContextMenu().open($event, [
             {
               label: 'Delete',
-              action: () => deleteSelectedAsset(currentSlides.deck, asset),
+              action: () =>
+                currentSlides && deleteSelectedAsset(currentSlides.deck, asset),
             },
           ])
         "
@@ -40,10 +41,10 @@
             <Suspense>
               <UseLoader
                 v-slot="{ data }"
-                :loader="GLTFLoader"
+                :loader="(GLTFLoader as any)"
                 :url="asset.url.toString()"
               >
-                <primitive :object="data.scene" />
+                <primitive :object="(data as any).scene" />
               </UseLoader>
             </Suspense>
           </TresCanvas>
@@ -90,10 +91,10 @@
           <Suspense>
             <UseLoader
               v-slot="{ data }"
-              :loader="GLTFLoader"
+              :loader="(GLTFLoader as any)"
               :url="selectedAsset?.url.toString()"
             >
-              <primitive :object="data.scene" />
+              <primitive :object="(data as any).scene" />
             </UseLoader>
           </Suspense>
           <OrbitControls />
@@ -151,17 +152,20 @@ const modelPreviewModal = ref<typeof Modal>();
 onChange(async (files) => {
   if (!files?.length) return;
 
+  const deck = currentSlides.value?.deck;
+  if (!deck) return;
+
   for (const file of files) {
     const { error } = await client.storage
       .from("assets")
-      .upload(`${currentSlides.value.deck}/${file.name}`, file);
+      .upload(`${deck}/${file.name}`, file);
 
     if (error) {
       console.error(error);
     }
   }
 
-  await fetchAssets(currentSlides.value.deck);
+  await fetchAssets(deck);
 });
 
 const selectedAsset = ref<{ name: string; url: URL }>();

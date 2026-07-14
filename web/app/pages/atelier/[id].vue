@@ -26,9 +26,12 @@
 </style>
 
 <script setup lang="ts">
-import { RealtimeChannel } from "@supabase/supabase-js";
-
 const client = useSupabaseClient();
+
+// Derive the channel type from the client so it matches the exact
+// @supabase/realtime-js copy the client is built from (avoids the
+// duplicate-package type mismatch with @nuxtjs/supabase).
+type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { fetchAssets } = useAssetsStore();

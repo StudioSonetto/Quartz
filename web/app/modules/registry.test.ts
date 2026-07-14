@@ -24,7 +24,9 @@ describe("registry", () => {
   });
 
   it("returns undefined for unknown types", () => {
+    // @ts-expect-error — intentionally passing an unregistered type
     expect(getNodeType("nope")).toBeUndefined();
+    // @ts-expect-error — intentionally passing an unregistered type
     expect(getComponentType("nope")).toBeUndefined();
   });
 
