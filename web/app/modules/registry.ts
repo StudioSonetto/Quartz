@@ -14,6 +14,10 @@ export const getNodeType = (t: NodeType) => nodeTypes.get(t);
 export const getComponentType = (t: ComponentType) => componentTypes.get(t);
 export const creatableNodeTypes = () =>
   [...nodeTypes.values()].filter((n) => n.creatable);
+export const canContain = (
+  parentType: NodeType,
+  childType: NodeType,
+): boolean => getNodeType(parentType)?.accepts.includes(childType) ?? false;
 
 // Test-only: reset the singleton maps between cases.
 export function __resetRegistry() {

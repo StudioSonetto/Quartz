@@ -3,6 +3,7 @@ export default {
   label: "Text",
   icon: "i-carbon-text-short-paragraph",
   creatable: true,
+  accepts: [],
   defaultComponents: ["base", "transform", "typography"],
   renderer: {
     element: "p",

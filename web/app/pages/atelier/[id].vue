@@ -35,10 +35,18 @@ type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { fetchAssets } = useAssetsStore();
+const sync = useDeckSync();
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const snapshotScheduler = useSnapshotScheduler();
+
+// Flush any edits still inside the debounce window when the tab is closed,
+// navigated away, or backgrounded — sendBeacon survives page teardown.
+const flushOnHide = () => {
+  if (document.visibilityState === "hidden") sync.flushBeacon();
+};
+const flushOnPageHide = () => sync.flushBeacon();
 
 const { data: deck, refresh: refreshDeck } = await useAsyncData(
   "deck",
@@ -52,6 +60,9 @@ const { refresh: refreshSlides } = await useAsyncData(
 
 onMounted(async () => {
   snapshotScheduler.start();
+
+  document.addEventListener("visibilitychange", flushOnHide);
+  window.addEventListener("pagehide", flushOnPageHide);
 
   deckRC = client
     .channel("public:decks")
@@ -90,6 +101,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   snapshotScheduler.stop();
+  document.removeEventListener("visibilitychange", flushOnHide);
+  window.removeEventListener("pagehide", flushOnPageHide);
   client.removeAllChannels();
 });
 </script>

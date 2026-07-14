@@ -1,12 +1,15 @@
 <template>
-  <li class="node">
+  <li class="node" :data-node-type="props.node.type">
     <button
       :class="{ selected: isSelected }"
       @click="selectNode(props.node)"
       @dblclick="toggleGroup"
     >
       <div class="flex items-center w-full">
-        <div :class="[nodeIcon, { '-rotate-90': isGroup && !isOpen }]" class="flex-shrink-0 transition-transform"></div>
+        <div
+          :class="[nodeIcon, { '-rotate-90': isGroup && !isOpen }]"
+          class="flex-shrink-0 transition-transform"
+        ></div>
         <input
           maxlength="30"
           @keydown.enter.esc="($event.target as HTMLInputElement).blur()"
@@ -27,9 +30,15 @@
         {{ props.node.reference }}
       </p>
     </button>
-    <ul ref="nested" v-if="node.children && isMounted" v-show="isOpen">
+    <ul
+      ref="nested"
+      v-if="node.children"
+      v-show="isOpen"
+      :data-type="node.type"
+    >
       <Node
         v-for="child in node.children"
+        :key="child.id"
         :node="child"
         @keydown.delete.stop="handleDelete"
         @contextmenu.prevent="
@@ -113,18 +122,16 @@
 </style>
 
 <script setup lang="ts">
-import Sortable from "sortablejs";
+import { useDraggable } from "vue-draggable-plus";
 
-import { getNodeType } from "~/modules/registry";
+import { getNodeType, canContain } from "~/modules/registry";
 
-const { deleteSelectedNode, updateNode } = useDeckStore();
+const { deleteSelectedNode, updateNode, reorderNodes } = useDeckStore();
 const { selectedNode } = storeToRefs(useDeckStore());
 
 const props = defineProps<{
   node: Tree;
 }>();
-
-const isMounted = ref(false);
 
 const nodeName = computed({
   get() {
@@ -151,6 +158,26 @@ const isGroup = computed(() => {
 const nested = ref<HTMLUListElement>();
 const isOpen = ref(true);
 
+const children = computed({
+  get: () => props.node.children,
+  set: (value) => {
+    props.node.children = value;
+  },
+});
+
+useDraggable(nested, children, {
+  group: {
+    name: "nodes",
+    put: (_to, _from, dragEl) =>
+      canContain(
+        (nested.value?.dataset.type as NodeType) ?? "group",
+        dragEl.dataset.nodeType as NodeType,
+      ),
+  },
+  animation: 200,
+  onEnd: () => reorderNodes(),
+});
+
 function selectNode(node: Tree) {
   selectedNode.value = node;
 }
@@ -166,15 +193,4 @@ function handleDelete(event: KeyboardEvent) {
 
   deleteSelectedNode();
 }
-
-onMounted(() => {
-  isMounted.value = true;
-
-  if (!nested.value) return;
-
-  Sortable.create(nested.value, {
-    animation: 200,
-    easing: "cubic-bezier(1, 0, 0, 1)",
-  });
-});
 </script>

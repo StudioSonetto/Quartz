@@ -15,6 +15,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   const status = ref<SaveStatus>("idle");
   const flushing = ref(false);
+
   let backoff = 0;
 
   const hasPending = computed(
@@ -26,16 +27,19 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   function enqueueNode(id: string) {
     dirtyNodes.value.add(id);
+
     scheduleFlush();
   }
 
   function enqueueComponent(node: string, type: string) {
     dirtyComponents.value.add(componentKey(node, type));
+
     scheduleFlush();
   }
 
   function dropNode(id: string) {
     dirtyNodes.value.delete(id);
+
     for (const key of [...dirtyComponents.value]) {
       if (key.startsWith(`${id}:`)) dirtyComponents.value.delete(key);
     }
@@ -43,29 +47,30 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   function enqueueDelete(del: DeleteNode, nodeId: string) {
     dropNode(nodeId);
+
     deletedNodes.value.push(del);
+
     scheduleFlush();
   }
 
   const debouncedFlush = useDebounceFn(() => flush(), 1500);
+
   function scheduleFlush() {
     debouncedFlush();
   }
 
-  async function flush(): Promise<void> {
-    if (flushing.value || !hasPending.value) return;
-
-    const store = useDeckStore();
-
-    // Snapshot exactly what we're about to send; edits arriving mid-flight
-    // re-populate these sets and flush next round.
-    const snapshot: OutboxSnapshot = {
+  function currentSnapshot(): OutboxSnapshot {
+    return {
       dirtyNodes: [...dirtyNodes.value],
       deletedNodes: [...deletedNodes.value],
       dirtyComponents: [...dirtyComponents.value],
     };
+  }
 
-    const payload = buildSavePayload(
+  function buildPayloadFor(snapshot: OutboxSnapshot) {
+    const store = useDeckStore();
+
+    return buildSavePayload(
       snapshot,
       (id) => store.getNodeById(id),
       (key) => {
@@ -73,49 +78,78 @@ export const useDeckSync = defineStore("deck-sync", () => {
         return store.getComponent(node!, type!);
       },
     );
+  }
+
+  async function flush(): Promise<void> {
+    if (flushing.value || !hasPending.value) return;
+
+    const snapshot = currentSnapshot();
+    const payload = buildPayloadFor(snapshot);
 
     if (
       !payload.nodesToUpsert.length &&
       !payload.nodesToDelete.length &&
       !payload.componentsToUpsert.length
     ) {
-      // Everything resolved away (e.g. created-then-deleted); clear and stop.
       clearFlushed(snapshot);
+
       return;
     }
 
-    // Remove-on-send: clear the snapshot's keys BEFORE awaiting so a same-key
-    // re-edit arriving mid-flight re-adds the key and survives to the next
-    // flush (rather than being clobbered by a post-await clear).
     clearFlushed(snapshot);
 
     flushing.value = true;
     status.value = "saving";
+
     try {
       await apiFetch("/api/nodes/save", { method: "POST", body: payload });
+
       backoff = 0;
+
       status.value = hasPending.value ? "saving" : "saved";
+
       if (hasPending.value) scheduleFlush();
     } catch (err) {
-      // Restore-on-failure: merge the snapshot back into the live sets so the
-      // failed work is retried (mid-flight re-edits are already merged in).
       restoreSnapshot(snapshot);
+
       status.value =
         typeof navigator !== "undefined" && navigator.onLine === false
           ? "offline"
           : "error";
+
       backoff = Math.min(backoff ? backoff * 2 : 2000, 30000);
+
       setTimeout(() => flush(), backoff);
     } finally {
       flushing.value = false;
     }
   }
 
+  function flushBeacon() {
+    if (typeof navigator === "undefined" || !navigator.sendBeacon) return;
+    if (!hasPending.value) return;
+
+    const payload = buildPayloadFor(currentSnapshot());
+
+    if (
+      !payload.nodesToUpsert.length &&
+      !payload.nodesToDelete.length &&
+      !payload.componentsToUpsert.length
+    )
+      return;
+
+    const blob = new Blob([JSON.stringify(payload)], {
+      type: "application/json",
+    });
+
+    navigator.sendBeacon("/api/nodes/save", blob);
+  }
+
   function clearFlushed(snapshot: OutboxSnapshot) {
     for (const id of snapshot.dirtyNodes) dirtyNodes.value.delete(id);
     for (const key of snapshot.dirtyComponents)
       dirtyComponents.value.delete(key);
-    // Remove exactly the delete entries we sent (by reference identity).
+
     deletedNodes.value = deletedNodes.value.filter(
       (d) => !snapshot.deletedNodes.includes(d),
     );
@@ -137,6 +171,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     enqueueDelete,
     dropNode,
     flush,
+    flushBeacon,
     scheduleFlush,
   };
 });

@@ -3,6 +3,7 @@ export default {
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
   creatable: true,
+  accepts: ["webgl_object"],
   defaultComponents: ["base", "transform", "scene", "camera"],
   renderer: {
     element: "div",

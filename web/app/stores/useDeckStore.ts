@@ -1,4 +1,4 @@
-import { getNodeType, getComponentType } from "~/modules/registry";
+import { getNodeType, getComponentType, canContain } from "~/modules/registry";
 import { buildTree } from "~/utils/tree";
 import { ROOT_PATH, childPath } from "~/utils/nodePath";
 
@@ -170,6 +170,12 @@ export const useDeckStore = defineStore("deck", () => {
 
     const id = crypto.randomUUID();
     const parentPath = selectedNode.value?.path ?? ROOT_PATH;
+    const parentType: NodeType = selectedNode.value?.type ?? "group";
+    if (!canContain(parentType, type)) {
+      throw new Error(
+        `A ${type} cannot be placed inside a ${parentType} node`,
+      );
+    }
     const path = childPath(parentPath, id);
 
     const node: NodeModel = {
@@ -249,6 +255,36 @@ export const useDeckStore = defineStore("deck", () => {
     selectedNode.value = null;
   }
 
+  // Renormalize path + sort_order from the current tree STRUCTURE after a drag
+  // library has moved nodes between children arrays, then enqueue every node
+  // whose path or sort_order actually changed.
+  function reorderNodes() {
+    const root = trees.value[currentSlidesIndex.value];
+    if (!root) return;
+
+    const changed: string[] = [];
+
+    const walk = (node: Tree, parentPath: string, index: number, isRoot: boolean) => {
+      const newPath = isRoot ? ROOT_PATH : childPath(parentPath, node.id);
+      const newOrder = isRoot ? node.sort_order : index;
+      if (node.path !== newPath || node.sort_order !== newOrder) {
+        node.path = newPath;
+        node.sort_order = newOrder;
+        if (!isRoot) changed.push(node.id);
+      }
+      node.children.forEach((child, i) => walk(child, newPath, i, false));
+    };
+
+    walk(root, "", 0, true);
+
+    // Rebuild to restore parent refs and canonical sort_order-sorted children.
+    trees.value[currentSlidesIndex.value] = buildTree(
+      flattenTree(root).map(({ children, parent, ...n }) => n),
+    );
+
+    for (const id of changed) sync.enqueueNode(id);
+  }
+
   function updateComponent(component: ComponentModel) {
     const slideComponents = components.value[currentSlidesIndex.value];
     if (!slideComponents) return;
@@ -294,6 +330,7 @@ export const useDeckStore = defineStore("deck", () => {
     createNode,
     updateNode,
     deleteSelectedNode,
+    reorderNodes,
     updateComponent,
     nextSlides,
     prevSlides,

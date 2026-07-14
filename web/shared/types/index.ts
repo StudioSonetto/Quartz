@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+
 import {
   BufferGeometry,
   Group,
@@ -60,11 +61,14 @@ export interface RenderResult {
 }
 
 export interface RenderContext {
-  findComponent: (node: Tree, type: ComponentType) => ComponentModel | undefined;
+  findComponent: (
+    node: Tree,
+    type: ComponentType,
+  ) => ComponentModel | undefined;
   scale: number;
-  ensureCanvasContext: (node: Tree) => void; // create (+ lights) and apply size/clear/camera from components
+  ensureCanvasContext: (node: Tree) => void;
   getCanvasContext: (id: string) => CanvasContext | undefined;
-  syncObject: (context: CanvasContext, node: Tree) => void; // instantiate/update/recreate mesh
+  syncObject: (context: CanvasContext, node: Tree) => void;
 }
 
 export interface NodeRenderer {
@@ -84,6 +88,7 @@ export interface NodeTypeDef {
   label: string;
   icon: string;
   creatable: boolean;
+  accepts: NodeType[];
   defaultComponents: ComponentType[];
   renderer: NodeRenderer;
 }

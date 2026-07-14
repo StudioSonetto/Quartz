@@ -3,6 +3,7 @@ export default {
   label: "3D Object",
   icon: "i-carbon-cube",
   creatable: true,
+  accepts: [],
   defaultComponents: ["base", "transform", "model"],
   renderer: {
     element: "",

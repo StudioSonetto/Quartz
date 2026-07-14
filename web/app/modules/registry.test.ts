@@ -4,6 +4,7 @@ import {
   getNodeType,
   getComponentType,
   creatableNodeTypes,
+  canContain,
   __resetRegistry,
 } from "./registry";
 
@@ -47,5 +48,30 @@ describe("registry", () => {
       componentTypes: [],
     });
     expect(getNodeType("group")?.label).toBe("second");
+  });
+
+  it("canContain reads the accepts matrix", () => {
+    registerModule({
+      id: "m",
+      nodeTypes: [
+        { ...node("group"), accepts: ["group", "text", "webgl_canvas"] },
+        { ...node("text"), accepts: [] },
+        { ...node("webgl_canvas"), accepts: ["webgl_object"] },
+        { ...node("webgl_object"), accepts: [] },
+      ],
+      componentTypes: [],
+    });
+
+    expect(canContain("group", "text")).toBe(true);
+    expect(canContain("group", "webgl_object")).toBe(false);
+    expect(canContain("webgl_canvas", "webgl_object")).toBe(true);
+    expect(canContain("webgl_canvas", "group")).toBe(false);
+    expect(canContain("text", "group")).toBe(false);
+    expect(canContain("webgl_object", "webgl_object")).toBe(false);
+  });
+
+  it("canContain returns false for an unregistered parent type", () => {
+    // @ts-expect-error — intentionally an unregistered type
+    expect(canContain("nope", "group")).toBe(false);
   });
 });

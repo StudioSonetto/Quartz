@@ -44,6 +44,7 @@
     "supabase": "2.2.1",
     "three": "^0.167.1",
     "vue": "latest",
+    "vue-draggable-plus": "^0.6.1",
     "vue-router": "latest",
     "zod": "^3.25.76"
   },

@@ -5,7 +5,7 @@
       {
         icon: 'i-carbon-new-tab',
         tooltip: 'New node',
-        onClick: () => modal?.open(),
+        onClick: () => openCreateModal(),
       },
     ]"
     @keydown.esc="selectedNode = null"
@@ -28,7 +28,7 @@
         <Field name="type" v-slot="{ field }">
           <select v-bind="field">
             <option
-              v-for="node in creatableTypes"
+              v-for="node in availableTypes"
               :key="node.type"
               :value="node.type"
             >
@@ -36,10 +36,13 @@
             </option>
           </select>
         </Field>
+        <p v-if="!availableTypes.length" class="text-center mt-6 opacity-70">
+          This node type can't contain children.
+        </p>
         <UIButton
           type="submit"
           size="sm"
-          :disabled="!meta.valid"
+          :disabled="!meta.valid || !availableTypes.length"
           class="w-full mt-10"
         >
           Confirm
@@ -74,7 +77,7 @@ import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
 
-import { creatableNodeTypes } from "~/modules/registry";
+import { creatableNodeTypes, getNodeType } from "~/modules/registry";
 
 const { currentTree, currentSlides, selectedNode } =
   storeToRefs(useDeckStore());
@@ -86,6 +89,12 @@ const typeValues = creatableTypes.map((t) => t.type) as [
   NodeType,
   ...NodeType[],
 ];
+
+const availableTypes = computed(() => {
+  const parentType: NodeType = selectedNode.value?.type ?? "group";
+  const accepts = getNodeType(parentType)?.accepts ?? [];
+  return creatableTypes.filter((t) => accepts.includes(t.type));
+});
 
 const nodeSchema = toTypedSchema(
   zod.object({
@@ -100,6 +109,12 @@ const { handleSubmit, meta, resetForm } = useForm({
     type: typeValues[0],
   },
 });
+
+function openCreateModal() {
+  resetForm({ values: { type: availableTypes.value[0]?.type } });
+
+  modal.value?.open();
+}
 
 const error = ref("");
 
