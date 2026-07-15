@@ -16,8 +16,6 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import type { Component } from "vue";
 
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
-import type { useDeckStore } from "~/stores/useDeckStore";
-import type { useAtelierStore } from "~/stores/useAtelierStore";
 
 export type DeckModel = typeof decks.$inferSelect;
 export type SlidesModel = typeof slides.$inferSelect;
@@ -105,8 +103,13 @@ export interface Command {
 }
 
 export interface CommandContext {
-  deck: ReturnType<typeof useDeckStore>;
-  atelier: ReturnType<typeof useAtelierStore>;
+  // `deck`/`atelier` are the Pinia stores at runtime. They are typed loosely
+  // here on purpose: this file lives in `shared/` (auto-imported into both the
+  // app AND the server/client-build graphs), so it must not reference app-only
+  // composables like `useDeckStore` — doing so pulls the store module into a
+  // build context without Nuxt's auto-import globals and breaks `nuxt build`.
+  deck: any;
+  atelier: any;
   selectedNode: Tree | null;
   activeTab: number;
   focus: "canvas" | "hierarchy" | "inspector" | null;
