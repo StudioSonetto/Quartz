@@ -16,6 +16,8 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import type { Component } from "vue";
 
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
+import type { useDeckStore } from "~/stores/useDeckStore";
+import type { useAtelierStore } from "~/stores/useAtelierStore";
 
 export type DeckModel = typeof decks.$inferSelect;
 export type SlidesModel = typeof slides.$inferSelect;
@@ -93,10 +95,29 @@ export interface NodeTypeDef {
   renderer: NodeRenderer;
 }
 
+export interface Command {
+  id: string;
+  title: string;
+  category: string;
+  icon?: string;
+  when?: (ctx: CommandContext) => boolean;
+  run: (ctx: CommandContext) => void | Promise<void>;
+}
+
+export interface CommandContext {
+  deck: ReturnType<typeof useDeckStore>;
+  atelier: ReturnType<typeof useAtelierStore>;
+  selectedNode: Tree | null;
+  activeTab: number;
+  focus: "canvas" | "hierarchy" | "inspector" | null;
+  deckId: string | null;
+}
+
 export interface ModuleDefinition {
   id: string;
   nodeTypes: NodeTypeDef[];
   componentTypes: ComponentTypeDef[];
+  commands?: Command[];
 }
 
 export interface CanvasContext {
