@@ -8,7 +8,7 @@ import {
   __resetRegistry,
   getCommand,
   allCommands,
-} from "./registry";
+} from "~/modules/registry";
 
 const node = (type: string, creatable = true) => ({ type, creatable }) as any;
 const component = (type: string) => ({ type }) as any;

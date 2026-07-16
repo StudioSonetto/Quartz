@@ -16,19 +16,16 @@
         class="palette-searchbar"
         placeholder="Type a command, @node, or :slide"
       />
-      <ul class="palette-commands">
-        <li v-if="!rows.length" class="p-3 opacity-50 ui-text-3">
-          No matches.
-        </li>
+      <ul ref="listEl" class="palette-commands">
+        <p v-if="!rows.length" class="p-3 opacity-50 ui-text-3">No matches.</p>
         <li
           v-for="row in rows"
           :key="row.key"
-          class="flex items-center gap-2 p-3 cursor-pointer ui-text-3"
+          class="palette-commands-item"
+          :data-active="row.enabled && row.key === activeKey ? '' : null"
           :class="[
-            !row.enabled && 'opacity-60 cursor-default',
-            row.enabled &&
-              selectableRows[activeIndex]?.key === row.key &&
-              'bg-dark-500',
+            !row.enabled && 'opacity-60 !cursor-not-allowed',
+            row.enabled && row.key === activeKey && 'bg-dark-500',
           ]"
           @mouseenter="
             row.enabled &&
@@ -63,7 +60,9 @@
     .palette-commands {
       @apply max-h-[20vh] overflow-y-auto;
 
-      li {
+      .palette-commands-item {
+        @apply flex items-center gap-2;
+        @apply p-3 cursor-pointer ui-text-3;
         @apply transition-colors;
       }
     }
@@ -85,7 +84,8 @@ const { nodeResults, slideResults, selectNode, goToSlide } = useQuickSearch();
 
 const query = ref("");
 const activeIndex = ref(0);
-const inputEl = ref<HTMLInputElement | null>(null);
+const inputEl = useTemplateRef<HTMLInputElement>("inputEl");
+const listEl = useTemplateRef<HTMLUListElement>("listEl");
 
 type Mode = "command" | "node" | "slide";
 
@@ -123,6 +123,7 @@ const rows = computed<Row[]>(() => {
       },
     }));
   }
+
   if (mode.value === "slide") {
     return slideResults(term.value).map((i) => ({
       key: `slide-${i}`,
@@ -136,17 +137,20 @@ const rows = computed<Row[]>(() => {
     }));
   }
 
-  // command mode
   let list = enabledCommands.value;
+
   if (term.value === "" && atelier.recentCommands.length) {
     const order = new Map(atelier.recentCommands.map((id, i) => [id, i]));
+
     list = [...list].sort(
       (a, b) =>
         (order.get(a.command.id) ?? Infinity) -
         (order.get(b.command.id) ?? Infinity),
     );
   }
+
   const filtered = fuzzyFilter(list, term.value, (c) => c.command.title);
+
   return filtered.map(({ command, enabled }) => ({
     key: command.id,
     title: command.title,
@@ -163,6 +167,8 @@ const rows = computed<Row[]>(() => {
 });
 
 const selectableRows = computed(() => rows.value.filter((r) => r.enabled));
+
+const activeKey = computed(() => selectableRows.value[activeIndex.value]?.key);
 
 watch([query, () => atelier.paletteOpen], () => {
   activeIndex.value = 0;
@@ -185,6 +191,12 @@ function move(delta: number) {
   if (!n) return;
 
   activeIndex.value = (activeIndex.value + delta + n) % n;
+
+  nextTick(() => {
+    listEl.value
+      ?.querySelector<HTMLElement>("[data-active]")
+      ?.scrollIntoView({ block: "nearest" });
+  });
 }
 
 function invokeActive() {

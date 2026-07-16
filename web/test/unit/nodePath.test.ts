@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ROOT_PATH, nodeLabel, childPath } from "./nodePath";
+import { ROOT_PATH, nodeLabel, childPath } from "~/utils/nodePath";
 
 describe("nodePath", () => {
   it("ROOT_PATH is 'root'", () => {
