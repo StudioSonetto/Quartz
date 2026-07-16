@@ -40,7 +40,6 @@ dialog[open] {
   h4 {
     @apply ui-text-4 font-500;
   }
-
 }
 
 .modalBody {

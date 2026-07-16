@@ -315,6 +315,7 @@ export const useDeckStore = defineStore("deck", () => {
     components,
     currentComponents,
     selectedNode,
+    currentFlat,
     getNodeById,
     getComponent,
     fetchAllDecks,

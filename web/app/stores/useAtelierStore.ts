@@ -17,6 +17,12 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const snapThreshold = ref<number>(20);
 
+  const paletteOpen = ref<boolean>(false);
+
+  const focus = ref<"canvas" | "hierarchy" | "inspector" | null>(null);
+
+  const recentCommands = ref<string[]>([]);
+
   function setActiveTab(index: number) {
     activeTab.value = index;
   }
@@ -25,13 +31,39 @@ export const useAtelierStore = defineStore("atelier", () => {
     isDragging.value = value;
   }
 
+  function closePalette() {
+    paletteOpen.value = false;
+  }
+
+  function togglePalette() {
+    paletteOpen.value = !paletteOpen.value;
+  }
+
+  function setFocus(f: "canvas" | "hierarchy" | "inspector" | null) {
+    focus.value = f;
+  }
+
+  function pushRecentCommand(id: string) {
+    recentCommands.value = [
+      id,
+      ...recentCommands.value.filter((c) => c !== id),
+    ].slice(0, 5);
+  }
+
   return {
     tabs,
     activeTab,
     canvasSize,
     isDragging,
     snapThreshold,
+    paletteOpen,
+    focus,
+    recentCommands,
     setActiveTab,
     setIsDragging,
+    closePalette,
+    togglePalette,
+    setFocus,
+    pushRecentCommand,
   };
 });
