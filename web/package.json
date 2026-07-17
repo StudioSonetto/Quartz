@@ -42,7 +42,7 @@
     "postgres": "^3.4.9",
     "sortablejs": "^1.15.7",
     "supabase": "2.2.1",
-    "three": "^0.167.1",
+    "three": "^0.175.0",
     "vue": "latest",
     "vue-draggable-plus": "^0.6.1",
     "vue-router": "latest",
