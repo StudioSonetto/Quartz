@@ -14,4 +14,4 @@ export default {
     z: 0,
     scale: 1,
   }),
-} satisfies ComponentTypeDef;
+};

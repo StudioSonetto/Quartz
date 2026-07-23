@@ -5,4 +5,4 @@ export default {
   icon: "i-carbon-template",
   inspector: Panel,
   defaultData: () => ({}),
-} satisfies ComponentTypeDef;
+};

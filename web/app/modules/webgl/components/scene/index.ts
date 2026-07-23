@@ -5,4 +5,4 @@ export default {
   icon: "i-carbon-web-services-container",
   inspector: Panel,
   defaultData: () => ({ background: "#151515" }),
-} satisfies ComponentTypeDef;
+};

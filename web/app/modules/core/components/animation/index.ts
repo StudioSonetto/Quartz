@@ -5,4 +5,4 @@ export default {
   icon: "i-carbon-motion",
   inspector: Panel,
   defaultData: () => ({}),
-} satisfies ComponentTypeDef;
+};

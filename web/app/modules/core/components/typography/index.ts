@@ -13,4 +13,4 @@ export default {
     style: [],
     weight: 300,
   }),
-} satisfies ComponentTypeDef;
+};
