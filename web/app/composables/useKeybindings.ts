@@ -3,23 +3,19 @@ import { eventToCombo } from "~/utils/keyCombo";
 import { resolveCombo } from "~/utils/keymap";
 import { getCommand } from "~/modules/registry";
 import { buildCommandContext } from "~/composables/commandContext";
+import { isEditableTarget } from "~/utils/dom";
 
 const ALWAYS_ALLOWED = new Set(["mod+k", "escape"]);
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  if (!el) return false;
-  return (
-    el.tagName === "INPUT" ||
-    el.tagName === "TEXTAREA" ||
-    el.isContentEditable === true
-  );
-}
 
 export function useKeybindings() {
   const { run } = useCommands();
 
   onKeyStroke((e: KeyboardEvent) => {
+    // A local handler that already claimed this key marks it handled. Honouring
+    // that here is what lets panel handlers just preventDefault, instead of each
+    // one having to stopPropagation to keep this listener from firing too.
+    if (e.defaultPrevented) return;
+
     const combo = eventToCombo(e);
 
     // Suppress shortcuts while typing, except the always-allowed allowlist.

@@ -1,5 +1,9 @@
 <template>
-  <div class="tab" :class="props.name.toLowerCase()">
+  <div
+    class="tab"
+    :class="props.name.toLowerCase()"
+    :data-panel="props.name.toLowerCase()"
+  >
     <h3>
       {{ props.name }}
       <div class="actions">

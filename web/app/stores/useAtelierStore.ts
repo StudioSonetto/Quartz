@@ -19,7 +19,10 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const paletteOpen = ref<boolean>(false);
 
-  const focus = ref<"canvas" | "hierarchy" | "inspector" | null>(null);
+  const highlightedNodeId = ref<string | null>(null);
+  const collapsedNodeIds = ref<Set<string>>(new Set());
+
+  const focus = ref<AtelierFocus>(null);
 
   const recentCommands = ref<string[]>([]);
 
@@ -39,8 +42,25 @@ export const useAtelierStore = defineStore("atelier", () => {
     paletteOpen.value = !paletteOpen.value;
   }
 
-  function setFocus(f: "canvas" | "hierarchy" | "inspector" | null) {
+  function setFocus(f: AtelierFocus) {
     focus.value = f;
+  }
+
+  function setHighlighted(id: string | null) {
+    highlightedNodeId.value = id;
+  }
+
+  function isCollapsed(id: string) {
+    return collapsedNodeIds.value.has(id);
+  }
+
+  function setCollapsed(id: string, value: boolean) {
+    if (value) collapsedNodeIds.value.add(id);
+    else collapsedNodeIds.value.delete(id);
+  }
+
+  function toggleCollapsed(id: string) {
+    setCollapsed(id, !collapsedNodeIds.value.has(id));
   }
 
   function pushRecentCommand(id: string) {
@@ -57,12 +77,18 @@ export const useAtelierStore = defineStore("atelier", () => {
     isDragging,
     snapThreshold,
     paletteOpen,
+    highlightedNodeId,
+    collapsedNodeIds,
     focus,
     recentCommands,
     setActiveTab,
     setIsDragging,
     closePalette,
     togglePalette,
+    setHighlighted,
+    isCollapsed,
+    setCollapsed,
+    toggleCollapsed,
     setFocus,
     pushRecentCommand,
   };

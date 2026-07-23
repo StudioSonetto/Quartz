@@ -8,7 +8,7 @@
     <AtelierHeader :title="deck.title" />
     <div class="flex flex-1 overflow-hidden">
       <AtelierToolbar />
-      <AtelierInspector @focusin="atelier.setFocus('hierarchy')" />
+      <AtelierInspector />
       <div class="flex flex-1 flex-col min-w-0">
         <div class="render-container" @focusin="atelier.setFocus('canvas')">
           <AtelierRender canEdit />

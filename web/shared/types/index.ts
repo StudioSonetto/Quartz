@@ -102,6 +102,13 @@ export interface Command {
   run: (ctx: CommandContext) => void | Promise<void>;
 }
 
+export type AtelierFocus =
+  | "canvas"
+  | "hierarchy"
+  | "inspector"
+  | "properties"
+  | null;
+
 export interface CommandContext {
   // `deck`/`atelier` are the Pinia stores at runtime. They are typed loosely
   // here on purpose: this file lives in `shared/` (auto-imported into both the
@@ -112,7 +119,7 @@ export interface CommandContext {
   atelier: any;
   selectedNode: Tree | null;
   activeTab: number;
-  focus: "canvas" | "hierarchy" | "inspector" | null;
+  focus: AtelierFocus;
   deckId: string | null;
 }
 

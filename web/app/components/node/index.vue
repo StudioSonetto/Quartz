@@ -1,8 +1,12 @@
 <template>
-  <li class="node" :data-node-type="props.node.type">
+  <li class="node" role="none" :data-node-type="props.node.type">
     <button
-      :class="{ selected: isSelected }"
-      @click="selectNode(props.node)"
+      :id="`node-${props.node.id}`"
+      role="treeitem"
+      :aria-selected="isSelected"
+      :aria-expanded="props.node.children.length ? isOpen : undefined"
+      :class="{ selected: isSelected, hovering: isHovering }"
+      @click="onSelect(props.node, $event)"
       @dblclick="toggleGroup"
     >
       <div class="flex items-center w-full">
@@ -13,7 +17,6 @@
         <input
           maxlength="30"
           @keydown.enter.esc="($event.target as HTMLInputElement).blur()"
-          @click="selectNode(props.node)"
           v-model.lazy="nodeName"
           :style="isSelected ? 'width: 100%' : `width: ${nodeName.length}ch`"
           :class="{ 'text-dark-900': isSelected }"
@@ -34,6 +37,7 @@
       ref="nested"
       v-if="node.children"
       v-show="isOpen"
+      role="group"
       :data-type="node.type"
     >
       <Node
@@ -86,7 +90,8 @@
       @apply transition-opacity;
     }
 
-    &:hover:not(.selected) {
+    &:hover:not(.selected),
+    &.hovering:not(.selected) {
       @apply bg-light-200/5;
 
       div [class*="i-"] {
@@ -100,10 +105,6 @@
 
     &.selected {
       @apply bg-light-200 text-dark-900;
-
-      div [class*="i-"] {
-        @apply opacity-100 text-accent;
-      }
 
       .name {
         @apply text-dark-900;
@@ -125,9 +126,13 @@
 import { useDraggable } from "vue-draggable-plus";
 
 import { getNodeType, canContain } from "~/modules/registry";
+import { isEditableTarget } from "~/utils/dom";
 
 const { deleteSelectedNode, updateNode, reorderNodes } = useDeckStore();
 const { selectedNode } = storeToRefs(useDeckStore());
+const atelier = useAtelierStore();
+const { highlightedNodeId } = storeToRefs(atelier);
+const { selectNode } = useNodeSelection();
 
 const props = defineProps<{
   node: Tree;
@@ -154,9 +159,10 @@ const isSelected = computed(() => {
 const isGroup = computed(() => {
   return props.node.type === "group";
 });
+const isOpen = computed(() => !atelier.isCollapsed(props.node.id));
+const isHovering = computed(() => highlightedNodeId.value === props.node.id);
 
 const nested = ref<HTMLUListElement>();
-const isOpen = ref(true);
 
 const children = computed({
   get: () => props.node.children,
@@ -178,14 +184,15 @@ useDraggable(nested, children, {
   onEnd: () => reorderNodes(),
 });
 
-function selectNode(node: Tree) {
-  selectedNode.value = node;
+function onSelect(node: Tree, event: MouseEvent) {
+  // Clicking the inline name input must leave focus there so the node stays
+  // renameable — only a click on the row itself hands off to Properties.
+  selectNode(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 
 function toggleGroup() {
-  if (!isGroup.value) return;
-
-  isOpen.value = !isOpen.value;
+  if (!props.node.children.length) return;
+  atelier.toggleCollapsed(props.node.id);
 }
 
 function handleDelete(event: KeyboardEvent) {
