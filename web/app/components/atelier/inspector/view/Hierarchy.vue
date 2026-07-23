@@ -4,13 +4,26 @@
     :actions="[
       {
         icon: 'i-carbon-new-tab',
-        tooltip: 'New node',
+        tooltip: availableTypes.length
+          ? 'New node'
+          : `This node can't contain children.`,
         onClick: () => openCreateModal(),
+        disabled: !availableTypes.length,
       },
     ]"
-    @keydown.esc="selectedNode = null"
   >
-    <ul class="tree">
+    <ul
+      class="tree"
+      role="tree"
+      tabindex="0"
+      :aria-activedescendant="
+        highlightedNodeId ? `node-${highlightedNodeId}` : undefined
+      "
+      @keydown="onKeydown"
+      @focusin="onFocusin"
+      @focusout="onFocusout"
+      @pointerdown="onPointerdown"
+    >
       <Node
         v-if="currentTree && !isEmptyTree(currentTree)"
         :id="currentTree.id"
@@ -66,6 +79,10 @@
   */
   @apply list-none h-full max-h-[50vh] overflow-y-auto;
 
+  &:focus-visible {
+    @apply outline-none;
+  }
+
   .loader {
     @apply flex justify-center items-center h-full;
   }
@@ -81,6 +98,8 @@ import { creatableNodeTypes, getNodeType } from "~/modules/registry";
 
 const { currentTree, currentSlides, selectedNode } =
   storeToRefs(useDeckStore());
+const { highlightedNodeId } = storeToRefs(useAtelierStore());
+const { onKeydown, onFocusin, onFocusout, onPointerdown } = useTreeKeyboard();
 
 const modal = ref<typeof Modal>();
 

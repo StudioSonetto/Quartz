@@ -1,6 +1,11 @@
 <template>
   <div :class="{ 'opacity-100!': isOpen }" class="component">
-    <header @click="toggleComponent">
+    <button
+      type="button"
+      class="header"
+      :tabindex="isOpen ? -1 : undefined"
+      @click="toggleComponent"
+    >
       <h4>
         <div class="icon" :class="icon"></div>
         {{ props.name.toUpperCase() }}
@@ -9,7 +14,7 @@
         :class="isOpen ? 'i-carbon-caret-down' : 'i-carbon-caret-right'"
         class="arrow"
       ></div>
-    </header>
+    </button>
     <div v-if="isOpen" class="rows">
       <slot />
     </div>
@@ -20,7 +25,7 @@
 .component {
   @apply w-full bg-dark-900 relative;
   @apply border-solid border-0 border-b-2 border-dark-200;
-  @apply opacity-60 hover:opacity-100;
+  @apply opacity-60 hover:opacity-100 focus-within:opacity-100;
   @apply transition-opacity duration-150;
 
   &:has(.rows) {
@@ -33,8 +38,13 @@
     }
   }
 
-  header {
+  .header {
+    @apply w-full bg-transparent border-none text-left text-light-200;
     @apply flex items-center justify-between p-6 cursor-pointer;
+
+    &:focus-visible {
+      @apply outline-none;
+    }
 
     h4 {
       @apply ui-text-3;

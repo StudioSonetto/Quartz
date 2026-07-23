@@ -93,10 +93,41 @@ export interface NodeTypeDef {
   renderer: NodeRenderer;
 }
 
+export interface Command {
+  id: string;
+  title: string;
+  category: string;
+  icon?: string;
+  when?: (ctx: CommandContext) => boolean;
+  run: (ctx: CommandContext) => void | Promise<void>;
+}
+
+export type AtelierFocus =
+  | "canvas"
+  | "hierarchy"
+  | "inspector"
+  | "properties"
+  | null;
+
+export interface CommandContext {
+  // `deck`/`atelier` are the Pinia stores at runtime. They are typed loosely
+  // here on purpose: this file lives in `shared/` (auto-imported into both the
+  // app AND the server/client-build graphs), so it must not reference app-only
+  // composables like `useDeckStore` — doing so pulls the store module into a
+  // build context without Nuxt's auto-import globals and breaks `nuxt build`.
+  deck: any;
+  atelier: any;
+  selectedNode: Tree | null;
+  activeTab: number;
+  focus: AtelierFocus;
+  deckId: string | null;
+}
+
 export interface ModuleDefinition {
   id: string;
   nodeTypes: NodeTypeDef[];
   componentTypes: ComponentTypeDef[];
+  commands?: Command[];
 }
 
 export interface CanvasContext {

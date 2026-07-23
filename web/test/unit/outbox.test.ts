@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { componentKey, buildSavePayload } from "./outbox";
+import { componentKey, buildSavePayload } from "~/utils/outbox";
 import type { NodeModel, ComponentModel } from "#shared/types";
 
 const node = (id: string): NodeModel => ({

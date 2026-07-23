@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTree } from "./tree";
+import { buildTree } from "~/utils/tree";
 import type { NodeModel } from "#shared/types";
 
 const node = (over: Partial<NodeModel>): NodeModel => ({

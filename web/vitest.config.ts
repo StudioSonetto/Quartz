@@ -2,12 +2,9 @@ import { defineVitestConfig } from "@nuxt/test-utils/config";
 
 export default defineVitestConfig({
   test: {
-    include: [
-      "app/modules/**/*.test.ts",
-      "app/utils/**/*.test.ts",
-      "app/**/__tests__/**/*.test.ts",
-    ],
+    include: ["test/**/*.test.ts"],
     environment: "node",
-    environmentMatchGlobs: [["**/*.nuxt.test.ts", "nuxt"]],
+    // Runtime-environment tests live in test/nuxt/; unit + e2e stay on node.
+    environmentMatchGlobs: [["test/nuxt/**", "nuxt"]],
   },
 });

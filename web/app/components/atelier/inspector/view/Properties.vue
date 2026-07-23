@@ -1,6 +1,12 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="[]">
-    <div v-if="selectedNode" class="view" @contextmenu.prevent>
+    <div
+      v-if="selectedNode"
+      class="view"
+      tabindex="-1"
+      @keydown="onKeydown"
+      @contextmenu.prevent
+    >
       <template
         v-for="{ component, def } in panels"
         :key="`${component.node}-${component.type}`"
@@ -32,6 +38,10 @@
   &::-webkit-scrollbar {
     @apply hidden;
   }
+
+  &:focus-visible {
+    @apply outline-none;
+  }
 }
 
 .placeholder {
@@ -53,6 +63,9 @@ const { currentTree, selectedNode } = storeToRefs(useDeckStore());
 const { getNodeComponents } = useNodeComponents();
 
 import { getComponentType } from "~/modules/registry";
+import { isEditableTarget, wrapIndex } from "~/utils/dom";
+
+const { releaseSelection } = useNodeSelection();
 
 const nodeComponents = computed<ComponentModel[]>(() => {
   if (!selectedNode.value?.id || !currentTree.value) return [];
@@ -66,4 +79,68 @@ const panels = computed(() =>
     def: getComponentType(component.type),
   })),
 );
+
+const FOCUSABLE = "button, input, select, textarea, [href], [tabindex]";
+
+function getFocusables(view: HTMLElement): HTMLElement[] {
+  return Array.from(view.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) =>
+      !(el as HTMLButtonElement).disabled &&
+      el.offsetParent !== null &&
+      // Open component headers opt out of the tab order, so this keeps the
+      // list in step with what native Tab would visit.
+      el.tabIndex >= 0,
+  );
+}
+
+function moveFocus(els: HTMLElement[], delta: number) {
+  const i = els.indexOf(document.activeElement as HTMLElement);
+
+  els[wrapIndex(i, delta, els.length)]?.focus();
+}
+
+function onKeydown(e: KeyboardEvent) {
+  const view = e.currentTarget as HTMLElement;
+
+  // Esc releases the selection outright rather than stepping back to the tree,
+  // so deselecting is one press from here as well. Also means the wrapping
+  // below can never trap keyboard users.
+  if (e.key === "Escape") {
+    e.preventDefault();
+    releaseSelection();
+    return;
+  }
+
+  // Left/Right are globally bound to slide navigation. While this panel holds
+  // focus they belong to it, so claim them — otherwise editing a node's
+  // properties and pressing Left jumps the deck to another slide.
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (isEditableTarget(e.target)) return;
+    e.preventDefault();
+    return;
+  }
+
+  const isArrow = e.key === "ArrowDown" || e.key === "ArrowUp";
+
+  if (!isArrow && e.key !== "Tab") return;
+
+  // Editable fields own their arrows — caret movement, and number inputs
+  // stepping their value — so leave those alone.
+  if (isArrow && isEditableTarget(e.target)) return;
+
+  const els = getFocusables(view);
+
+  if (!els.length) return;
+
+  const dir = isArrow ? (e.key === "ArrowUp" ? -1 : 1) : e.shiftKey ? -1 : 1;
+
+  // Tab already moves natively; we only step in to wrap it around the ends,
+  // matching how the tree re-cycles nodes. Arrows always move.
+  if (!isArrow && document.activeElement !== (dir > 0 ? els.at(-1) : els[0])) {
+    return;
+  }
+
+  e.preventDefault();
+  moveFocus(els, dir);
+}
 </script>

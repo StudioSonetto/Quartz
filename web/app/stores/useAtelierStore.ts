@@ -17,6 +17,15 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const snapThreshold = ref<number>(20);
 
+  const paletteOpen = ref<boolean>(false);
+
+  const highlightedNodeId = ref<string | null>(null);
+  const collapsedNodeIds = ref<Set<string>>(new Set());
+
+  const focus = ref<AtelierFocus>(null);
+
+  const recentCommands = ref<string[]>([]);
+
   function setActiveTab(index: number) {
     activeTab.value = index;
   }
@@ -25,13 +34,62 @@ export const useAtelierStore = defineStore("atelier", () => {
     isDragging.value = value;
   }
 
+  function closePalette() {
+    paletteOpen.value = false;
+  }
+
+  function togglePalette() {
+    paletteOpen.value = !paletteOpen.value;
+  }
+
+  function setFocus(f: AtelierFocus) {
+    focus.value = f;
+  }
+
+  function setHighlighted(id: string | null) {
+    highlightedNodeId.value = id;
+  }
+
+  function isCollapsed(id: string) {
+    return collapsedNodeIds.value.has(id);
+  }
+
+  function setCollapsed(id: string, value: boolean) {
+    if (value) collapsedNodeIds.value.add(id);
+    else collapsedNodeIds.value.delete(id);
+  }
+
+  function toggleCollapsed(id: string) {
+    setCollapsed(id, !collapsedNodeIds.value.has(id));
+  }
+
+  function pushRecentCommand(id: string) {
+    recentCommands.value = [
+      id,
+      ...recentCommands.value.filter((c) => c !== id),
+    ].slice(0, 5);
+  }
+
   return {
     tabs,
     activeTab,
     canvasSize,
     isDragging,
     snapThreshold,
+    paletteOpen,
+    highlightedNodeId,
+    collapsedNodeIds,
+    focus,
+    recentCommands,
     setActiveTab,
     setIsDragging,
+    closePalette,
+    togglePalette,
+    setHighlighted,
+    isCollapsed,
+    setCollapsed,
+    toggleCollapsed,
+    setFocus,
+    pushRecentCommand,
   };
 });

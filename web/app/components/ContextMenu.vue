@@ -3,6 +3,7 @@
     <Transition name="fade">
       <div
         v-if="isVisible"
+        ref="menuRef"
         :style="{ top: `${y}px`, left: `${x}px` }"
         class="contextMenu"
         @contextmenu.prevent="isVisible = false"
@@ -67,11 +68,22 @@
 </style>
 
 <script setup lang="ts">
+import { onClickOutside, onKeyStroke } from "@vueuse/core";
+
 const isVisible = ref(false);
 const menuItems = ref<ContextMenuItem[]>([]);
+const menuRef = ref<HTMLElement | null>(null);
 
 const x = ref(0);
 const y = ref(0);
+
+onClickOutside(menuRef, () => {
+  isVisible.value = false;
+});
+
+onKeyStroke("Escape", () => {
+  if (isVisible.value) isVisible.value = false;
+});
 
 function handleItemClick(item: ContextMenuItem) {
   item.action();

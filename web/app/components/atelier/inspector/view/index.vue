@@ -1,10 +1,14 @@
 <template>
-  <div class="tab" :class="props.name.toLowerCase()">
+  <div
+    class="tab"
+    :class="props.name.toLowerCase()"
+    :data-panel="props.name.toLowerCase()"
+  >
     <h3>
       {{ props.name }}
       <div class="actions">
         <Tooltip v-for="action in props.actions" :description="action.tooltip">
-          <button @click="action.onClick">
+          <button :disabled="action.disabled" @click="action.onClick">
             <div :class="action.icon"></div>
           </button>
         </Tooltip>
@@ -31,6 +35,10 @@
 
         button {
           @apply ui-text-5;
+
+          &:disabled {
+            @apply opacity-60 cursor-not-allowed;
+          }
         }
       }
 
@@ -53,6 +61,7 @@ const props = defineProps<{
     icon: string;
     tooltip: string;
     onClick: () => void;
+    disabled?: boolean;
   }[];
 }>();
 </script>

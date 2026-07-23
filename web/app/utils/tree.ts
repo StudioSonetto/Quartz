@@ -37,3 +37,27 @@ export function buildTree(nodes: NodeModel[]): Tree {
     }
   );
 }
+
+const NONE: ReadonlySet<string> = new Set();
+
+// Depth-first pre-order, `node` itself included. Children of a collapsed node
+// are skipped, so passing the collapsed set yields exactly the rows the
+// hierarchy is showing; omitting it flattens the whole tree.
+export function flattenTree(
+  node: Tree,
+  collapsedIds: ReadonlySet<string> = NONE,
+): Tree[] {
+  const out: Tree[] = [];
+
+  const walk = (current: Tree) => {
+    out.push(current);
+
+    if (collapsedIds.has(current.id)) return;
+
+    for (const child of current.children) walk(child);
+  };
+
+  walk(node);
+
+  return out;
+}

@@ -6,7 +6,9 @@ import {
   creatableNodeTypes,
   canContain,
   __resetRegistry,
-} from "./registry";
+  getCommand,
+  allCommands,
+} from "~/modules/registry";
 
 const node = (type: string, creatable = true) => ({ type, creatable }) as any;
 const component = (type: string) => ({ type }) as any;
@@ -73,5 +75,33 @@ describe("registry", () => {
   it("canContain returns false for an unregistered parent type", () => {
     // @ts-expect-error — intentionally an unregistered type
     expect(canContain("nope", "group")).toBe(false);
+  });
+});
+
+const command = (id: string) => ({ id, title: id, category: "Test", run: () => {} }) as any;
+
+describe("registry commands", () => {
+  beforeEach(__resetRegistry);
+
+  it("collects and retrieves commands", () => {
+    registerModule({
+      id: "m",
+      nodeTypes: [],
+      componentTypes: [],
+      commands: [command("core.node.delete")],
+    });
+    expect(getCommand("core.node.delete")?.id).toBe("core.node.delete");
+    expect(allCommands().map((c) => c.id)).toEqual(["core.node.delete"]);
+  });
+
+  it("tolerates modules without a commands slot", () => {
+    registerModule({ id: "m", nodeTypes: [], componentTypes: [] });
+    expect(allCommands()).toEqual([]);
+  });
+
+  it("__resetRegistry clears commands", () => {
+    registerModule({ id: "m", nodeTypes: [], componentTypes: [], commands: [command("x")] });
+    __resetRegistry();
+    expect(allCommands()).toEqual([]);
   });
 });

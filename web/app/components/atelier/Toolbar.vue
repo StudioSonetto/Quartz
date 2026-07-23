@@ -19,6 +19,7 @@ aside {
     @apply w-full h-20;
     @apply flex justify-center items-center transition-colors;
     @apply hover-bg-light-200 hover-text-dark-500;
+    @apply rounded-none;
 
     [class*="i-"] {
       @apply ui-text-5 transition-opacity;

@@ -10,12 +10,13 @@
       <AtelierToolbar />
       <AtelierInspector />
       <div class="flex flex-1 flex-col min-w-0">
-        <div class="render-container">
+        <div class="render-container" @focusin="atelier.setFocus('canvas')">
           <AtelierRender canEdit />
         </div>
         <AtelierTimeline />
       </div>
     </div>
+    <AtelierPalette />
   </div>
 </template>
 
@@ -36,6 +37,8 @@ type RealtimeChannel = ReturnType<typeof client.channel>;
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { fetchAssets } = useAssetsStore();
 const sync = useDeckSync();
+const atelier = useAtelierStore();
+useKeybindings();
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
@@ -50,12 +53,12 @@ const flushOnPageHide = () => sync.flushBeacon();
 
 const { data: deck, refresh: refreshDeck } = await useAsyncData(
   "deck",
-  async () => await fetchDeck(useRoute().params.id as string)
+  async () => await fetchDeck(useRoute().params.id as string),
 );
 
 const { refresh: refreshSlides } = await useAsyncData(
   "slides",
-  async () => await fetchAllSlides(useRoute().params.id as string)
+  async () => await fetchAllSlides(useRoute().params.id as string),
 );
 
 onMounted(async () => {
@@ -69,7 +72,7 @@ onMounted(async () => {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
-      () => refreshDeck()
+      () => refreshDeck(),
     )
     .subscribe();
 
@@ -83,7 +86,7 @@ onMounted(async () => {
         table: "slides",
         filter: `deck=eq.${deck.value?.id}`,
       },
-      () => refreshSlides()
+      () => refreshSlides(),
     )
     .on(
       "postgres_changes",
@@ -92,7 +95,7 @@ onMounted(async () => {
         schema: "public",
         table: "slides",
       },
-      () => refreshSlides()
+      () => refreshSlides(),
     )
     .subscribe();
 

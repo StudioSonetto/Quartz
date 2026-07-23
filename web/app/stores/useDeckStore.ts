@@ -1,5 +1,5 @@
 import { getNodeType, getComponentType, canContain } from "~/modules/registry";
-import { buildTree } from "~/utils/tree";
+import { buildTree, flattenTree } from "~/utils/tree";
 import { ROOT_PATH, childPath } from "~/utils/nodePath";
 
 export const useDeckStore = defineStore("deck", () => {
@@ -39,11 +39,6 @@ export const useDeckStore = defineStore("deck", () => {
     selectedNode.value = null;
     sync.flush(); // best-effort flush on slide switch (non-blocking)
   });
-
-  const flattenTree = (tree: Tree): Tree[] => [
-    tree,
-    ...tree.children.flatMap(flattenTree),
-  ];
 
   function currentFlat(): Tree[] {
     const tree = trees.value[currentSlidesIndex.value];
@@ -315,6 +310,7 @@ export const useDeckStore = defineStore("deck", () => {
     components,
     currentComponents,
     selectedNode,
+    currentFlat,
     getNodeById,
     getComponent,
     fetchAllDecks,
