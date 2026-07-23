@@ -2,7 +2,6 @@ export default {
   type: "core.text",
   label: "Text",
   icon: "i-carbon-text-short-paragraph",
-  creatable: true,
   accepts: [],
   defaultComponents: ["core.base", "core.transform", "core.typography"],
   renderer: {

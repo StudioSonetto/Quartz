@@ -2,7 +2,6 @@ export default {
   type: "webgl.canvas",
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
-  creatable: true,
   accepts: ["webgl.object"],
   defaultComponents: ["core.base", "core.transform", "webgl.scene", "webgl.camera"],
   renderer: {

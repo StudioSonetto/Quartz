@@ -2,7 +2,6 @@ export default {
   type: "core.group",
   label: "Group",
   icon: "i-carbon-caret-down",
-  creatable: true,
   accepts: ["core.group", "core.text", "webgl.canvas"],
   defaultComponents: ["core.base", "core.transform", "core.layout"],
   renderer: {

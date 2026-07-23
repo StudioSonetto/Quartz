@@ -19,7 +19,6 @@ const node = (type: string, accepts: string[]) =>
     type,
     label: type,
     icon: "",
-    creatable: true,
     accepts,
     defaultComponents: [],
     renderer: { element: "div", render: () => ({}) },

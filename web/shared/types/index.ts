@@ -87,7 +87,6 @@ export interface NodeTypeDef {
   type: NodeType;
   label: string;
   icon: string;
-  creatable: boolean;
   accepts: NodeType[];
   defaultComponents: ComponentType[];
   renderer: NodeRenderer;
