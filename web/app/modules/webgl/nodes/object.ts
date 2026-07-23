@@ -1,3 +1,5 @@
+import type { WebglApi } from "../types";
+
 export default {
   type: "webgl.object",
   label: "3D Object",
@@ -7,9 +9,13 @@ export default {
   renderer: {
     element: "",
     render: (node, ctx) => {
-      const context = ctx.getCanvasContext(node.parent!.id);
+      const webglApi = ctx.module<WebglApi>("webgl");
+      const context = webglApi.getCanvasContext(node.parent!.id);
+
       if (!context) return {};
-      ctx.syncObject(context, node);
+
+      webglApi.syncObject(context, node);
+
       return {};
     },
   },

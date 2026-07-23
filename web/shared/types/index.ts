@@ -1,18 +1,5 @@
 /// <reference lib="dom" />
 
-import {
-  BufferGeometry,
-  Group,
-  Mesh,
-  PerspectiveCamera,
-  Scene,
-  WebGLRenderer,
-} from "three";
-
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-
 import type { Component } from "vue";
 
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
@@ -66,9 +53,7 @@ export interface RenderContext {
     type: ComponentType,
   ) => ComponentModel | undefined;
   scale: number;
-  ensureCanvasContext: (node: Tree) => void;
-  getCanvasContext: (id: string) => CanvasContext | undefined;
-  syncObject: (context: CanvasContext, node: Tree) => void;
+  module: <T>(moduleId: string) => T;
 }
 
 export interface NodeRenderer {
@@ -127,19 +112,7 @@ export interface ModuleDefinition {
   nodeTypes: NodeTypeDef[];
   componentTypes: ComponentTypeDef[];
   commands?: Command[];
-}
-
-export interface CanvasContext {
-  scene: Scene;
-  camera: PerspectiveCamera;
-  renderer: WebGLRenderer;
-  loaders: {
-    fbx: FBXLoader;
-    gltf: GLTFLoader;
-    obj: OBJLoader;
-  };
-  objects: Map<string, Mesh | Group>;
-  cache: Map<string, BufferGeometry | Group>;
+  api?: unknown;
 }
 
 export interface ContextMenuItem {

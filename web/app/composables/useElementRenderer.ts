@@ -24,7 +24,9 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
-import { getNodeType } from "~/modules/registry";
+import { getNodeType, getModuleApi } from "~/modules/registry";
+import { provideWebglApi } from "~/modules/webgl";
+import type { CanvasContext } from "~/modules/webgl/types";
 
 const contexts = new Map<string, CanvasContext>();
 
@@ -463,13 +465,23 @@ export function useElementRenderer() {
     const ctx: RenderContext = {
       findComponent,
       scale: scale.value,
-      ensureCanvasContext,
-      getCanvasContext: (id: string) => contexts.get(id),
-      syncObject,
+      module: <T>(moduleId: string) => {
+        const api = getModuleApi<T>(moduleId);
+
+        if (!api) throw new Error(`Module "${moduleId}" is not registered`);
+
+        return api;
+      },
     };
 
     return { element: def.renderer.element, ...def.renderer.render(node, ctx) };
   }
+
+  provideWebglApi({
+    ensureCanvasContext,
+    getCanvasContext: (id) => contexts.get(id),
+    syncObject,
+  });
 
   return {
     resolveRender,

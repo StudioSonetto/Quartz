@@ -1,3 +1,5 @@
+import type { WebglApi } from "../types";
+
 export default {
   type: "webgl.canvas",
   label: "3D Canvas",
@@ -7,9 +9,10 @@ export default {
   renderer: {
     element: "div",
     render: (node, ctx) => {
+      const webglApi = ctx.module<WebglApi>("webgl");
       const transform = ctx.findComponent(node, "core.transform")!.data;
 
-      ctx.ensureCanvasContext(node);
+      webglApi.ensureCanvasContext(node);
 
       const xPercent = (transform.position.x / 1920) * 100;
       const yPercent = (transform.position.y / 1080) * 100;
