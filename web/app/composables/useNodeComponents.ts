@@ -1,7 +1,7 @@
 export function useNodeComponents() {
   const { currentComponents } = storeToRefs(useDeckStore());
 
-  function getNodeComponent(node: string, type: string) {
+  function getNodeComponent(node: string, type: ComponentType) {
     return currentComponents.value?.find(
       (component) => component.type === type && component.node === node,
     );

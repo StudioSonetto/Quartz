@@ -7,7 +7,7 @@
       @click="toggleComponent"
     >
       <h4>
-        <div class="icon" :class="icon"></div>
+        <div class="icon" :class="props.icon"></div>
         {{ props.name.toUpperCase() }}
       </h4>
       <div
@@ -92,17 +92,15 @@
 </style>
 
 <script setup lang="ts">
-import { getComponentType } from "~/modules/registry";
-
-const props = defineProps<{
-  name: ComponentType;
-}>();
+const props = withDefaults(
+  defineProps<{
+    name: string;
+    icon?: string;
+  }>(),
+  { icon: "i-carbon-help" },
+);
 
 const isOpen = ref(false);
-
-const icon = computed(
-  () => getComponentType(props.name)?.icon ?? "i-carbon-help",
-);
 
 function toggleComponent() {
   isOpen.value = !isOpen.value;

@@ -20,21 +20,21 @@ import { authenticatedRole } from "drizzle-orm/supabase";
 const ltree = customType<{ data: string }>({ dataType: () => "ltree" });
 
 export const nodeType = pgEnum("node_type", [
-  "group",
-  "text",
-  "webgl_canvas",
-  "webgl_object",
+  "core.group",
+  "core.text",
+  "webgl.canvas",
+  "webgl.object",
 ]);
 
 export const componentType = pgEnum("component_type", [
-  "animation",
-  "base",
-  "camera",
-  "layout",
-  "model",
-  "scene",
-  "transform",
-  "typography",
+  "core.animation",
+  "core.base",
+  "webgl.camera",
+  "core.layout",
+  "webgl.model",
+  "webgl.scene",
+  "core.transform",
+  "core.typography",
 ]);
 
 export const lapidaries = pgTable.withRLS(

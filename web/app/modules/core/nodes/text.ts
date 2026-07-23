@@ -1,15 +1,15 @@
 export default {
-  type: "text",
+  type: "core.text",
   label: "Text",
   icon: "i-carbon-text-short-paragraph",
   creatable: true,
   accepts: [],
-  defaultComponents: ["base", "transform", "typography"],
+  defaultComponents: ["core.base", "core.transform", "core.typography"],
   renderer: {
     element: "p",
     render: (node, ctx) => {
-      const typography = ctx.findComponent(node, "typography")!.data;
-      const transform = ctx.findComponent(node, "transform")!.data;
+      const typography = ctx.findComponent(node, "core.typography")!.data;
+      const transform = ctx.findComponent(node, "core.transform")!.data;
 
       const xPercent = (transform.position.x / 1920) * 100;
       const yPercent = (transform.position.y / 1080) * 100;

@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="model">
+  <NodeComponent name="model" :icon="props.icon">
     <NodeComponentRow name="type">
       <NodeComponentRowFieldSelect
         v-model:value="props.component.data.type"
@@ -58,6 +58,7 @@ const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
+  icon: string;
 }>();
 
 watch(props.component.data, () => {

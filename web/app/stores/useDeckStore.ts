@@ -165,7 +165,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     const id = crypto.randomUUID();
     const parentPath = selectedNode.value?.path ?? ROOT_PATH;
-    const parentType: NodeType = selectedNode.value?.type ?? "group";
+    const parentType: NodeType = selectedNode.value?.type ?? "core.group";
     if (!canContain(parentType, type)) {
       throw new Error(
         `A ${type} cannot be placed inside a ${parentType} node`,

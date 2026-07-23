@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="transform">
+  <NodeComponent name="transform" :icon="props.icon">
     <NodeComponentRow name="position">
       <NodeComponentRowFieldNumber
         v-model:value="props.component.data.position.x"
@@ -30,6 +30,7 @@ const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
+  icon: string;
 }>();
 
 watch(props.component.data, () => {

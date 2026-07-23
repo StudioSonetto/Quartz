@@ -1,14 +1,14 @@
 export default {
-  type: "webgl_canvas",
+  type: "webgl.canvas",
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
   creatable: true,
-  accepts: ["webgl_object"],
-  defaultComponents: ["base", "transform", "scene", "camera"],
+  accepts: ["webgl.object"],
+  defaultComponents: ["core.base", "core.transform", "webgl.scene", "webgl.camera"],
   renderer: {
     element: "div",
     render: (node, ctx) => {
-      const transform = ctx.findComponent(node, "transform")!.data;
+      const transform = ctx.findComponent(node, "core.transform")!.data;
 
       ctx.ensureCanvasContext(node);
 

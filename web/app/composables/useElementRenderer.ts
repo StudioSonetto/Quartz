@@ -363,10 +363,10 @@ export function useElementRenderer() {
   });
 
   function ensureCanvasContext(node: Tree) {
-    const transform = findComponent(node, "transform")!.data;
+    const transform = findComponent(node, "core.transform")!.data;
 
-    const sceneComponent = findComponent(node, "scene")!.data;
-    const cameraComponent = findComponent(node, "camera")!.data;
+    const sceneComponent = findComponent(node, "webgl.scene")!.data;
+    const cameraComponent = findComponent(node, "webgl.camera")!.data;
 
     if (!contexts.has(node.id)) {
       contexts.set(node.id, {
@@ -423,7 +423,7 @@ export function useElementRenderer() {
   }
 
   function syncObject(context: CanvasContext, node: Tree) {
-    const model = findComponent(node, "model")!.data;
+    const model = findComponent(node, "webgl.model")!.data;
 
     const isPrimitive = primitiveTypes.includes(model.type);
     const existingObject = context.objects.get(node.id);

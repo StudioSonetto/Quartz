@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="typography">
+  <NodeComponent name="typography" :icon="props.icon">
     <NodeComponentRow name="content">
       <NodeComponentRowFieldText
         isParagraph
@@ -55,6 +55,7 @@ const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
+  icon: string;
 }>();
 
 watch(props.component.data, () => {

@@ -11,7 +11,7 @@ export function makeCreateCommands(defs: NodeTypeDef[]): Command[] {
       category: "Node",
       icon: def.icon,
       when: (ctx) => {
-        const parentType = ctx.selectedNode?.type ?? "group";
+        const parentType = ctx.selectedNode?.type ?? "core.group";
         return canContain(parentType, def.type);
       },
       run: (ctx) => ctx.deck.createNode(def.label, def.type),

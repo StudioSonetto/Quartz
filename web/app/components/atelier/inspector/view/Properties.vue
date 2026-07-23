@@ -11,7 +11,12 @@
         v-for="{ component, def } in panels"
         :key="`${component.node}-${component.type}`"
       >
-        <Component v-if="def" :is="def.inspector" :component="component" />
+        <Component
+          v-if="def"
+          :is="def.inspector"
+          :component="component"
+          :icon="def.icon"
+        />
         <div v-else class="unavailable">
           Unavailable component: {{ component.type }}
         </div>

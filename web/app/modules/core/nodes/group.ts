@@ -1,14 +1,14 @@
 export default {
-  type: "group",
+  type: "core.group",
   label: "Group",
   icon: "i-carbon-caret-down",
   creatable: true,
-  accepts: ["group", "text", "webgl_canvas"],
-  defaultComponents: ["base", "transform", "layout"],
+  accepts: ["core.group", "core.text", "webgl.canvas"],
+  defaultComponents: ["core.base", "core.transform", "core.layout"],
   renderer: {
     element: "div",
     render: (node, ctx) => {
-      const layout = ctx.findComponent(node, "layout")?.data || {};
+      const layout = ctx.findComponent(node, "core.layout")?.data || {};
       return {
         style: {
           margin: `${layout.margin}px`,

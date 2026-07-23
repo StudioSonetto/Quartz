@@ -28,7 +28,7 @@
         v-if="currentTree && !isEmptyTree(currentTree)"
         :id="currentTree.id"
         data-path="root"
-        data-type="group"
+        data-type="core.group"
         :node="currentTree"
       />
       <div v-else class="loader">
@@ -110,7 +110,7 @@ const typeValues = creatableTypes.map((t) => t.type) as [
 ];
 
 const availableTypes = computed(() => {
-  const parentType: NodeType = selectedNode.value?.type ?? "group";
+  const parentType: NodeType = selectedNode.value?.type ?? "core.group";
   const accepts = getNodeType(parentType)?.accepts ?? [];
   return creatableTypes.filter((t) => accepts.includes(t.type));
 });

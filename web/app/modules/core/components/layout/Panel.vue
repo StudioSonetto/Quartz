@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="layout">
+  <NodeComponent name="layout" :icon="props.icon">
     <NodeComponentRow name="background">
       <NodeComponentRowFieldColour
         v-model:value="props.component.data.background"
@@ -48,6 +48,7 @@ const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
+  icon: string;
 }>();
 
 watch(props.component.data, () => {

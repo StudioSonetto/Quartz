@@ -153,7 +153,7 @@ watchThrottled(
   ([newX, newY]) => {
     if (props.isLocked) return;
 
-    const transform = getNodeComponent(props.node.id, "transform");
+    const transform = getNodeComponent(props.node.id, "core.transform");
 
     if (!transform) return;
 
@@ -218,7 +218,7 @@ function cancelSelection() {
 onMounted(() => {
   isMounted.value = true;
 
-  if (props.node.type === "webgl_canvas") {
+  if (props.node.type === "webgl.canvas") {
     nextTick(() => {
       setupCanvas(props.node.id);
     });

@@ -47,7 +47,7 @@ export const EMPTY_TREE: Tree = {
   slides: "",
   name: "",
   path: "",
-  type: "group",
+  type: "core.group",
   reference: "",
   sort_order: 0,
   children: [],
