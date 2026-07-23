@@ -4,8 +4,11 @@
     :actions="[
       {
         icon: 'i-carbon-new-tab',
-        tooltip: 'New node',
+        tooltip: availableTypes.length
+          ? 'New node'
+          : `This node can't contain children.`,
         onClick: () => openCreateModal(),
+        disabled: !availableTypes.length,
       },
     ]"
   >
@@ -13,7 +16,9 @@
       class="tree"
       role="tree"
       tabindex="0"
-      :aria-activedescendant="highlightedNodeId ? `node-${highlightedNodeId}` : undefined"
+      :aria-activedescendant="
+        highlightedNodeId ? `node-${highlightedNodeId}` : undefined
+      "
       @keydown="onKeydown"
       @focusin="onFocusin"
       @focusout="onFocusout"
