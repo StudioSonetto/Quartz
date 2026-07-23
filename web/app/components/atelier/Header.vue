@@ -40,8 +40,10 @@
   @apply border-solid border-0 border-b-2 border-dark-200;
 
   .header-btn {
-    @apply h-full w-20 flex items-center justify-center transition-colors;
+    @apply w-20 h-full;
+    @apply flex items-center justify-center;
     @apply hover:bg-light-200 hover:text-dark-500;
+    @apply rounded-none transition-colors;
 
     [class*="i-"] {
       @apply ui-text-5;
