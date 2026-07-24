@@ -185,11 +185,18 @@ export const useDeckStore = defineStore("deck", () => {
 
     const nodeDef = getNodeType(type);
     const defaultComponents: ComponentModel[] = (nodeDef?.defaultComponents ?? []).map(
-      (componentType) => ({
-        type: componentType,
-        node: id,
-        data: getComponentType(componentType)?.defaultData() ?? {},
-      }),
+      (entry) => {
+        const { type: componentType, data: override } =
+          typeof entry === "string" ? { type: entry, data: {} } : entry;
+        return {
+          type: componentType,
+          node: id,
+          data: {
+            ...(getComponentType(componentType)?.defaultData() ?? {}),
+            ...override,
+          },
+        };
+      },
     );
 
     trees.value[currentSlidesIndex.value] = buildTree([

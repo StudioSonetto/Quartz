@@ -5,7 +5,7 @@ export default {
   label: "3D Object",
   icon: "i-carbon-cube",
   accepts: [],
-  defaultComponents: ["core.base", "core.transform", "webgl.model"],
+  defaultComponents: ["core.base", "webgl.transform", "webgl.model"],
   renderer: {
     element: "",
     render: (node, ctx) => {

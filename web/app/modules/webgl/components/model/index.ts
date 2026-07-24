@@ -9,9 +9,5 @@ export default {
     fallback: "none",
     colour: "#FAFAFA",
     texture: "default",
-    x: 0,
-    y: 0,
-    z: 0,
-    scale: 1,
   }),
 };

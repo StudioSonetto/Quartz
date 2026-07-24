@@ -7,7 +7,7 @@ export default {
   accepts: ["webgl.object"],
   defaultComponents: [
     "core.base",
-    "core.transform",
+    { type: "core.transform", data: { size: { width: 640, height: 360 } } },
     "webgl.scene",
     "webgl.camera",
   ],

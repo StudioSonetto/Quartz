@@ -68,12 +68,16 @@ export interface ComponentTypeDef {
   defaultData: () => Record<string, any>;
 }
 
+export type DefaultComponent =
+  | ComponentType
+  | { type: ComponentType; data: Record<string, any> };
+
 export interface NodeTypeDef {
   type: NodeType;
   label: string;
   icon: string;
   accepts: NodeType[];
-  defaultComponents: ComponentType[];
+  defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
 }
 
