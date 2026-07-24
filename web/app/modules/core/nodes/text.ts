@@ -49,7 +49,7 @@ export default {
           height: transform.size.height === "auto" ? "auto" : `${transform.size.height}px`,
           transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
           zIndex: transform.position.z,
-          whiteSpace: autoWidth ? "pre" : "pre-line",
+          whiteSpace: "pre-line",
         },
       };
     },
