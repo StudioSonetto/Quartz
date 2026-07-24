@@ -52,6 +52,8 @@ export interface RenderContext {
     node: Tree,
     type: ComponentType,
   ) => ComponentModel | undefined;
+  data: (node: Tree, type: ComponentType) => any;
+  optional: (node: Tree, type: ComponentType) => any | undefined;
   scale: number;
   module: <T>(moduleId: string) => T;
 }

@@ -195,10 +195,21 @@ function shouldRecreateObject(
   );
 }
 
+function applyTransform(object: Mesh | Group, transform: any) {
+  object.position.set(transform.position.x, transform.position.y, transform.position.z);
+  object.scale.set(transform.scale, transform.scale, transform.scale);
+  object.rotation.set(
+    (transform.rotation.x * Math.PI) / 180,
+    (transform.rotation.y * Math.PI) / 180,
+    (transform.rotation.z * Math.PI) / 180,
+  );
+}
+
 async function instantiateObject(
   context: CanvasContext,
   node: Tree,
   model: any,
+  transform: any,
 ) {
   const isPrimitive = primitiveTypes.includes(model.type);
   const textureUrl = getTextureUrl(model.texture);
@@ -217,19 +228,16 @@ async function instantiateObject(
     newObject.userData.modelType = model.type;
   }
 
-  newObject.position.set(model.x, model.y, model.z);
-  newObject.scale.set(model.scale, model.scale, model.scale);
+  applyTransform(newObject, transform);
 
   context.objects.set(node.id, newObject);
   context.scene.add(newObject);
 }
 
-function startInstantiate(context: CanvasContext, node: Tree, model: any) {
+function startInstantiate(context: CanvasContext, node: Tree, model: any, transform: any) {
   if (loadingObjects.has(node.id)) return;
-
   loadingObjects.add(node.id);
-
-  Promise.resolve(instantiateObject(context, node, model))
+  Promise.resolve(instantiateObject(context, node, model, transform))
     .catch((error) => console.error("Failed to instantiate object", error))
     .finally(() => {
       loadingObjects.delete(node.id);
@@ -246,10 +254,9 @@ function disposeObject(object: Mesh | Group) {
   }
 }
 
-function updateObject(object: Mesh | Group, model: any) {
+function updateObject(object: Mesh | Group, model: any, transform: any) {
   updateObjectColour(object, model.colour);
-  object.position.set(model.x, model.y, model.z);
-  object.scale.set(model.scale, model.scale, model.scale);
+  applyTransform(object, transform);
 }
 
 export function createWebglApi(
@@ -269,7 +276,7 @@ export function createWebglApi(
         scene: new Scene(),
         camera: new PerspectiveCamera(
           75,
-          transform.width / transform.height,
+          transform.size.width / transform.size.height,
           0.1,
           1000,
         ),
@@ -292,7 +299,7 @@ export function createWebglApi(
       contexts.get(node.id)!.scene.add(directionalLight);
 
       watch(
-        () => transform.width / transform.height,
+        () => transform.size.width / transform.size.height,
         (newAspectRatio) => {
           const context = contexts.get(node.id);
 
@@ -301,14 +308,14 @@ export function createWebglApi(
           context.camera.aspect = newAspectRatio;
           context.camera.updateProjectionMatrix();
 
-          context.renderer.setSize(transform.width, transform.height);
+          context.renderer.setSize(transform.size.width, transform.size.height);
         },
       );
     }
 
     const context = contexts.get(node.id);
 
-    context?.renderer.setSize(transform.width, transform.height);
+    context?.renderer.setSize(transform.size.width, transform.size.height);
     context?.renderer.setClearColor(sceneComponent.background);
 
     context?.camera.position.set(
@@ -320,32 +327,25 @@ export function createWebglApi(
 
   function syncObject(context: CanvasContext, node: Tree) {
     const model = findComponent(node, "webgl.model")!.data;
+    const transform = findComponent(node, "webgl.transform")!.data;
 
     const isPrimitive = primitiveTypes.includes(model.type);
     const existingObject = context.objects.get(node.id);
 
     if (!existingObject) {
-      startInstantiate(context, node, model);
-
+      startInstantiate(context, node, model, transform);
       return;
     }
 
-    updateObject(existingObject, model);
+    updateObject(existingObject, model, transform);
 
-    const needsRecreation = shouldRecreateObject(
-      existingObject,
-      model,
-      isPrimitive,
-    );
+    const needsRecreation = shouldRecreateObject(existingObject, model, isPrimitive);
 
     if (needsRecreation) {
       disposeObject(existingObject);
-
       context.scene.remove(existingObject);
-
       context.objects.delete(node.id);
-
-      startInstantiate(context, node, model);
+      startInstantiate(context, node, model, transform);
     }
   }
 

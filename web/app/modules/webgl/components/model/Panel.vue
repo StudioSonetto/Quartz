@@ -30,26 +30,6 @@
         ]"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="position">
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.x"
-        name="x"
-      />
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.y"
-        name="y"
-      />
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.z"
-        name="z"
-      />
-    </NodeComponentRow>
-    <NodeComponentRow name="scale">
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.scale"
-        name="scale"
-      />
-    </NodeComponentRow>
   </NodeComponent>
 </template>
 

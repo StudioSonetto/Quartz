@@ -15,7 +15,7 @@ export default {
     element: "div",
     render: (node, ctx) => {
       const webglApi = ctx.module<WebglApi>("webgl");
-      const transform = ctx.findComponent(node, "core.transform")!.data;
+      const transform = ctx.data(node, "core.transform");
 
       webglApi.ensureCanvasContext(node);
 
@@ -26,10 +26,10 @@ export default {
         style: {
           top: `${yPercent}%`,
           left: `${xPercent}%`,
-          zIndex: transform.z,
-          width: `${transform.width}px`,
-          height: `${transform.height}px`,
-          transform: `scale(${transform.scale * ctx.scale})`,
+          zIndex: transform.position.z,
+          width: `${transform.size.width}px`,
+          height: `${transform.size.height}px`,
+          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
         },
       };
     },

@@ -31,7 +31,7 @@
 .element {
   @apply absolute transform-origin-top-left;
   @apply outline outline-3 outline-dark-900/0 hover:outline-dark-900;
-  @apply border-rd whitespace-nowrap;
+  @apply border-rd;
 }
 </style>
 

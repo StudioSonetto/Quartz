@@ -1,4 +1,5 @@
 import { getNodeType, getModuleApi } from "~/modules/registry";
+import { effectiveDefaults } from "~/utils/normaliseComponents";
 
 export const renderScaleKey: InjectionKey<Ref<number>> = Symbol("renderScale");
 
@@ -21,6 +22,10 @@ export function useElementRenderer() {
 
     const ctx: RenderContext = {
       findComponent,
+      data: (node: Tree, type: ComponentType) =>
+        findComponent(node, type)?.data ?? effectiveDefaults(node.type, type),
+      optional: (node: Tree, type: ComponentType) =>
+        findComponent(node, type)?.data,
       scale: scale.value,
       module: <T>(moduleId: string) => {
         const api = getModuleApi<T>(moduleId);

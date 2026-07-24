@@ -7,8 +7,8 @@ export default {
   renderer: {
     element: "p",
     render: (node, ctx) => {
-      const typography = ctx.findComponent(node, "core.typography")!.data;
-      const transform = ctx.findComponent(node, "core.transform")!.data;
+      const typography = ctx.data(node, "core.typography");
+      const transform = ctx.data(node, "core.transform");
 
       const xPercent = (transform.position.x / 1920) * 100;
       const yPercent = (transform.position.y / 1080) * 100;
@@ -30,6 +30,8 @@ export default {
         }
       });
 
+      const autoWidth = transform.size.width === "auto";
+
       return {
         content: typography.content,
         style: {
@@ -41,11 +43,13 @@ export default {
           textDecoration:
             textDecorations.length > 0 ? textDecorations.join(" ") : "none",
           left: `${xPercent}%`,
-          textAlign: typography.alignment,
           top: `${yPercent}%`,
-          transform: `scale(${transform.scale * ctx.scale})`,
+          textAlign: typography.alignment,
+          width: autoWidth ? "auto" : `${transform.size.width}px`,
+          height: transform.size.height === "auto" ? "auto" : `${transform.size.height}px`,
+          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
           zIndex: transform.position.z,
-          whiteSpace: "pre-line",
+          whiteSpace: autoWidth ? "pre" : "pre-line",
         },
       };
     },

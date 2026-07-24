@@ -12,11 +12,18 @@
       />
     </NodeComponentRow>
     <NodeComponentRow name="width">
-      <NodeComponentRowFieldNumber v-model:value="props.component.data.width" />
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.size.width"
+      />
     </NodeComponentRow>
     <NodeComponentRow name="height">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.height"
+        v-model:value="props.component.data.size.height"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="rotation">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.rotation"
       />
     </NodeComponentRow>
     <NodeComponentRow name="scale">
