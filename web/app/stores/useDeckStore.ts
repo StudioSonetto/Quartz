@@ -1,6 +1,11 @@
-import { getNodeType, getComponentType, canContain } from "~/modules/registry";
+import { getNodeType, canContain } from "~/modules/registry";
 import { buildTree, flattenTree } from "~/utils/tree";
 import { ROOT_PATH, childPath } from "~/utils/nodePath";
+import {
+  normaliseComponents,
+  effectiveDefaults,
+  entryType,
+} from "~/utils/normaliseComponents";
 
 export const useDeckStore = defineStore("deck", () => {
   const apiFetch = useRequestFetch();
@@ -29,8 +34,12 @@ export const useDeckStore = defineStore("deck", () => {
 
   // Load nodes for a slide the first time it becomes current.
   watch(currentTree, async () => {
-    if (currentTree.value?.id || slidesInLoading.value.has(currentSlidesIndex.value))
+    if (
+      currentTree.value?.id ||
+      slidesInLoading.value.has(currentSlidesIndex.value)
+    )
       return;
+
     await fetchAllNodes(currentSlidesIndex.value);
     await parallelLoad();
   });
@@ -58,7 +67,10 @@ export const useDeckStore = defineStore("deck", () => {
     return undefined;
   }
 
-  function getComponent(node: string, type: string): ComponentModel | undefined {
+  function getComponent(
+    node: string,
+    type: string,
+  ): ComponentModel | undefined {
     for (const slideComponents of components.value) {
       const found = slideComponents.find(
         (c) => c.node === node && c.type === type,
@@ -73,13 +85,21 @@ export const useDeckStore = defineStore("deck", () => {
   async function fetchAllDecks() {
     return apiFetch("/api/decks");
   }
+
   async function fetchDeck(id: string) {
     return apiFetch(`/api/decks/${id}`);
   }
+
   async function insertNewDeck() {
-    const data = await apiFetch<{ id: string }>("/api/decks", { method: "POST" });
-    navigateTo(`/atelier/${data?.id}`, { external: true, open: { target: "_blank" } });
+    const data = await apiFetch<{ id: string }>("/api/decks", {
+      method: "POST",
+    });
+    navigateTo(`/atelier/${data?.id}`, {
+      external: true,
+      open: { target: "_blank" },
+    });
   }
+
   async function updateDeckTitle(value: string) {
     if (!value.length) return;
     await apiFetch(`/api/decks/${useRoute().params.id}`, {
@@ -87,17 +107,23 @@ export const useDeckStore = defineStore("deck", () => {
       body: { title: value },
     });
   }
+
   async function deleteDeck(id: string) {
     return apiFetch(`/api/decks/${id}`, { method: "DELETE" });
   }
+
   async function fetchAllSlides(deck: string) {
-    const data = await apiFetch<SlidesModel[]>("/api/slides", { query: { deck } });
+    const data = await apiFetch<SlidesModel[]>("/api/slides", {
+      query: { deck },
+    });
     if (data) slides.value = data;
     return data;
   }
+
   async function fetchSlides(deck: string, index: number) {
     return apiFetch<SlidesModel>("/api/slides", { query: { deck, index } });
   }
+
   async function insertNewSlides(deck: string) {
     return apiFetch("/api/slides", {
       method: "POST",
@@ -109,7 +135,10 @@ export const useDeckStore = defineStore("deck", () => {
     index: number = currentSlidesIndex.value,
     deck?: string,
   ) {
-    const id = deck ? (await fetchSlides(deck, index))?.id : slides.value?.[index]?.id;
+    const id = deck
+      ? (await fetchSlides(deck, index))?.id
+      : slides.value?.[index]?.id;
+
     if (!id) return [];
 
     const [data, fetchedComponents] = await Promise.all([
@@ -118,8 +147,16 @@ export const useDeckStore = defineStore("deck", () => {
     ]);
 
     if (data) {
-      components.value[index] = fetchedComponents ?? [];
+      const { components: normalised, enqueue } = normaliseComponents(
+        data,
+        fetchedComponents ?? [],
+      );
+
+      components.value[index] = normalised;
       trees.value[index] = buildTree(data);
+
+      for (const { node, type } of enqueue) sync.enqueueComponent(node, type);
+
       return trees.value[index].children;
     }
     return [];
@@ -167,9 +204,7 @@ export const useDeckStore = defineStore("deck", () => {
     const parentPath = selectedNode.value?.path ?? ROOT_PATH;
     const parentType: NodeType = selectedNode.value?.type ?? "core.group";
     if (!canContain(parentType, type)) {
-      throw new Error(
-        `A ${type} cannot be placed inside a ${parentType} node`,
-      );
+      throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
     const path = childPath(parentPath, id);
 
@@ -184,20 +219,16 @@ export const useDeckStore = defineStore("deck", () => {
     };
 
     const nodeDef = getNodeType(type);
-    const defaultComponents: ComponentModel[] = (nodeDef?.defaultComponents ?? []).map(
-      (entry) => {
-        const { type: componentType, data: override } =
-          typeof entry === "string" ? { type: entry, data: {} } : entry;
-        return {
-          type: componentType,
-          node: id,
-          data: {
-            ...(getComponentType(componentType)?.defaultData() ?? {}),
-            ...override,
-          },
-        };
-      },
-    );
+    const defaultComponents: ComponentModel[] = (
+      nodeDef?.defaultComponents ?? []
+    ).map((entry) => {
+      const componentType = entryType(entry);
+      return {
+        type: componentType,
+        node: id,
+        data: effectiveDefaults(type, componentType),
+      } as ComponentModel;
+    });
 
     trees.value[currentSlidesIndex.value] = buildTree([
       ...currentFlat().map(({ children, parent, ...n }) => n),
@@ -266,7 +297,12 @@ export const useDeckStore = defineStore("deck", () => {
 
     const changed: string[] = [];
 
-    const walk = (node: Tree, parentPath: string, index: number, isRoot: boolean) => {
+    const walk = (
+      node: Tree,
+      parentPath: string,
+      index: number,
+      isRoot: boolean,
+    ) => {
       const newPath = isRoot ? ROOT_PATH : childPath(parentPath, node.id);
       const newOrder = isRoot ? node.sort_order : index;
       if (node.path !== newPath || node.sort_order !== newOrder) {
