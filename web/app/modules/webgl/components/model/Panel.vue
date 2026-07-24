@@ -54,6 +54,8 @@
 </template>
 
 <script setup lang="ts">
+import { primitiveTypes } from "../../lib/primitives";
+
 const { updateComponent } = useDeckStore();
 
 const props = defineProps<{

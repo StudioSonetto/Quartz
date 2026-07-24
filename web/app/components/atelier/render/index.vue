@@ -45,13 +45,24 @@
 
 <script setup lang="ts">
 const { currentTree, selectedNode } = storeToRefs(useDeckStore());
-const { isDragging, snapThreshold } = storeToRefs(useAtelierStore());
+const { isDragging, snapThreshold, canvasSize } = storeToRefs(useAtelierStore());
 
 const props = defineProps<{
   canEdit?: boolean;
 }>();
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
+
+const { width, height } = useElementSize(renderEl);
+
+const scale = computed(() =>
+  Math.min(
+    width.value / canvasSize.value.width,
+    height.value / canvasSize.value.height,
+  ),
+);
+
+provide(renderScaleKey, scale);
 
 const isHorizontallyCentered = ref(false);
 const isVerticallyCentered = ref(false);

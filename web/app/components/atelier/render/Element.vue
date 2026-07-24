@@ -36,7 +36,10 @@
 </style>
 
 <script setup lang="ts">
-const { resolveRender, setupCanvas } = useElementRenderer();
+import { getModuleApi } from "~/modules/registry";
+import type { WebglApi } from "~/modules/webgl/types";
+
+const { resolveRender } = useElementRenderer();
 const { selectedNode } = storeToRefs(useDeckStore());
 const { getNodeComponent } = useNodeComponents();
 
@@ -220,7 +223,7 @@ onMounted(() => {
 
   if (props.node.type === "webgl.canvas") {
     nextTick(() => {
-      setupCanvas(props.node.id);
+      getModuleApi<WebglApi>("webgl")?.setupCanvas(props.node.id);
     });
   }
 });

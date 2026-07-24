@@ -23,4 +23,5 @@ export interface WebglApi {
   ensureCanvasContext: (node: Tree) => void;
   getCanvasContext: (id: string) => CanvasContext | undefined;
   syncObject: (context: CanvasContext, node: Tree) => void;
+  setupCanvas: (id: string) => void;
 }

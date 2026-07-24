@@ -1,16 +1,33 @@
 import { defineModule } from "../registry";
 
-import type { CanvasContext, WebglApi } from "./types";
+import { createWebglApi } from "./lib/renderer";
+
+import type { WebglApi } from "./types";
 
 const nodeTypes = Object.values(
   import.meta.glob("./nodes/*.ts", { eager: true, import: "default" }),
 ) as NodeTypeDef[];
 
-let apiImpl: WebglApi | null = null;
+let cached: WebglApi | null = null;
 
-export function provideWebglApi(impl: WebglApi) {
-  apiImpl = impl;
+// Built on first use, not at registration: the lookup needs the deck store,
+// which only exists once Pinia is active.
+function api() {
+  if (!cached) {
+    const { getNodeComponent } = useNodeComponents();
+
+    cached = createWebglApi((node, type) => getNodeComponent(node.id, type));
+  }
+
+  return cached;
 }
+
+const webglApi: WebglApi = {
+  ensureCanvasContext: (node) => api().ensureCanvasContext(node),
+  getCanvasContext: (id) => api().getCanvasContext(id),
+  syncObject: (context, node) => api().syncObject(context, node),
+  setupCanvas: (id) => api().setupCanvas(id),
+};
 
 export const webgl = defineModule({
   id: "webgl",
@@ -21,11 +38,5 @@ export const webgl = defineModule({
       import: "default",
     }),
   ) as ComponentTypeDef[],
-  api: {
-    ensureCanvasContext: (node: Tree) =>
-      apiImpl!.ensureCanvasContext(node),
-    getCanvasContext: (id: string) => apiImpl!.getCanvasContext(id),
-    syncObject: (context: CanvasContext, node: Tree) =>
-      apiImpl!.syncObject(context, node),
-  } as WebglApi,
+  api: webglApi,
 });

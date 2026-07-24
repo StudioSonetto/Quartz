@@ -1,17 +1,17 @@
-import { BufferGeometry, Group } from "three";
+import type { BufferGeometry, Group } from "three";
 
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import type { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
+import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
-import { primitiveGeometries } from "~/composables/useElementRenderer";
-import type { CanvasContext } from "~/modules/webgl/types";
+import { primitiveGeometries } from "./primitives";
+import type { CanvasContext } from "../types";
 
-export default async (
+export async function loadModel(
   context: CanvasContext,
   name: string,
   fallback: string,
-) => {
+) {
   const { models } = storeToRefs(useAssetsStore());
 
   const getFallback = () => {
@@ -79,4 +79,4 @@ export default async (
 
     return getFallback();
   }
-};
+}

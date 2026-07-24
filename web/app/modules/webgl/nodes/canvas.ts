@@ -5,7 +5,12 @@ export default {
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
   accepts: ["webgl.object"],
-  defaultComponents: ["core.base", "core.transform", "webgl.scene", "webgl.camera"],
+  defaultComponents: [
+    "core.base",
+    "core.transform",
+    "webgl.scene",
+    "webgl.camera",
+  ],
   renderer: {
     element: "div",
     render: (node, ctx) => {
