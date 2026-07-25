@@ -11,10 +11,6 @@ export default defineNuxtConfig({
     "@nuxtjs/supabase",
     "@pinia/nuxt",
     "@tresjs/nuxt",
-    // @unocss/nuxt serves its virtual CSS from a `/__uno.css` dev endpoint
-    // that Nuxt's Vitest environment can't resolve on Windows (vite-node
-    // treats it as a real file path). Skip it under Vitest — it's not
-    // needed for testing composables/components in isolation.
     ...(process.env.VITEST ? [] : ["@unocss/nuxt"]),
     "@vee-validate/nuxt",
     "@vueuse/nuxt",
@@ -27,7 +23,11 @@ export default defineNuxtConfig({
       exclude: ["/", "/docs"],
     },
   },
-
+  app: {
+    head: {
+      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+    },
+  },
   tres: {
     devtools: true,
     glsl: true,
@@ -39,6 +39,7 @@ export default defineNuxtConfig({
       supabaseKey: process.env.SUPABASE_KEY,
     },
   },
+  // For discord activity
   vite: {
     server: {
       allowedHosts: ["*.trycloudflare.com"],
