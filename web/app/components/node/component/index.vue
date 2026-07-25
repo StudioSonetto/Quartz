@@ -100,9 +100,13 @@ const props = withDefaults(
   { icon: "i-carbon-help" },
 );
 
-const isOpen = ref(false);
+const atelier = useAtelierStore();
+const { selectedNode } = storeToRefs(useDeckStore());
+
+const key = computed(() => `${selectedNode.value?.id ?? ""}:${props.name}`);
+const isOpen = computed(() => atelier.isComponentOpen(key.value));
 
 function toggleComponent() {
-  isOpen.value = !isOpen.value;
+  atelier.toggleComponentOpen(key.value);
 }
 </script>
