@@ -51,7 +51,7 @@ import type { WebglApi } from "~/modules/webgl/types";
 
 const { resolveRender } = useElementRenderer();
 const { selectedNode } = storeToRefs(useDeckStore());
-const { getNodeComponent } = useNodeComponents();
+const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 const { updateComponent } = useDeckStore();
@@ -66,11 +66,7 @@ const props = defineProps<{
   isLocked?: boolean;
 }>();
 
-const isGridChild = computed(() => {
-  const parent = props.node.parent;
-  if (!parent) return false;
-  return getNodeComponent(parent.id, "core.layout")?.data.mode === "grid";
-});
+const isGridChild = computed(() => isNodeGridChild(props.node));
 
 const isMounted = ref(false);
 
@@ -217,7 +213,14 @@ const elementStyle = computed(() => {
 
   if (!base || !isGridChild.value) return base;
 
-  return { ...base, position: "static", left: "", top: "", transform: "" };
+  return {
+    ...base,
+    position: "static",
+    left: "",
+    top: "",
+    transform: "",
+    pointerEvents: "none",
+  };
 });
 
 const { selectNode: commitSelection, releaseSelection } = useNodeSelection();

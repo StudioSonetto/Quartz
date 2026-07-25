@@ -4,6 +4,7 @@
       <button
         v-for="option in props.options"
         @click="selectOption(option.value)"
+        :disabled="props.disabled"
         :class="[option.icon, { selected: isSelected(option.value) }]"
         class="option"
         :key="option.value"
@@ -24,6 +25,10 @@
       &.selected {
         @apply opacity-100;
       }
+
+      &:disabled {
+        @apply opacity-20! cursor-not-allowed;
+      }
     }
   }
 }
@@ -37,6 +42,7 @@ const props = defineProps<{
     icon: string;
   }[];
   toggleMode?: boolean;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

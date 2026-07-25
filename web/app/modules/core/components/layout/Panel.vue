@@ -41,14 +41,55 @@
 </template>
 
 <script setup lang="ts">
-const { updateComponent } = useDeckStore();
+const deck = useDeckStore();
+const { updateComponent } = deck;
+const { selectedNode } = storeToRefs(deck);
+const { getNodeComponent } = useNodeComponents();
 
 const props = defineProps<{
   component: ComponentModel;
   icon: string;
 }>();
 
+function anchorGroupToChildren() {
+  const group = selectedNode.value;
+
+  if (!group) return;
+
+  const transform = getNodeComponent(group.id, "core.transform");
+
+  if (!transform) return;
+
+  let minX = Infinity;
+  let minY = Infinity;
+
+  for (const child of group.children) {
+    const childTransform = getNodeComponent(child.id, "core.transform");
+
+    if (!childTransform) continue;
+
+    minX = Math.min(minX, childTransform.data.position.x);
+    minY = Math.min(minY, childTransform.data.position.y);
+  }
+
+  if (minX === Infinity) return;
+
+  transform.data.position.x = Math.round(minX);
+  transform.data.position.y = Math.round(minY);
+
+  updateComponent(transform);
+}
+
 watch(props.component.data, () => {
   updateComponent(props.component);
 });
+
+watch(
+  () => props.component.data.mode,
+  (mode) => {
+    if (mode !== "grid") return;
+
+    anchorGroupToChildren();
+  },
+);
 </script>

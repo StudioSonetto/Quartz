@@ -15,8 +15,17 @@ export function useNodeComponents() {
       .sort((a, b) => a.type.localeCompare(b.type));
   }
 
+  function isGridChild(node: Tree) {
+    const parent = node.parent;
+
+    if (!parent) return false;
+
+    return getNodeComponent(parent.id, "core.layout")?.data.mode === "grid";
+  }
+
   return {
     getNodeComponent,
     getNodeComponents,
+    isGridChild,
   };
 }
