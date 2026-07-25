@@ -10,6 +10,7 @@ import {
   PerspectiveCamera,
   Scene,
   TextureLoader,
+  Vector2,
   WebGLRenderer,
 } from "three";
 
@@ -28,10 +29,14 @@ const loadingObjects = new Set<string>();
 
 const isAnimating = ref(false);
 
+const sizeVec = new Vector2();
+
 function setupCanvas(canvas: string) {
-  document
-    .getElementById(canvas)
-    ?.appendChild(contexts.get(canvas)!.renderer.domElement);
+  const domElement = contexts.get(canvas)!.renderer.domElement;
+
+  domElement.style.pointerEvents = "none";
+
+  document.getElementById(canvas)?.appendChild(domElement);
 
   if (!isAnimating.value) {
     animate();
@@ -196,7 +201,11 @@ function shouldRecreateObject(
 }
 
 function applyTransform(object: Mesh | Group, transform: any) {
-  object.position.set(transform.position.x, transform.position.y, transform.position.z);
+  object.position.set(
+    transform.position.x,
+    transform.position.y,
+    transform.position.z,
+  );
   object.scale.set(transform.scale, transform.scale, transform.scale);
   object.rotation.set(
     (transform.rotation.x * Math.PI) / 180,
@@ -234,7 +243,12 @@ async function instantiateObject(
   context.scene.add(newObject);
 }
 
-function startInstantiate(context: CanvasContext, node: Tree, model: any, transform: any) {
+function startInstantiate(
+  context: CanvasContext,
+  node: Tree,
+  model: any,
+  transform: any,
+) {
   if (loadingObjects.has(node.id)) return;
   loadingObjects.add(node.id);
   Promise.resolve(instantiateObject(context, node, model, transform))
@@ -297,28 +311,27 @@ export function createWebglApi(
 
       contexts.get(node.id)!.scene.add(ambientLight);
       contexts.get(node.id)!.scene.add(directionalLight);
-
-      watch(
-        () => transform.size.width / transform.size.height,
-        (newAspectRatio) => {
-          const context = contexts.get(node.id);
-
-          if (!context) return;
-
-          context.camera.aspect = newAspectRatio;
-          context.camera.updateProjectionMatrix();
-
-          context.renderer.setSize(transform.size.width, transform.size.height);
-        },
-      );
     }
 
     const context = contexts.get(node.id);
 
-    context?.renderer.setSize(transform.size.width, transform.size.height);
-    context?.renderer.setClearColor(sceneComponent.background);
+    if (!context) return;
 
-    context?.camera.position.set(
+    context.renderer.setClearColor(sceneComponent.background);
+    context.renderer.getSize(sizeVec);
+
+    if (
+      sizeVec.width !== transform.size.width ||
+      sizeVec.height !== transform.size.height
+    ) {
+      context.camera.aspect = transform.size.width / transform.size.height;
+      context.camera.updateProjectionMatrix();
+
+      context.renderer.setSize(transform.size.width, transform.size.height);
+      context.renderer.render(context.scene, context.camera);
+    }
+
+    context.camera.position.set(
       cameraComponent.x,
       cameraComponent.y,
       cameraComponent.z,
@@ -339,7 +352,11 @@ export function createWebglApi(
 
     updateObject(existingObject, model, transform);
 
-    const needsRecreation = shouldRecreateObject(existingObject, model, isPrimitive);
+    const needsRecreation = shouldRecreateObject(
+      existingObject,
+      model,
+      isPrimitive,
+    );
 
     if (needsRecreation) {
       disposeObject(existingObject);

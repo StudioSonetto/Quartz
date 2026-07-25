@@ -29,7 +29,7 @@ export default {
           zIndex: transform.position.z,
           width: `${transform.size.width}px`,
           height: `${transform.size.height}px`,
-          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
+          transform: transformStyle(transform, ctx.scale),
         },
       };
     },

@@ -29,7 +29,7 @@ export default {
           height: "max-content",
           zIndex: transform.position.z,
           background: layout.background,
-          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
+          transform: transformStyle(transform, ctx.scale),
           display: "grid",
           gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
           gap: `${layout.gap}px`,

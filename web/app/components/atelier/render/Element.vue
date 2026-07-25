@@ -13,15 +13,19 @@
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      selectedNode === props.node ? 'outline-dark-900!' : '',
+      selectedNode === props.node ? 'outline-accent!' : '',
     ]"
     ref="element"
     class="element"
     :tabindex="0"
     @click="selectNode"
     @mousedown="selectNode"
-    @click.right="cancelSelection"
-    @keydown.esc="cancelSelection"
+    @click.right="releaseSelection"
+    @keydown.esc="releaseSelection"
+    @keydown.up.prevent="nudge(0, -1, $event)"
+    @keydown.down.prevent="nudge(0, 1, $event)"
+    @keydown.left.prevent="nudge(-1, 0, $event)"
+    @keydown.right.prevent="nudge(1, 0, $event)"
   >
     {{ render.content }}
     <AtelierRenderElement
@@ -36,7 +40,7 @@
 <style scoped lang="postcss">
 .element {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-dark-900/0 hover:outline-dark-900;
+  @apply outline outline-3 outline-accent/0 hover:outline-accent;
   @apply border-rd;
 }
 </style>
@@ -50,6 +54,7 @@ const { selectedNode } = storeToRefs(useDeckStore());
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
+const { updateComponent } = useDeckStore();
 const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
 
 const { scale } = useCanvasScale();
@@ -215,16 +220,31 @@ const elementStyle = computed(() => {
   return { ...base, position: "static", left: "", top: "", transform: "" };
 });
 
+const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+
 function selectNode(event: Event) {
   event.stopPropagation();
 
   if (selectedNode.value === props.node) return;
 
-  selectedNode.value = props.node;
+  commitSelection(props.node);
 }
 
-function cancelSelection() {
-  selectedNode.value = null;
+function nudge(dx: number, dy: number, event: KeyboardEvent) {
+  if (props.isLocked || selectedNode.value !== props.node || isGridChild.value)
+    return;
+
+  event.stopPropagation();
+
+  const step = event.shiftKey ? 10 : 1;
+  const transform = getNodeComponent(props.node.id, "core.transform");
+
+  if (!transform) return;
+
+  transform.data.position.x += dx * step;
+  transform.data.position.y += dy * step;
+
+  updateComponent(transform);
 }
 
 onMounted(() => {

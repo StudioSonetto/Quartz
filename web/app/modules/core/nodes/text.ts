@@ -50,7 +50,7 @@ export default {
             transform.size.height === "auto"
               ? "auto"
               : `${transform.size.height}px`,
-          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
+          transform: transformStyle(transform, ctx.scale),
           zIndex: transform.position.z,
           whiteSpace: "pre-line",
           lineHeight: typography.lineHeight,

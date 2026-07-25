@@ -4,13 +4,13 @@
       ref="border"
       :id="props.node.id"
       class="group-border"
-      :class="[selectedNode === props.node ? 'outline-dark-900!' : '']"
+      :class="[selectedNode === props.node ? 'outline-accent!' : '']"
       :style="borderStyle"
       :tabindex="0"
       @click="selectNode"
       @mousedown="selectNode"
-      @click.right="cancelSelection"
-      @keydown.esc="cancelSelection"
+      @click.right="releaseSelection"
+      @keydown.esc="releaseSelection"
     ></div>
     <AtelierRenderElement
       v-for="child in props.node.children"
@@ -24,7 +24,7 @@
 <style scoped lang="postcss">
 .group-border {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-dashed outline-dark-900/0 hover:outline-dark-900;
+  @apply outline outline-3 outline-dashed outline-accent/0 hover:outline-accent;
   @apply border-rd;
 }
 </style>
@@ -199,15 +199,13 @@ watch(isDragging, (newState) => {
   }
 });
 
+const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+
 function selectNode(event: Event) {
   event.stopPropagation();
 
   if (selectedNode.value === props.node) return;
 
-  selectedNode.value = props.node;
-}
-
-function cancelSelection() {
-  selectedNode.value = null;
+  commitSelection(props.node);
 }
 </script>

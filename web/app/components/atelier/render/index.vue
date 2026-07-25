@@ -13,6 +13,7 @@
       v-if="canEdit && isDragging && isHorizontallyCentered"
       class="h-full w-0.4 bg-red-500 absolute z-99 left-1/2 -translate-x-1/2"
     ></span>
+    <AtelierRenderHandles v-if="canEdit" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"

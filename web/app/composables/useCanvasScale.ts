@@ -4,6 +4,8 @@ export function useCanvasScale() {
   let cached: HTMLElement | null = null;
 
   function renderEl() {
+    if (import.meta.server) return null;
+
     if (!cached || !cached.isConnected) {
       cached = document.querySelector(".render");
     }
