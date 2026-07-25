@@ -20,6 +20,32 @@
         v-model:value="props.component.data.weight"
       />
     </NodeComponentRow>
+    <NodeComponentRow name="line height">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.lineHeight"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="letter spacing">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.letterSpacing"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="transform">
+      <NodeComponentRowFieldRadio
+        :options="[
+          { value: 'none', icon: 'i-carbon-text-font' },
+          { value: 'uppercase', icon: 'i-carbon-text-all-caps' },
+          { value: 'lowercase', icon: 'i-carbon-text-small-caps' },
+          { value: 'capitalize', icon: 'i-carbon-text-selection' },
+        ]"
+        v-model:value="props.component.data.textTransform"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="opacity">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.opacity"
+      />
+    </NodeComponentRow>
     <NodeComponentRow name="colour">
       <NodeComponentRowFieldColour
         v-model:value="props.component.data.colour"

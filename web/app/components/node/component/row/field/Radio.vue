@@ -22,7 +22,7 @@
       @apply ui-text-3;
 
       &.selected {
-        @apply opacity-100 text-accent;
+        @apply opacity-100;
       }
     }
   }

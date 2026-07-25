@@ -45,11 +45,18 @@ export default {
           left: `${xPercent}%`,
           top: `${yPercent}%`,
           textAlign: typography.alignment,
-          width: autoWidth ? "auto" : `${transform.size.width}px`,
-          height: transform.size.height === "auto" ? "auto" : `${transform.size.height}px`,
+          width: autoWidth ? "max-content" : `${transform.size.width}px`,
+          height:
+            transform.size.height === "auto"
+              ? "auto"
+              : `${transform.size.height}px`,
           transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
           zIndex: transform.position.z,
           whiteSpace: "pre-line",
+          lineHeight: typography.lineHeight,
+          letterSpacing: `${typography.letterSpacing}px`,
+          textTransform: typography.textTransform,
+          opacity: typography.opacity,
         },
       };
     },
