@@ -3,6 +3,8 @@ import html2canvas from "html2canvas";
 export function useSnapshot() {
   const client = useSupabaseClient();
 
+  const { renderEl } = useCanvasScale();
+
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 
   const capture = async () => {
@@ -12,7 +14,10 @@ export function useSnapshot() {
     const tree = trees.value[slides.index];
     if (!tree || isEmptyTree(tree)) return;
 
-    const blob = await html2canvas(document.querySelector(".render")!, {
+    const render = renderEl();
+    if (!render) return;
+
+    const blob = await html2canvas(render, {
       width: 192,
       height: 108,
       scale: 10,

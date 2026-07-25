@@ -1,9 +1,15 @@
 <template>
+  <component
+    v-if="render?.component"
+    :is="render.component"
+    :node="props.node"
+    :isLocked="props.isLocked"
+  />
   <Component
-    v-if="render?.element"
+    v-else-if="render?.element"
     :is="render.element"
     :key="props.node.path"
-    :style="[render.style]"
+    :style="[elementStyle]"
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
@@ -46,6 +52,8 @@ const { getNodeComponent } = useNodeComponents();
 const { setIsDragging } = useAtelierStore();
 const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
 
+const { scale } = useCanvasScale();
+
 const element = useTemplateRef<HTMLElement>("element");
 
 const props = defineProps<{
@@ -53,9 +61,15 @@ const props = defineProps<{
   isLocked?: boolean;
 }>();
 
+const isGridChild = computed(() => {
+  const parent = props.node.parent;
+  if (!parent) return false;
+  return getNodeComponent(parent.id, "core.layout")?.data.mode === "grid";
+});
+
 const isMounted = ref(false);
 
-const { x, y, isDragging } = useDraggable(element);
+const { x, y, isDragging } = useDraggable(element, { exact: true });
 
 const startTransform = ref<{ x: number; y: number } | null>(null);
 const startDrag = ref<{ x: number; y: number } | null>(null);
@@ -68,16 +82,9 @@ const canvasCentre = {
 function getElementDimensions() {
   const elementBounds = element.value?.getBoundingClientRect();
 
-  // TODO: document.querySelector is not a best practice.
-  // TODO: May need optimsations.
-  const canvasBounds = document
-    .querySelector(".render")
-    ?.getBoundingClientRect();
+  if (!elementBounds) return;
 
-  if (!elementBounds || !canvasBounds) return;
-
-  const scaleX = canvasSize.value.width / canvasBounds.width;
-  const scaleY = canvasSize.value.height / canvasBounds.height;
+  const { x: scaleX, y: scaleY } = scale();
 
   return {
     width: elementBounds.width * scaleX,
@@ -147,14 +154,13 @@ function applySnapping(x: number, y: number): { x: number; y: number } {
   return snapToEdge(centreSnapped.x, centreSnapped.y, width, height);
 }
 
-const throttle = computed(() => {
-  return Math.round(1000 / useFps().value);
-});
+const throttle = useFrameThrottle();
 
 watchThrottled(
   [x, y],
   ([newX, newY]) => {
     if (props.isLocked) return;
+    if (isGridChild.value) return;
 
     const transform = getNodeComponent(props.node.id, "core.transform");
 
@@ -173,12 +179,7 @@ watchThrottled(
     const deltaX = newX - startDrag.value.x;
     const deltaY = newY - startDrag.value.y;
 
-    const scaleX =
-      canvasSize.value.width /
-      (element.value?.parentElement?.clientWidth || canvasSize.value.width);
-    const scaleY =
-      canvasSize.value.height /
-      (element.value?.parentElement?.clientHeight || canvasSize.value.height);
+    const { x: scaleX, y: scaleY } = scale();
 
     const newPosX = startTransform.value.x + deltaX * scaleX;
     const newPosY = startTransform.value.y + deltaY * scaleY;
@@ -204,6 +205,14 @@ const render = computed(() => {
   if (!isMounted.value) return;
 
   return resolveRender(props.node);
+});
+
+const elementStyle = computed(() => {
+  const base = render.value?.style;
+
+  if (!base || !isGridChild.value) return base;
+
+  return { ...base, position: "static", left: "", top: "", transform: "" };
 });
 
 function selectNode(event: Event) {

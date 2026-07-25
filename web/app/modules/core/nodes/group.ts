@@ -1,3 +1,6 @@
+import { markRaw } from "vue";
+import Group from "~/components/atelier/render/Group.vue";
+
 export default {
   type: "core.group",
   label: "Group",
@@ -6,14 +9,32 @@ export default {
   defaultComponents: ["core.base", "core.transform", "core.layout"],
   renderer: {
     element: "div",
-    render: (node, ctx) => {
-      const layout = ctx.findComponent(node, "core.layout")?.data || {};
+    render: (node, ctx): RenderResult => {
+      const layout = ctx.data(node, "core.layout");
+
+      if (layout.mode !== "grid") {
+        return { component: markRaw(Group) };
+      }
+
+      const transform = ctx.data(node, "core.transform");
+
+      const xPercent = (transform.position.x / 1920) * 100;
+      const yPercent = (transform.position.y / 1080) * 100;
+
       return {
         style: {
-          margin: `${layout.margin}px`,
-          display: "flex",
+          left: `${xPercent}%`,
+          top: `${yPercent}%`,
+          width: "max-content",
+          height: "max-content",
+          zIndex: transform.position.z,
+          background: layout.background,
+          transform: `rotate(${transform.rotation}deg) scale(${transform.scale * ctx.scale})`,
+          display: "grid",
+          gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
+          gap: `${layout.gap}px`,
+          padding: `${layout.padding}px`,
           alignItems: layout.align,
-          justifyContent: layout.justify,
         },
       };
     },

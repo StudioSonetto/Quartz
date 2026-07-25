@@ -99,9 +99,7 @@ const handleScroll = (event: WheelEvent) => {
   }
 };
 
-const throttle = computed(() => {
-  return Math.round(1000 / useFps().value);
-});
+const throttle = useFrameThrottle();
 
 watchThrottled(
   wheelDelta,

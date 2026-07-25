@@ -1,14 +1,31 @@
 <template>
   <NodeComponent name="layout" :icon="props.icon">
+    <NodeComponentRow name="mode">
+      <NodeComponentRowFieldRadio
+        :options="[
+          { value: 'free', icon: 'i-carbon-move' },
+          { value: 'grid', icon: 'i-carbon-grid' },
+        ]"
+        v-model:value="props.component.data.mode"
+      />
+    </NodeComponentRow>
     <NodeComponentRow name="background">
       <NodeComponentRowFieldColour
         v-model:value="props.component.data.background"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="spacing">
+    <NodeComponentRow name="padding">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.margin"
+        v-model:value="props.component.data.padding"
       />
+    </NodeComponentRow>
+    <NodeComponentRow name="columns">
+      <NodeComponentRowFieldNumber
+        v-model:value="props.component.data.columns"
+      />
+    </NodeComponentRow>
+    <NodeComponentRow name="gap">
+      <NodeComponentRowFieldNumber v-model:value="props.component.data.gap" />
     </NodeComponentRow>
     <NodeComponentRow name="align">
       <NodeComponentRowFieldRadio
@@ -19,26 +36,6 @@
         ]"
         v-model:value="props.component.data.align"
       />
-    </NodeComponentRow>
-    <NodeComponentRow name="direction">
-      <NodeComponentRowFieldRadio
-        :options="[
-          { value: 'row', icon: 'i-carbon-align-horizontal-left' },
-          { value: 'column', icon: 'i-carbon-align-horizontal-center' },
-        ]"
-        v-model:value="props.component.data.direction"
-      />
-    </NodeComponentRow>
-    <NodeComponentRow name="columns">
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.columns"
-      />
-    </NodeComponentRow>
-    <NodeComponentRow name="rows">
-      <NodeComponentRowFieldNumber v-model:value="props.component.data.rows" />
-    </NodeComponentRow>
-    <NodeComponentRow name="gap">
-      <NodeComponentRowFieldNumber v-model:value="props.component.data.gap" />
     </NodeComponentRow>
   </NodeComponent>
 </template>

@@ -45,6 +45,7 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 export interface RenderResult {
   content?: string;
   style?: Record<string, string | number>;
+  component?: Component;
 }
 
 export interface RenderContext {
