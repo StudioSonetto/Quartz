@@ -58,10 +58,14 @@ function animate() {
   });
 }
 
-function createPrimitiveMesh(type: string, color: string) {
+function createPrimitiveMesh(type: string, color: string, textureUrl?: string) {
   const geometry = getPrimitiveGeometry(type);
 
-  return new Mesh(geometry, new MeshBasicMaterial({ color }));
+  const material = textureUrl
+    ? createCustomMaterial(textureUrl, color)
+    : new MeshBasicMaterial({ color });
+
+  return new Mesh(geometry, material);
 }
 
 function createCustomMaterial(textureUrl: string, color: string) {
@@ -224,7 +228,7 @@ async function instantiateObject(
   const textureUrl = getTextureUrl(model.texture);
 
   const newObject = isPrimitive
-    ? createPrimitiveMesh(model.type, model.colour)
+    ? createPrimitiveMesh(model.type, model.colour, textureUrl)
     : await loadModel(context, model.type, model.fallback).then((geometry) =>
         createModel(geometry ?? null, model.colour, textureUrl),
       );
