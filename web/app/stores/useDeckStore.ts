@@ -100,11 +100,10 @@ export const useDeckStore = defineStore("deck", () => {
     });
   }
 
-  async function updateDeckTitle(value: string) {
-    if (!value.length) return;
+  async function updateDeckTitle(title: string) {
     await apiFetch(`/api/decks/${useRoute().params.id}`, {
       method: "PATCH",
-      body: { title: value },
+      body: { title },
     });
   }
 

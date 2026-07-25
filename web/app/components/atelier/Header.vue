@@ -3,7 +3,14 @@
     <NuxtLink class="header-btn border-r" to="/atelier">
       <div class="i-carbon-switcher"></div>
     </NuxtLink>
-    <input type="text" maxlength="30" v-model.lazy="title" />
+    <input
+      type="text"
+      maxlength="30"
+      v-model="draft"
+      @focus="editing = true"
+      @blur="editing = false"
+      @change="commit"
+    />
     <button class="header-btn" @click="modal?.open()">
       <div class="i-carbon-run"></div>
     </button>
@@ -85,9 +92,9 @@
   }
 
   input {
-    @apply w-sm text-4 appearence-none;
-    @apply text-center border-none;
+    @apply text-4 text-center border-none;
     @apply hover-underline focus-underline;
+    @apply field-sizing-content;
   }
 }
 </style>
@@ -104,16 +111,31 @@ const props = defineProps<{
 
 const modal = ref<typeof Modal>();
 
-const title = computed({
-  get() {
-    return props.title;
-  },
-  async set(value) {
-    if (!value.length) return;
+const draft = ref(props.title);
+const editing = ref(false);
 
-    await updateDeckTitle(value);
+watch(
+  () => props.title,
+  (value) => {
+    if (editing.value) return;
+
+    draft.value = value;
   },
-});
+);
+
+function commit() {
+  const trimmed = draft.value.trim();
+
+  if (!trimmed.length) {
+    draft.value = props.title;
+
+    return;
+  }
+
+  draft.value = trimmed;
+
+  updateDeckTitle(trimmed);
+}
 
 async function onSubmit() {
   modal.value?.close();
