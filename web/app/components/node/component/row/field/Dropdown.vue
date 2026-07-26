@@ -44,7 +44,7 @@
       @apply overflow-y-scroll max-h-[12vh];
 
       button {
-        @apply text-left py-2 ui-text-3;
+        @apply flex justify-start py-2 ui-text-3;
       }
     }
   }

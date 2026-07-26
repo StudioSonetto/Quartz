@@ -13,6 +13,7 @@
       v-if="canEdit && isDragging && isHorizontallyCentered"
       class="h-full w-0.4 bg-red-500 absolute z-99 left-1/2 -translate-x-1/2"
     ></span>
+    <AtelierRenderHandles v-if="canEdit" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"
@@ -45,13 +46,24 @@
 
 <script setup lang="ts">
 const { currentTree, selectedNode } = storeToRefs(useDeckStore());
-const { isDragging, snapThreshold } = storeToRefs(useAtelierStore());
+const { isDragging, snapThreshold, canvasSize } = storeToRefs(useAtelierStore());
 
 const props = defineProps<{
   canEdit?: boolean;
 }>();
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
+
+const { width, height } = useElementSize(renderEl);
+
+const scale = computed(() =>
+  Math.min(
+    width.value / canvasSize.value.width,
+    height.value / canvasSize.value.height,
+  ),
+);
+
+provide(renderScaleKey, scale);
 
 const isHorizontallyCentered = ref(false);
 const isVerticallyCentered = ref(false);

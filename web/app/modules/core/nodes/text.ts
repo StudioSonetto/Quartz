@@ -1,15 +1,14 @@
 export default {
-  type: "text",
+  type: "core.text",
   label: "Text",
   icon: "i-carbon-text-short-paragraph",
-  creatable: true,
   accepts: [],
-  defaultComponents: ["base", "transform", "typography"],
+  defaultComponents: ["core.base", "core.transform", "core.typography"],
   renderer: {
     element: "p",
     render: (node, ctx) => {
-      const typography = ctx.findComponent(node, "typography")!.data;
-      const transform = ctx.findComponent(node, "transform")!.data;
+      const typography = ctx.data(node, "core.typography");
+      const transform = ctx.data(node, "core.transform");
 
       const xPercent = (transform.position.x / 1920) * 100;
       const yPercent = (transform.position.y / 1080) * 100;
@@ -31,6 +30,8 @@ export default {
         }
       });
 
+      const autoWidth = transform.size.width === "auto";
+
       return {
         content: typography.content,
         style: {
@@ -42,11 +43,20 @@ export default {
           textDecoration:
             textDecorations.length > 0 ? textDecorations.join(" ") : "none",
           left: `${xPercent}%`,
-          textAlign: typography.alignment,
           top: `${yPercent}%`,
-          transform: `scale(${transform.scale * ctx.scale})`,
+          textAlign: typography.alignment,
+          width: autoWidth ? "max-content" : `${transform.size.width}px`,
+          height:
+            transform.size.height === "auto"
+              ? "auto"
+              : `${transform.size.height}px`,
+          transform: transformStyle(transform, ctx.scale),
           zIndex: transform.position.z,
           whiteSpace: "pre-line",
+          lineHeight: typography.lineHeight,
+          letterSpacing: `${typography.letterSpacing}px`,
+          textTransform: typography.textTransform,
+          opacity: typography.opacity,
         },
       };
     },

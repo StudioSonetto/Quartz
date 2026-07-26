@@ -51,7 +51,7 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
       slides: slidesId,
       name: "root",
       path: ROOT_PATH,
-      type: "group",
+      type: "core.group",
       reference: null,
       sort_order: 0,
     };
@@ -60,7 +60,7 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
       slides: slidesId,
       name: "parent",
       path: parentPath,
-      type: "group",
+      type: "core.group",
       reference: null,
       sort_order: 0,
     };
@@ -69,7 +69,7 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
       slides: slidesId,
       name: "child",
       path: childPathStr,
-      type: "group",
+      type: "core.group",
       reference: null,
       sort_order: 0,
     };
@@ -80,11 +80,11 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
     store.currentSlidesIndex = 0;
     store.trees = [tree];
     // The child's (dirty) component lives in the local component bag.
-    store.components = [[{ id: "c-child", node: childId, type: "base", data: {} }]] as any;
+    store.components = [[{ id: "c-child", node: childId, type: "core.base", data: {} }]] as any;
 
     // Outbox has the child node + its component pending.
     sync.enqueueNode(childId);
-    sync.enqueueComponent(childId, "base");
+    sync.enqueueComponent(childId, "core.base");
 
     // Select the PARENT and delete it (removes parent + child subtree).
     store.selectedNode = tree.children[0]!;

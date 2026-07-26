@@ -1,18 +1,5 @@
 /// <reference lib="dom" />
 
-import {
-  BufferGeometry,
-  Group,
-  Mesh,
-  PerspectiveCamera,
-  Scene,
-  WebGLRenderer,
-} from "three";
-
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-
 import type { Component } from "vue";
 
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
@@ -47,7 +34,7 @@ export const EMPTY_TREE: Tree = {
   slides: "",
   name: "",
   path: "",
-  type: "group",
+  type: "core.group",
   reference: "",
   sort_order: 0,
   children: [],
@@ -58,6 +45,7 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 export interface RenderResult {
   content?: string;
   style?: Record<string, string | number>;
+  component?: Component;
 }
 
 export interface RenderContext {
@@ -65,10 +53,10 @@ export interface RenderContext {
     node: Tree,
     type: ComponentType,
   ) => ComponentModel | undefined;
+  data: (node: Tree, type: ComponentType) => any;
+  optional: (node: Tree, type: ComponentType) => any | undefined;
   scale: number;
-  ensureCanvasContext: (node: Tree) => void;
-  getCanvasContext: (id: string) => CanvasContext | undefined;
-  syncObject: (context: CanvasContext, node: Tree) => void;
+  module: <T>(moduleId: string) => T;
 }
 
 export interface NodeRenderer {
@@ -83,13 +71,16 @@ export interface ComponentTypeDef {
   defaultData: () => Record<string, any>;
 }
 
+export type DefaultComponent =
+  | ComponentType
+  | { type: ComponentType; data: Record<string, any> };
+
 export interface NodeTypeDef {
   type: NodeType;
   label: string;
   icon: string;
-  creatable: boolean;
   accepts: NodeType[];
-  defaultComponents: ComponentType[];
+  defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
 }
 
@@ -128,19 +119,7 @@ export interface ModuleDefinition {
   nodeTypes: NodeTypeDef[];
   componentTypes: ComponentTypeDef[];
   commands?: Command[];
-}
-
-export interface CanvasContext {
-  scene: Scene;
-  camera: PerspectiveCamera;
-  renderer: WebGLRenderer;
-  loaders: {
-    fbx: FBXLoader;
-    gltf: GLTFLoader;
-    obj: OBJLoader;
-  };
-  objects: Map<string, Mesh | Group>;
-  cache: Map<string, BufferGeometry | Group>;
+  api?: unknown;
 }
 
 export interface ContextMenuItem {

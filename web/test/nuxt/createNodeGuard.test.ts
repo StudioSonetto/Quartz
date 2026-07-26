@@ -19,7 +19,6 @@ const node = (type: string, accepts: string[]) =>
     type,
     label: type,
     icon: "",
-    creatable: true,
     accepts,
     defaultComponents: [],
     renderer: { element: "div", render: () => ({}) },
@@ -35,10 +34,10 @@ describe("createNode containment guard", () => {
     registerModule({
       id: "core",
       nodeTypes: [
-        node("group", ["group", "text", "webgl_canvas"]),
-        node("text", []),
-        node("webgl_canvas", ["webgl_object"]),
-        node("webgl_object", []),
+        node("core.group", ["core.group", "core.text", "webgl.canvas"]),
+        node("core.text", []),
+        node("webgl.canvas", ["webgl.object"]),
+        node("webgl.object", []),
       ],
       componentTypes: [],
     });
@@ -53,7 +52,7 @@ describe("createNode containment guard", () => {
     store.currentSlidesIndex = 0;
     store.trees = [
       buildTree([
-        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "group", reference: null, sort_order: 0 },
+        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
       ] as any),
     ];
     store.components = [[]] as any;
@@ -63,7 +62,7 @@ describe("createNode containment guard", () => {
     const store = useDeckStore();
     seedRootOnly(store);
     store.selectedNode = null; // parent = root (group)
-    expect(() => store.createNode("hello", "text")).not.toThrow();
+    expect(() => store.createNode("hello", "core.text")).not.toThrow();
     // The new text node is now in the tree.
     const names = store.trees[0]!.children.map((n) => n.name);
     expect(names).toContain("hello");
@@ -76,13 +75,13 @@ describe("createNode containment guard", () => {
     const textPath = childPath(ROOT_PATH, TEXT_ID);
     store.trees = [
       buildTree([
-        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "group", reference: null, sort_order: 0 },
-        { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "text", reference: null, sort_order: 0 },
+        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
+        { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "core.text", reference: null, sort_order: 0 },
       ] as any),
     ];
     store.selectedNode = store.trees[0]!.children[0]!; // the text node
     // Pin the message so an unrelated exception can't masquerade as a pass.
-    expect(() => store.createNode("nope", "group")).toThrow(
+    expect(() => store.createNode("nope", "core.group")).toThrow(
       /cannot be placed inside/,
     );
   });

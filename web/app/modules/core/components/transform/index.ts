@@ -1,8 +1,13 @@
 import Panel from "./Panel.vue";
 
 export default {
-  type: "transform",
+  type: "core.transform",
   icon: "i-carbon-shapes",
   inspector: Panel,
-  defaultData: () => ({ position: { x: 0, y: 0, z: 0 }, scale: 1 }),
-} satisfies ComponentTypeDef;
+  defaultData: () => ({
+    position: { x: 0, y: 0, z: 0 },
+    size: { width: "auto", height: "auto" },
+    rotation: 0,
+    scale: 1,
+  }),
+};

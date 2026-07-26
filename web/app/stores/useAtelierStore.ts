@@ -22,6 +22,8 @@ export const useAtelierStore = defineStore("atelier", () => {
   const highlightedNodeId = ref<string | null>(null);
   const collapsedNodeIds = ref<Set<string>>(new Set());
 
+  const openComponentKeys = ref<Set<string>>(new Set());
+
   const focus = ref<AtelierFocus>(null);
 
   const recentCommands = ref<string[]>([]);
@@ -63,6 +65,19 @@ export const useAtelierStore = defineStore("atelier", () => {
     setCollapsed(id, !collapsedNodeIds.value.has(id));
   }
 
+  function isComponentOpen(key: string) {
+    return openComponentKeys.value.has(key);
+  }
+
+  function toggleComponentOpen(key: string) {
+    const next = new Set(openComponentKeys.value);
+
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+
+    openComponentKeys.value = next;
+  }
+
   function pushRecentCommand(id: string) {
     recentCommands.value = [
       id,
@@ -79,6 +94,7 @@ export const useAtelierStore = defineStore("atelier", () => {
     paletteOpen,
     highlightedNodeId,
     collapsedNodeIds,
+    openComponentKeys,
     focus,
     recentCommands,
     setActiveTab,
@@ -89,6 +105,8 @@ export const useAtelierStore = defineStore("atelier", () => {
     isCollapsed,
     setCollapsed,
     toggleCollapsed,
+    isComponentOpen,
+    toggleComponentOpen,
     setFocus,
     pushRecentCommand,
   };

@@ -157,7 +157,7 @@ const isSelected = computed(() => {
   return selectedNode.value?.id === props.node.id;
 });
 const isGroup = computed(() => {
-  return props.node.type === "group";
+  return props.node.type === "core.group";
 });
 const isOpen = computed(() => !atelier.isCollapsed(props.node.id));
 const isHovering = computed(() => highlightedNodeId.value === props.node.id);
@@ -176,22 +176,27 @@ useDraggable(nested, children, {
     name: "nodes",
     put: (_to, _from, dragEl) =>
       canContain(
-        (nested.value?.dataset.type as NodeType) ?? "group",
+        (nested.value?.dataset.type as NodeType) ?? "core.group",
         dragEl.dataset.nodeType as NodeType,
       ),
   },
   animation: 200,
+  clone: (node: Tree) =>
+    JSON.parse(
+      JSON.stringify(node, (key, value) =>
+        key === "parent" ? undefined : value,
+      ),
+    ),
   onEnd: () => reorderNodes(),
 });
 
 function onSelect(node: Tree, event: MouseEvent) {
-  // Clicking the inline name input must leave focus there so the node stays
-  // renameable — only a click on the row itself hands off to Properties.
   selectNode(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 
 function toggleGroup() {
   if (!props.node.children.length) return;
+
   atelier.toggleCollapsed(props.node.id);
 }
 

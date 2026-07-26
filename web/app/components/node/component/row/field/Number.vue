@@ -2,10 +2,12 @@
   <div class="field">
     <input
       type="number"
+      class="disabled:opacity-40 disabled:cursor-not-allowed"
       :value="props.value"
       :min="props.min"
       :max="props.max"
       :step="props.step"
+      :disabled="props.disabled"
       @input="
         emit('update:value', ($event.target as HTMLInputElement).valueAsNumber)
       "
@@ -19,6 +21,7 @@ const props = defineProps<{
   min?: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

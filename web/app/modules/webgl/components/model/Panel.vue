@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="model">
+  <NodeComponent name="model" :icon="props.icon">
     <NodeComponentRow name="type">
       <NodeComponentRowFieldSelect
         v-model:value="props.component.data.type"
@@ -30,34 +30,17 @@
         ]"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="position">
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.x"
-        name="x"
-      />
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.y"
-        name="y"
-      />
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.z"
-        name="z"
-      />
-    </NodeComponentRow>
-    <NodeComponentRow name="scale">
-      <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.scale"
-        name="scale"
-      />
-    </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <script setup lang="ts">
+import { primitiveTypes } from "../../lib/primitives";
+
 const { updateComponent } = useDeckStore();
 
 const props = defineProps<{
   component: ComponentModel;
+  icon: string;
 }>();
 
 watch(props.component.data, () => {

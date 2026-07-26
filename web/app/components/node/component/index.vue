@@ -7,7 +7,7 @@
       @click="toggleComponent"
     >
       <h4>
-        <div class="icon" :class="icon"></div>
+        <div class="icon" :class="props.icon"></div>
         {{ props.name.toUpperCase() }}
       </h4>
       <div
@@ -92,19 +92,21 @@
 </style>
 
 <script setup lang="ts">
-import { getComponentType } from "~/modules/registry";
-
-const props = defineProps<{
-  name: ComponentType;
-}>();
-
-const isOpen = ref(false);
-
-const icon = computed(
-  () => getComponentType(props.name)?.icon ?? "i-carbon-help",
+const props = withDefaults(
+  defineProps<{
+    name: string;
+    icon?: string;
+  }>(),
+  { icon: "i-carbon-help" },
 );
 
+const atelier = useAtelierStore();
+const { selectedNode } = storeToRefs(useDeckStore());
+
+const key = computed(() => `${selectedNode.value?.id ?? ""}:${props.name}`);
+const isOpen = computed(() => atelier.isComponentOpen(key.value));
+
 function toggleComponent() {
-  isOpen.value = !isOpen.value;
+  atelier.toggleComponentOpen(key.value);
 }
 </script>

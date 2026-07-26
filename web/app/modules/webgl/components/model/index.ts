@@ -1,7 +1,7 @@
 import Panel from "./Panel.vue";
 
 export default {
-  type: "model",
+  type: "webgl.model",
   icon: "i-carbon-model-alt",
   inspector: Panel,
   defaultData: () => ({
@@ -9,9 +9,5 @@ export default {
     fallback: "none",
     colour: "#FAFAFA",
     texture: "default",
-    x: 0,
-    y: 0,
-    z: 0,
-    scale: 1,
   }),
-} satisfies ComponentTypeDef;
+};

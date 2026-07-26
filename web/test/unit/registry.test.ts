@@ -3,14 +3,13 @@ import {
   registerModule,
   getNodeType,
   getComponentType,
-  creatableNodeTypes,
   canContain,
   __resetRegistry,
   getCommand,
   allCommands,
 } from "~/modules/registry";
 
-const node = (type: string, creatable = true) => ({ type, creatable }) as any;
+const node = (type: string) => ({ type }) as any;
 const component = (type: string) => ({ type }) as any;
 
 describe("registry", () => {
@@ -31,15 +30,6 @@ describe("registry", () => {
     expect(getNodeType("nope")).toBeUndefined();
     // @ts-expect-error — intentionally passing an unregistered type
     expect(getComponentType("nope")).toBeUndefined();
-  });
-
-  it("filters creatable node types", () => {
-    registerModule({
-      id: "m",
-      nodeTypes: [node("group"), node("hidden", false)],
-      componentTypes: [],
-    });
-    expect(creatableNodeTypes().map((n) => n.type)).toEqual(["group"]);
   });
 
   it("last registration wins", () => {

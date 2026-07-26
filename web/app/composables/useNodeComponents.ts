@@ -1,7 +1,7 @@
 export function useNodeComponents() {
   const { currentComponents } = storeToRefs(useDeckStore());
 
-  function getNodeComponent(node: string, type: string) {
+  function getNodeComponent(node: string, type: ComponentType) {
     return currentComponents.value?.find(
       (component) => component.type === type && component.node === node,
     );
@@ -15,8 +15,17 @@ export function useNodeComponents() {
       .sort((a, b) => a.type.localeCompare(b.type));
   }
 
+  function isGridChild(node: Tree) {
+    const parent = node.parent;
+
+    if (!parent) return false;
+
+    return getNodeComponent(parent.id, "core.layout")?.data.mode === "grid";
+  }
+
   return {
     getNodeComponent,
     getNodeComponents,
+    isGridChild,
   };
 }

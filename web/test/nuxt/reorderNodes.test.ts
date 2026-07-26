@@ -30,7 +30,7 @@ const B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const G = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 const C = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 
-const mk = (id: string, path: string, order: number, type = "group") => ({
+const mk = (id: string, path: string, order: number, type = "core.group") => ({
   id,
   slides: SLIDE,
   name: id,

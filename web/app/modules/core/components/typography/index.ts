@@ -1,7 +1,7 @@
 import Panel from "./Panel.vue";
 
 export default {
-  type: "typography",
+  type: "core.typography",
   icon: "i-carbon-text-font",
   inspector: Panel,
   defaultData: () => ({
@@ -12,5 +12,9 @@ export default {
     size: 30,
     style: [],
     weight: 300,
+    lineHeight: 1.2,
+    letterSpacing: 0,
+    textTransform: "none",
+    opacity: 1,
   }),
-} satisfies ComponentTypeDef;
+};

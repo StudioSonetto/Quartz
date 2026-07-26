@@ -8,7 +8,7 @@ const node = (over: Partial<NodeModel>): NodeModel => ({
   path: over.path ?? "root",
   reference: over.reference ?? null,
   slides: over.slides ?? "s",
-  type: over.type ?? "group",
+  type: over.type ?? "core.group",
   sort_order: over.sort_order ?? 0,
 });
 

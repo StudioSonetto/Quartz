@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="base">
+  <NodeComponent name="base" :icon="props.icon">
     <NodeComponentRow name="reference">
       <NodeComponentRowFieldText v-model:value="reference" :disabled="isRoot" />
     </NodeComponentRow>
@@ -7,6 +7,10 @@
 </template>
 
 <script setup lang="ts">
+const props = defineProps<{
+  icon: string;
+}>();
+
 const { updateNode } = useDeckStore();
 const { selectedNode } = storeToRefs(useDeckStore());
 

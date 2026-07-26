@@ -1,21 +1,31 @@
 <template>
+  <component
+    v-if="render?.component"
+    :is="render.component"
+    :node="props.node"
+    :isLocked="props.isLocked"
+  />
   <Component
-    v-if="render?.element"
+    v-else-if="render?.element"
     :is="render.element"
     :key="props.node.path"
-    :style="[render.style]"
+    :style="[elementStyle]"
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      selectedNode === props.node ? 'outline-dark-900!' : '',
+      selectedNode === props.node ? 'outline-accent!' : '',
     ]"
     ref="element"
     class="element"
     :tabindex="0"
     @click="selectNode"
     @mousedown="selectNode"
-    @click.right="cancelSelection"
-    @keydown.esc="cancelSelection"
+    @click.right="releaseSelection"
+    @keydown.esc="releaseSelection"
+    @keydown.up.prevent="nudge(0, -1, $event)"
+    @keydown.down.prevent="nudge(0, 1, $event)"
+    @keydown.left.prevent="nudge(-1, 0, $event)"
+    @keydown.right.prevent="nudge(1, 0, $event)"
   >
     {{ render.content }}
     <AtelierRenderElement
@@ -30,18 +40,24 @@
 <style scoped lang="postcss">
 .element {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-dark-900/0 hover:outline-dark-900;
-  @apply border-rd whitespace-nowrap;
+  @apply outline outline-3 outline-accent/0 hover:outline-accent;
+  @apply border-rd;
 }
 </style>
 
 <script setup lang="ts">
-const { resolveRender, setupCanvas } = useElementRenderer();
+import { getModuleApi } from "~/modules/registry";
+import type { WebglApi } from "~/modules/webgl/types";
+
+const { resolveRender } = useElementRenderer();
 const { selectedNode } = storeToRefs(useDeckStore());
-const { getNodeComponent } = useNodeComponents();
+const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
+const { updateComponent } = useDeckStore();
 const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
+
+const { scale } = useCanvasScale();
 
 const element = useTemplateRef<HTMLElement>("element");
 
@@ -50,9 +66,11 @@ const props = defineProps<{
   isLocked?: boolean;
 }>();
 
+const isGridChild = computed(() => isNodeGridChild(props.node));
+
 const isMounted = ref(false);
 
-const { x, y, isDragging } = useDraggable(element);
+const { x, y, isDragging } = useDraggable(element, { exact: true });
 
 const startTransform = ref<{ x: number; y: number } | null>(null);
 const startDrag = ref<{ x: number; y: number } | null>(null);
@@ -65,16 +83,9 @@ const canvasCentre = {
 function getElementDimensions() {
   const elementBounds = element.value?.getBoundingClientRect();
 
-  // TODO: document.querySelector is not a best practice.
-  // TODO: May need optimsations.
-  const canvasBounds = document
-    .querySelector(".render")
-    ?.getBoundingClientRect();
+  if (!elementBounds) return;
 
-  if (!elementBounds || !canvasBounds) return;
-
-  const scaleX = canvasSize.value.width / canvasBounds.width;
-  const scaleY = canvasSize.value.height / canvasBounds.height;
+  const { x: scaleX, y: scaleY } = scale();
 
   return {
     width: elementBounds.width * scaleX,
@@ -144,16 +155,15 @@ function applySnapping(x: number, y: number): { x: number; y: number } {
   return snapToEdge(centreSnapped.x, centreSnapped.y, width, height);
 }
 
-const throttle = computed(() => {
-  return Math.round(1000 / useFps().value);
-});
+const throttle = useFrameThrottle();
 
 watchThrottled(
   [x, y],
   ([newX, newY]) => {
     if (props.isLocked) return;
+    if (isGridChild.value) return;
 
-    const transform = getNodeComponent(props.node.id, "transform");
+    const transform = getNodeComponent(props.node.id, "core.transform");
 
     if (!transform) return;
 
@@ -170,12 +180,7 @@ watchThrottled(
     const deltaX = newX - startDrag.value.x;
     const deltaY = newY - startDrag.value.y;
 
-    const scaleX =
-      canvasSize.value.width /
-      (element.value?.parentElement?.clientWidth || canvasSize.value.width);
-    const scaleY =
-      canvasSize.value.height /
-      (element.value?.parentElement?.clientHeight || canvasSize.value.height);
+    const { x: scaleX, y: scaleY } = scale();
 
     const newPosX = startTransform.value.x + deltaX * scaleX;
     const newPosY = startTransform.value.y + deltaY * scaleY;
@@ -203,24 +208,54 @@ const render = computed(() => {
   return resolveRender(props.node);
 });
 
+const elementStyle = computed(() => {
+  const base = render.value?.style;
+
+  if (!base || !isGridChild.value) return base;
+
+  return {
+    ...base,
+    position: "static",
+    left: "",
+    top: "",
+    transform: "",
+    pointerEvents: "none",
+  };
+});
+
+const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+
 function selectNode(event: Event) {
   event.stopPropagation();
 
   if (selectedNode.value === props.node) return;
 
-  selectedNode.value = props.node;
+  commitSelection(props.node);
 }
 
-function cancelSelection() {
-  selectedNode.value = null;
+function nudge(dx: number, dy: number, event: KeyboardEvent) {
+  if (props.isLocked || selectedNode.value !== props.node || isGridChild.value)
+    return;
+
+  event.stopPropagation();
+
+  const step = event.shiftKey ? 10 : 1;
+  const transform = getNodeComponent(props.node.id, "core.transform");
+
+  if (!transform) return;
+
+  transform.data.position.x += dx * step;
+  transform.data.position.y += dy * step;
+
+  updateComponent(transform);
 }
 
 onMounted(() => {
   isMounted.value = true;
 
-  if (props.node.type === "webgl_canvas") {
+  if (props.node.type === "webgl.canvas") {
     nextTick(() => {
-      setupCanvas(props.node.id);
+      getModuleApi<WebglApi>("webgl")?.setupCanvas(props.node.id);
     });
   }
 });
