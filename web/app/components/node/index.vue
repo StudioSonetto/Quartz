@@ -181,17 +181,22 @@ useDraggable(nested, children, {
       ),
   },
   animation: 200,
+  clone: (node: Tree) =>
+    JSON.parse(
+      JSON.stringify(node, (key, value) =>
+        key === "parent" ? undefined : value,
+      ),
+    ),
   onEnd: () => reorderNodes(),
 });
 
 function onSelect(node: Tree, event: MouseEvent) {
-  // Clicking the inline name input must leave focus there so the node stays
-  // renameable — only a click on the row itself hands off to Properties.
   selectNode(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 
 function toggleGroup() {
   if (!props.node.children.length) return;
+
   atelier.toggleCollapsed(props.node.id);
 }
 
