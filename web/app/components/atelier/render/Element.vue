@@ -13,15 +13,15 @@
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      selectedNode === props.node ? 'outline-accent!' : '',
+      isSelected(props.node.id) ? 'outline-accent!' : '',
     ]"
     ref="element"
     class="element"
     :tabindex="0"
-    @click="selectNode"
-    @mousedown="selectNode"
-    @click.right="releaseSelection"
-    @keydown.esc="releaseSelection"
+    @click="onSelect"
+    @mousedown="onSelect"
+    @click.right="clear"
+    @keydown.esc="clear"
     @keydown.up.prevent="nudge(0, -1, $event)"
     @keydown.down.prevent="nudge(0, 1, $event)"
     @keydown.left.prevent="nudge(-1, 0, $event)"
@@ -50,11 +50,11 @@ import { getModuleApi } from "~/modules/registry";
 import type { WebglApi } from "~/modules/webgl/types";
 
 const { resolveRender } = useElementRenderer();
-const { selectedNode } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
-const { updateComponent } = useDeckStore();
 const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
 
 const { scale } = useCanvasScale();
@@ -223,18 +223,19 @@ const elementStyle = computed(() => {
   };
 });
 
-const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+const { selectFromEvent, clear } = useNodeSelection();
+const { soleSelected } = storeToRefs(deck);
 
-function selectNode(event: Event) {
-  event.stopPropagation();
-
-  if (selectedNode.value === props.node) return;
-
-  commitSelection(props.node);
+function onSelect(event: MouseEvent) {
+  selectFromEvent(props.node, event);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
-  if (props.isLocked || selectedNode.value !== props.node || isGridChild.value)
+  if (
+    props.isLocked ||
+    soleSelected.value?.id !== props.node.id ||
+    isGridChild.value
+  )
     return;
 
   event.stopPropagation();

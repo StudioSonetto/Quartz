@@ -101,9 +101,9 @@ const props = withDefaults(
 );
 
 const atelier = useAtelierStore();
-const { selectedNode } = storeToRefs(useDeckStore());
+const { soleSelected } = storeToRefs(useDeckStore());
 
-const key = computed(() => `${selectedNode.value?.id ?? ""}:${props.name}`);
+const key = computed(() => `${soleSelected.value?.id ?? ""}:${props.name}`);
 const isOpen = computed(() => atelier.isComponentOpen(key.value));
 
 function toggleComponent() {

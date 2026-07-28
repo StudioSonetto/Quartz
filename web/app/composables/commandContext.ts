@@ -9,7 +9,7 @@ export function buildCommandContext(): CommandContext {
     deck,
     atelier,
     get selectedNode() {
-      return deck.selectedNode;
+      return deck.soleSelected;
     },
     get activeTab() {
       return atelier.activeTab;

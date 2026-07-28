@@ -129,10 +129,10 @@ import { getNodeType, canContain } from "~/modules/registry";
 import { isEditableTarget } from "~/utils/dom";
 
 const { deleteSelectedNode, updateNode, reorderNodes } = useDeckStore();
-const { selectedNode } = storeToRefs(useDeckStore());
+const { isSelected: isNodeSelected } = useDeckStore();
 const atelier = useAtelierStore();
 const { highlightedNodeId } = storeToRefs(atelier);
-const { selectNode } = useNodeSelection();
+const { select, toggle, range } = useNodeSelection();
 
 const props = defineProps<{
   node: Tree;
@@ -153,9 +153,7 @@ const nodeIcon = computed(
   () => getNodeType(props.node.type)?.icon ?? "i-carbon-help",
 );
 
-const isSelected = computed(() => {
-  return selectedNode.value?.id === props.node.id;
-});
+const isSelected = computed(() => isNodeSelected(props.node.id));
 const isGroup = computed(() => {
   return props.node.type === "core.group";
 });
@@ -191,7 +189,9 @@ useDraggable(nested, children, {
 });
 
 function onSelect(node: Tree, event: MouseEvent) {
-  selectNode(node, { handOffFocus: !isEditableTarget(event.target) });
+  if (event.shiftKey) return range(node);
+  if (event.metaKey || event.ctrlKey) return toggle(node);
+  select(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 
 function toggleGroup() {

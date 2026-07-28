@@ -96,7 +96,7 @@ import type Modal from "@/components/Modal.vue";
 
 import { allNodeTypes, getNodeType } from "~/modules/registry";
 
-const { currentTree, currentSlides, selectedNode } =
+const { currentTree, currentSlides, soleSelected } =
   storeToRefs(useDeckStore());
 const { highlightedNodeId } = storeToRefs(useAtelierStore());
 const { onKeydown, onFocusin, onFocusout, onPointerdown } = useTreeKeyboard();
@@ -107,8 +107,9 @@ const nodeTypes = allNodeTypes();
 const typeValues = nodeTypes.map((t) => t.type) as [NodeType, ...NodeType[]];
 
 const availableTypes = computed(() => {
-  const parentType: NodeType = selectedNode.value?.type ?? "core.group";
+  const parentType: NodeType = soleSelected.value?.type ?? "core.group";
   const accepts = getNodeType(parentType)?.accepts ?? [];
+
   return nodeTypes.filter((t) => accepts.includes(t.type));
 });
 

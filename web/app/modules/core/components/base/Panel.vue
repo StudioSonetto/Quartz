@@ -12,18 +12,18 @@ const props = defineProps<{
 }>();
 
 const { updateNode } = useDeckStore();
-const { selectedNode } = storeToRefs(useDeckStore());
+const { soleSelected } = storeToRefs(useDeckStore());
 
-const isRoot = computed(() => selectedNode.value?.path === "root");
+const isRoot = computed(() => soleSelected.value?.path === "root");
 
 const reference = computed({
   get() {
-    return selectedNode.value?.reference ?? "";
+    return soleSelected.value?.reference ?? "";
   },
   set(value) {
-    if (isRoot.value || !selectedNode.value) return;
+    if (isRoot.value || !soleSelected.value) return;
 
-    updateNode(selectedNode.value.id, { reference: value });
+    updateNode(soleSelected.value.id, { reference: value });
   },
 });
 </script>

@@ -1,8 +1,8 @@
 <template>
   <div
     ref="renderEl"
-    @click="selectedNode = null"
-    @click.right="selectedNode = null"
+    @click="clear"
+    @click.right="clear"
     class="render"
   >
     <span
@@ -45,7 +45,8 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode } = storeToRefs(useDeckStore());
+const { currentTree } = storeToRefs(useDeckStore());
+const { clear } = useNodeSelection();
 const { isDragging, snapThreshold, canvasSize } = storeToRefs(useAtelierStore());
 
 const props = defineProps<{
@@ -69,9 +70,10 @@ const isHorizontallyCentered = ref(false);
 const isVerticallyCentered = ref(false);
 
 function checkAlignment() {
-  if (!isDragging.value || !renderEl.value || !selectedNode.value) return;
+  const sole = useDeckStore().soleSelected;
+  if (!isDragging.value || !renderEl.value || !sole) return;
 
-  const draggedElement = document.getElementById(selectedNode.value.id);
+  const draggedElement = document.getElementById(sole.id);
 
   if (!draggedElement) return;
 

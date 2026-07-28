@@ -60,7 +60,7 @@
 <script setup lang="ts">
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { selectedNode } = storeToRefs(deck);
+const { soleSelected } = storeToRefs(deck);
 const { isGridChild: isNodeGridChild } = useNodeComponents();
 
 const props = defineProps<{
@@ -68,10 +68,10 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const isGroup = computed(() => selectedNode.value?.type === "core.group");
+const isGroup = computed(() => soleSelected.value?.type === "core.group");
 
 const isGridChild = computed(() =>
-  selectedNode.value ? isNodeGridChild(selectedNode.value) : false,
+  soleSelected.value ? isNodeGridChild(soleSelected.value) : false,
 );
 
 const widthMode = computed(() =>
@@ -93,8 +93,8 @@ function setAxis(axis: "width" | "height", mode: string | string[]) {
 
   if (props.component.data.size[axis] !== "auto") return;
 
-  const el = selectedNode.value
-    ? document.getElementById(selectedNode.value.id)
+  const el = soleSelected.value
+    ? document.getElementById(soleSelected.value.id)
     : null;
 
   const rendered = axis === "width" ? el?.offsetWidth : el?.offsetHeight;

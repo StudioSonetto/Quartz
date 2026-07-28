@@ -94,7 +94,7 @@ const resizeHandles: { pos: Pos; dx: number; dy: number }[] = [
   { pos: "w", dx: -1, dy: 0 },
 ];
 
-const { selectedNode } = storeToRefs(useDeckStore());
+const { soleSelected } = storeToRefs(useDeckStore());
 const { updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 const { renderEl, scale } = useCanvasScale();
@@ -107,7 +107,7 @@ const box = ref<{
 } | null>(null);
 
 function computeBox() {
-  const node = selectedNode.value;
+  const node = soleSelected.value;
 
   if (!node || node.path === "root") {
     box.value = null;
@@ -158,7 +158,7 @@ useMutationObserver(renderEl, scheduleBounds, {
 
 useResizeObserver(renderEl, scheduleBounds);
 
-watch(selectedNode, () => nextTick(computeBox));
+watch(soleSelected, () => nextTick(computeBox));
 
 onMounted(() => nextTick(computeBox));
 
@@ -226,7 +226,7 @@ function startPointerDrag(onMove: (ev: PointerEvent) => void) {
 }
 
 function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
-  const node = selectedNode.value;
+  const node = soleSelected.value;
 
   if (!node) return;
 
@@ -292,7 +292,7 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 }
 
 function startRotate(e: PointerEvent) {
-  const node = selectedNode.value;
+  const node = soleSelected.value;
 
   if (!node) return;
 

@@ -43,7 +43,7 @@
 <script setup lang="ts">
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { selectedNode } = storeToRefs(deck);
+const { soleSelected } = storeToRefs(deck);
 const { getNodeComponent } = useNodeComponents();
 
 const props = defineProps<{
@@ -52,7 +52,7 @@ const props = defineProps<{
 }>();
 
 function anchorGroupToChildren() {
-  const group = selectedNode.value;
+  const group = soleSelected.value;
 
   if (!group) return;
 

@@ -4,10 +4,10 @@ import { isEditableTarget } from "~/utils/dom";
 
 export function useTreeKeyboard() {
   const deck = useDeckStore();
-  const { currentTree, selectedNode } = storeToRefs(deck);
+  const { currentTree } = storeToRefs(deck);
   const atelier = useAtelierStore();
   const { highlightedNodeId, collapsedNodeIds, focus } = storeToRefs(atelier);
-  const { selectNode, releaseSelection } = useNodeSelection();
+  const { select, clear } = useNodeSelection();
 
   // True while a pointer press is entering the tree. A click focuses the node
   // button *before* its @click selects the node, so without this the focusin
@@ -34,7 +34,7 @@ export function useTreeKeyboard() {
       visible,
       highlightedNodeId.value,
       collapsedNodeIds.value,
-      selectedNode.value?.id ?? null,
+      deck.anchorId,
     );
     if (!intent) {
       // Arrows belong to the tree even where they resolve to nothing — Left on
@@ -64,12 +64,12 @@ export function useTreeKeyboard() {
       case "select": {
         const node = visible.find((t) => t.id === intent.id);
 
-        if (node) selectNode(node);
+        if (node) select(node);
 
         break;
       }
       case "release":
-        releaseSelection();
+        clear();
 
         break;
     }
@@ -92,7 +92,7 @@ export function useTreeKeyboard() {
     if (!currentTree.value) return;
     // flattenTree always emits the root first, so the fallback is just the
     // tree root — no need to walk the tree to find it.
-    atelier.setHighlighted(selectedNode.value?.id ?? currentTree.value.id);
+    atelier.setHighlighted(deck.anchorId ?? currentTree.value.id);
   }
 
   function onFocusout(e: FocusEvent) {

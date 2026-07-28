@@ -23,7 +23,41 @@ export const useDeckStore = defineStore("deck", () => {
     () => components.value[currentSlidesIndex.value],
   );
 
-  const selectedNode = ref<Tree | null>(null);
+  const selectedNodeIds = ref<string[]>([]);
+
+  // The range anchor / keyboard-cursor fallback. Unlike the selection list,
+  // this is fixed by a plain or cmd/ctrl click (see useNodeSelection) and is
+  // NOT moved by shift-range extension — so every shift-click extends from the
+  // same origin, matching native file-explorer behaviour. Kept in sync at each
+  // direct write below (create selects the new node; clears reset it to null).
+  const anchorId = ref<string | null>(null);
+
+  const selectedIdSet = computed(() => new Set(selectedNodeIds.value));
+
+  function isSelected(id: string): boolean {
+    return selectedIdSet.value.has(id);
+  }
+
+  // Selection is always scoped to the current slide (cleared on slide switch),
+  // so resolve ids against the current tree only, not the whole forest.
+  const selectedNodes = computed<Tree[]>(() => {
+    const tree = trees.value[currentSlidesIndex.value];
+    if (!tree) return [];
+    const byId = new Map(flattenTree(tree).map((n) => [n.id, n]));
+    return selectedNodeIds.value
+      .map((id) => byId.get(id))
+      .filter((n): n is Tree => n !== undefined);
+  });
+
+  const soleSelected = computed<Tree | null>(() => {
+    if (selectedNodeIds.value.length !== 1) return null;
+    const tree = trees.value[currentSlidesIndex.value];
+    return tree
+      ? (flattenTree(tree).find((n) => n.id === selectedNodeIds.value[0]) ??
+          null)
+      : null;
+  });
+
   const slidesInLoading = ref<Set<number>>(new Set());
 
   watch(slides, (newSlides) => {
@@ -45,7 +79,8 @@ export const useDeckStore = defineStore("deck", () => {
   });
 
   watch(currentSlidesIndex, () => {
-    selectedNode.value = null;
+    selectedNodeIds.value = [];
+    anchorId.value = null;
     sync.flush(); // best-effort flush on slide switch (non-blocking)
   });
 
@@ -200,8 +235,8 @@ export const useDeckStore = defineStore("deck", () => {
     if (!currentSlides.value) return;
 
     const id = crypto.randomUUID();
-    const parentPath = selectedNode.value?.path ?? ROOT_PATH;
-    const parentType: NodeType = selectedNode.value?.type ?? "core.group";
+    const parentPath = soleSelected.value?.path ?? ROOT_PATH;
+    const parentType: NodeType = soleSelected.value?.type ?? "core.group";
     if (!canContain(parentType, type)) {
       throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
@@ -238,7 +273,8 @@ export const useDeckStore = defineStore("deck", () => {
     sync.enqueueNode(id);
     for (const c of defaultComponents) sync.enqueueComponent(c.node, c.type);
 
-    selectedNode.value = getNodeAsTree(id);
+    selectedNodeIds.value = [id];
+    anchorId.value = id;
   }
 
   function getNodeAsTree(id: string): Tree | null {
@@ -261,7 +297,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function deleteSelectedNode() {
-    const node = selectedNode.value;
+    const node = soleSelected.value;
     if (!node || node.path === ROOT_PATH) return;
 
     const slideComponents = components.value[currentSlidesIndex.value] ?? [];
@@ -284,7 +320,8 @@ export const useDeckStore = defineStore("deck", () => {
     // Drop every removed id from the outbox before enqueuing the delete.
     for (const n of removed) sync.dropNode(n.id);
     sync.enqueueDelete({ path: node.path, slides: node.slides }, node.id);
-    selectedNode.value = null;
+    selectedNodeIds.value = [];
+    anchorId.value = null;
   }
 
   // Renormalize path + sort_order from the current tree STRUCTURE after a drag
@@ -351,7 +388,11 @@ export const useDeckStore = defineStore("deck", () => {
     currentTree,
     components,
     currentComponents,
-    selectedNode,
+    selectedNodeIds,
+    anchorId,
+    selectedNodes,
+    soleSelected,
+    isSelected,
     currentFlat,
     getNodeById,
     getComponent,

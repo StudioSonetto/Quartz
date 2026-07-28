@@ -4,13 +4,13 @@
       ref="border"
       :id="props.node.id"
       class="group-border"
-      :class="[selectedNode === props.node ? 'outline-accent!' : '']"
+      :class="[isSelected(props.node.id) ? 'outline-accent!' : '']"
       :style="borderStyle"
       :tabindex="0"
-      @click="selectNode"
-      @mousedown="selectNode"
-      @click.right="releaseSelection"
-      @keydown.esc="releaseSelection"
+      @click="onSelect"
+      @mousedown="onSelect"
+      @click.right="clear"
+      @keydown.esc="clear"
     ></div>
     <AtelierRenderElement
       v-for="child in props.node.children"
@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { flattenTree } from "~/utils/tree";
 
-const { selectedNode } = storeToRefs(useDeckStore());
+const { isSelected } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
@@ -199,13 +199,9 @@ watch(isDragging, (newState) => {
   }
 });
 
-const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+const { selectFromEvent, clear } = useNodeSelection();
 
-function selectNode(event: Event) {
-  event.stopPropagation();
-
-  if (selectedNode.value === props.node) return;
-
-  commitSelection(props.node);
+function onSelect(event: MouseEvent) {
+  selectFromEvent(props.node, event);
 }
 </script>

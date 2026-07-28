@@ -1,7 +1,7 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="[]">
     <div
-      v-if="selectedNode"
+      v-if="soleSelected"
       class="view"
       tabindex="-1"
       @keydown="onKeydown"
@@ -64,18 +64,18 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode } = storeToRefs(useDeckStore());
+const { currentTree, soleSelected } = storeToRefs(useDeckStore());
 const { getNodeComponents } = useNodeComponents();
 
 import { getComponentType } from "~/modules/registry";
 import { isEditableTarget, wrapIndex } from "~/utils/dom";
 
-const { releaseSelection } = useNodeSelection();
+const { clear } = useNodeSelection();
 
 const nodeComponents = computed<ComponentModel[]>(() => {
-  if (!selectedNode.value?.id || !currentTree.value) return [];
+  if (!soleSelected.value?.id || !currentTree.value) return [];
 
-  return getNodeComponents(selectedNode.value.id);
+  return getNodeComponents(soleSelected.value.id);
 });
 
 const panels = computed(() =>
@@ -112,7 +112,7 @@ function onKeydown(e: KeyboardEvent) {
   // below can never trap keyboard users.
   if (e.key === "Escape") {
     e.preventDefault();
-    releaseSelection();
+    clear();
     return;
   }
 
