@@ -53,7 +53,7 @@
               shortcut: '⌫',
               danger: true,
               action: () => {
-                deleteSelectedNodes();
+                run('core.node.delete');
               },
             },
           ])
@@ -128,7 +128,8 @@ import { useDraggable } from "vue-draggable-plus";
 import { getNodeType, canContain } from "~/modules/registry";
 import { isEditableTarget } from "~/utils/dom";
 
-const { deleteSelectedNodes, updateNode, reorderNodes } = useDeckStore();
+const { updateNode, reorderNodes } = useDeckStore();
+const { run } = useCommands();
 const { isSelected: isNodeSelected } = useDeckStore();
 const atelier = useAtelierStore();
 const { highlightedNodeId } = storeToRefs(atelier);
@@ -200,9 +201,13 @@ function toggleGroup() {
   atelier.toggleCollapsed(props.node.id);
 }
 
+// Route through the command so the delete guard (`core.node.delete`'s `when`)
+// stays single-sourced — the row must not delete on rules the command wouldn't.
+// The Backspace guard stays local: it protects the inline rename input, where
+// Backspace edits text rather than deleting the node.
 function handleDelete(event: KeyboardEvent) {
   if (event.key === "Backspace") return;
 
-  deleteSelectedNodes();
+  run("core.node.delete");
 }
 </script>

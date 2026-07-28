@@ -88,7 +88,7 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
 
     // Select the PARENT and delete it (removes parent + child subtree).
     store.selectedNodeIds = [tree.children[0]!.id];
-    store.deleteSelectedNode();
+    store.deleteSelectedNodes();
 
     // Flush and inspect what actually got POSTed.
     const fp = sync.flush();

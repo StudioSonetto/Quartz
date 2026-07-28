@@ -305,14 +305,15 @@ export const useDeckStore = defineStore("deck", () => {
     if (!roots.length) return;
 
     const slideComponents = components.value[currentSlidesIndex.value] ?? [];
-    const removed = currentFlat().filter((n) =>
+    const flat = currentFlat();
+    const removed = flat.filter((n) =>
       roots.some((r) => n.path === r.path || n.path.startsWith(`${r.path}.`)),
     );
     const removedIds = new Set(removed.map((n) => n.id));
 
     // Remove the nodes and their subtrees from local state.
     trees.value[currentSlidesIndex.value] = buildTree(
-      currentFlat()
+      flat
         .filter((n) => !removedIds.has(n.id))
         .map(({ children, parent, ...n }) => n),
     );
@@ -327,10 +328,6 @@ export const useDeckStore = defineStore("deck", () => {
       sync.enqueueDelete({ path: r.path, slides: r.slides }, r.id);
     selectedNodeIds.value = [];
     anchorId.value = null;
-  }
-
-  function deleteSelectedNode() {
-    if (soleSelected.value) deleteNodes([soleSelected.value]);
   }
 
   function deleteSelectedNodes() {
@@ -430,7 +427,6 @@ export const useDeckStore = defineStore("deck", () => {
     fetchNodeComponents,
     createNode,
     updateNode,
-    deleteSelectedNode,
     deleteSelectedNodes,
     selectAll,
     reorderNodes,
