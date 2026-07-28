@@ -108,7 +108,9 @@ export interface CommandContext {
   // build context without Nuxt's auto-import globals and breaks `nuxt build`.
   deck: any;
   atelier: any;
-  selectedNode: Tree | null;
+  soleSelected: Tree | null;
+  selectedNodes: Tree[];
+  selectedNodeIds: string[];
   activeTab: number;
   focus: AtelierFocus;
   deckId: string | null;

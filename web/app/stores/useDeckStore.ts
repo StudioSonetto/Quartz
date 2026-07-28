@@ -1,6 +1,7 @@
 import { getNodeType, canContain } from "~/modules/registry";
 import { buildTree, flattenTree } from "~/utils/tree";
 import { ROOT_PATH, childPath } from "~/utils/nodePath";
+import { outermostNodes } from "~/utils/selection";
 import {
   normaliseComponents,
   effectiveDefaults,
@@ -296,32 +297,53 @@ export const useDeckStore = defineStore("deck", () => {
     sync.enqueueNode(id);
   }
 
-  function deleteSelectedNode() {
-    const node = soleSelected.value;
-    if (!node || node.path === ROOT_PATH) return;
+  function deleteNodes(nodes: Tree[]) {
+    if (!nodes.length) return;
+
+    const roots = outermostNodes(nodes.filter((n) => n.path !== ROOT_PATH));
+
+    if (!roots.length) return;
 
     const slideComponents = components.value[currentSlidesIndex.value] ?? [];
-    const removed = currentFlat().filter(
-      (n) => n.path === node.path || n.path.startsWith(`${node.path}.`),
+    const removed = currentFlat().filter((n) =>
+      roots.some((r) => n.path === r.path || n.path.startsWith(`${r.path}.`)),
     );
     const removedIds = new Set(removed.map((n) => n.id));
 
-    // Remove the node and its subtree from local state.
+    // Remove the nodes and their subtrees from local state.
     trees.value[currentSlidesIndex.value] = buildTree(
       currentFlat()
         .filter((n) => !removedIds.has(n.id))
         .map(({ children, parent, ...n }) => n),
     );
-    // Purge the removed subtree's components so they can't resolve in flush().
+    // Purge the removed subtrees' components so they can't resolve in flush().
     components.value[currentSlidesIndex.value] = slideComponents.filter(
       (c) => !removedIds.has(c.node),
     );
 
-    // Drop every removed id from the outbox before enqueuing the delete.
+    // Drop every removed id from the outbox before enqueuing the deletes.
     for (const n of removed) sync.dropNode(n.id);
-    sync.enqueueDelete({ path: node.path, slides: node.slides }, node.id);
+    for (const r of roots)
+      sync.enqueueDelete({ path: r.path, slides: r.slides }, r.id);
     selectedNodeIds.value = [];
     anchorId.value = null;
+  }
+
+  function deleteSelectedNode() {
+    if (soleSelected.value) deleteNodes([soleSelected.value]);
+  }
+
+  function deleteSelectedNodes() {
+    deleteNodes(selectedNodes.value);
+  }
+
+  function selectAll() {
+    const tree = trees.value[currentSlidesIndex.value];
+    if (!tree) return;
+    selectedNodeIds.value = flattenTree(tree)
+      .filter((n) => n.path !== ROOT_PATH)
+      .map((n) => n.id);
+    anchorId.value = selectedNodeIds.value.at(-1) ?? null;
   }
 
   // Renormalize path + sort_order from the current tree STRUCTURE after a drag
@@ -409,6 +431,8 @@ export const useDeckStore = defineStore("deck", () => {
     createNode,
     updateNode,
     deleteSelectedNode,
+    deleteSelectedNodes,
+    selectAll,
     reorderNodes,
     updateComponent,
     nextSlides,

@@ -1,5 +1,7 @@
 export const defaultKeymap: Record<string, string> = {
   "mod+k": "core.view.palette",
+  "mod+a": "core.selection.selectAll",
+  escape: "core.selection.clear",
   backspace: "core.node.delete",
   delete: "core.node.delete",
   arrowright: "core.slide.next",

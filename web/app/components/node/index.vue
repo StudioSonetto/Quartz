@@ -16,7 +16,7 @@
         ></div>
         <input
           maxlength="30"
-          @keydown.enter.esc="($event.target as HTMLInputElement).blur()"
+          @keydown.enter.esc.prevent="($event.target as HTMLInputElement).blur()"
           v-model.lazy="nodeName"
           :style="isSelected ? 'width: 100%' : `width: ${nodeName.length}ch`"
           :class="{ 'text-dark-900': isSelected }"
@@ -53,7 +53,7 @@
               shortcut: '⌫',
               danger: true,
               action: () => {
-                deleteSelectedNode();
+                deleteSelectedNodes();
               },
             },
           ])
@@ -128,7 +128,7 @@ import { useDraggable } from "vue-draggable-plus";
 import { getNodeType, canContain } from "~/modules/registry";
 import { isEditableTarget } from "~/utils/dom";
 
-const { deleteSelectedNode, updateNode, reorderNodes } = useDeckStore();
+const { deleteSelectedNodes, updateNode, reorderNodes } = useDeckStore();
 const { isSelected: isNodeSelected } = useDeckStore();
 const atelier = useAtelierStore();
 const { highlightedNodeId } = storeToRefs(atelier);
@@ -203,6 +203,6 @@ function toggleGroup() {
 function handleDelete(event: KeyboardEvent) {
   if (event.key === "Backspace") return;
 
-  deleteSelectedNode();
+  deleteSelectedNodes();
 }
 </script>

@@ -8,8 +8,14 @@ export function buildCommandContext(): CommandContext {
   return {
     deck,
     atelier,
-    get selectedNode() {
+    get soleSelected() {
       return deck.soleSelected;
+    },
+    get selectedNodes() {
+      return deck.selectedNodes;
+    },
+    get selectedNodeIds() {
+      return deck.selectedNodeIds;
     },
     get activeTab() {
       return atelier.activeTab;
