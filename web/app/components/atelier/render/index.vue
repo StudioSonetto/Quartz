@@ -2,6 +2,7 @@
   <div ref="renderEl" @click="clear" @click.right="clear" class="render">
     <AtelierRenderHandles v-if="canEdit" />
     <AtelierRenderMarquee v-if="canEdit" />
+    <AtelierRenderSelection v-if="canEdit" />
     <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement

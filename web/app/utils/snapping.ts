@@ -11,6 +11,32 @@ export interface SnapLine {
   to?: number;
 }
 
+// The ids of every node related by ancestry to any moving node — the moving
+// nodes themselves, their descendants (which drag along) and their ancestors
+// (which wrap them). None are valid snap targets while that set is dragging.
+// Pure so it can be unit-tested without a store/DOM; compares materialised paths.
+export function relatedIds(
+  nodes: { id: string; path: string }[],
+  movingIds: string[],
+): Set<string> {
+  const moving = new Set(movingIds);
+  const movingPaths = nodes.filter((n) => moving.has(n.id)).map((n) => n.path);
+  const out = new Set<string>();
+
+  for (const n of nodes) {
+    const related = movingPaths.some(
+      (mp) =>
+        n.path === mp ||
+        n.path.startsWith(`${mp}.`) ||
+        mp.startsWith(`${n.path}.`),
+    );
+
+    if (related) out.add(n.id);
+  }
+
+  return out;
+}
+
 export function snapCandidates(
   others: Rect[],
   canvas: { width: number; height: number },

@@ -24,6 +24,7 @@ const { currentTree } = storeToRefs(deck);
 
 const { renderEl } = useCanvasScale();
 const { extendSelection, clear } = useNodeSelection();
+const { arm } = useSuppressClickAfterDrag();
 
 const rect = ref<Rect | null>(null);
 const rectStyle = computed(() =>
@@ -102,6 +103,10 @@ useEventListener(window, "pointerup", () => {
 
     extendSelection(hits);
   }
+
+  // A marquee drag leaves a synthetic click on `.render` that would clear the
+  // just-made selection; swallow it. (A plain click still clears.)
+  if (moved) arm();
 
   rect.value = null;
   origin = null;

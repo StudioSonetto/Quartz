@@ -1,6 +1,11 @@
 import type { Rect } from "~/utils/selection";
 import { ROOT_PATH } from "~/utils/nodePath";
-import { snapCandidates, resolveSnap, type SnapLine } from "~/utils/snapping";
+import {
+  snapCandidates,
+  resolveSnap,
+  relatedIds,
+  type SnapLine,
+} from "~/utils/snapping";
 import { flattenTree } from "~/utils/tree";
 
 export const snappingKey: InjectionKey<ReturnType<typeof useSnapping>> =
@@ -33,19 +38,13 @@ export function useSnapping() {
 
     // A moving node drags its whole subtree with it, so neither its descendants
     // nor its ancestors (which wrap it) are valid snap targets — only unrelated
-    // nodes and the canvas guides are. Compare by materialised path.
-    const moving = new Set(movingIds);
-    const movingPaths = nodes.filter((n) => moving.has(n.id)).map((n) => n.path);
-    const isRelated = (path: string) =>
-      movingPaths.some(
-        (mp) =>
-          path === mp || path.startsWith(`${mp}.`) || mp.startsWith(`${path}.`),
-      );
+    // nodes and the canvas guides are.
+    const excluded = relatedIds(nodes, movingIds);
 
     const others: Rect[] = [];
 
     for (const n of nodes) {
-      if (n.path === ROOT_PATH || isRelated(n.path)) continue;
+      if (n.path === ROOT_PATH || excluded.has(n.id)) continue;
 
       const el = document.getElementById(n.id);
 
