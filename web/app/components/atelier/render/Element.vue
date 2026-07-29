@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { getModuleApi } from "~/modules/registry";
 import type { WebglApi } from "~/modules/webgl/types";
+import { snappingKey } from "~/composables/useSnapping";
 
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
@@ -55,9 +56,9 @@ const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
-const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
 
 const { scale } = useCanvasScale();
+const { begin, apply, end } = inject(snappingKey)!;
 
 const element = useTemplateRef<HTMLElement>("element");
 
@@ -74,86 +75,6 @@ const { x, y, isDragging } = useDraggable(element, { exact: true });
 
 const startTransform = ref<{ x: number; y: number } | null>(null);
 const startDrag = ref<{ x: number; y: number } | null>(null);
-
-const canvasCentre = {
-  x: canvasSize.value.width / 2,
-  y: canvasSize.value.height / 2,
-};
-
-function getElementDimensions() {
-  const elementBounds = element.value?.getBoundingClientRect();
-
-  if (!elementBounds) return;
-
-  const { x: scaleX, y: scaleY } = scale();
-
-  return {
-    width: elementBounds.width * scaleX,
-    height: elementBounds.height * scaleY,
-    scaleX,
-    scaleY,
-  };
-}
-
-function snapToCentre(x: number, y: number, width: number, height: number) {
-  const centreX = x + width / 2;
-  const centreY = y + height / 2;
-
-  return {
-    x:
-      Math.abs(centreX - canvasCentre.x) < snapThreshold.value
-        ? canvasCentre.x - width / 2
-        : x,
-    y:
-      Math.abs(centreY - canvasCentre.y) < snapThreshold.value
-        ? canvasCentre.y - height / 2
-        : y,
-  };
-}
-
-function snapToEdge(x: number, y: number, width: number, height: number) {
-  const edges = [
-    { condition: Math.abs(x) < snapThreshold.value, value: 0, axis: "x" },
-    { condition: Math.abs(y) < snapThreshold.value, value: 0, axis: "y" },
-    {
-      condition: Math.abs(x + width - 1920) < snapThreshold.value,
-      value: canvasSize.value.width - width,
-      axis: "x",
-    },
-    {
-      condition: Math.abs(y + height - 1080) < snapThreshold.value,
-      value: canvasSize.value.height - height,
-      axis: "y",
-    },
-  ];
-
-  let snappedX = x;
-  let snappedY = y;
-
-  edges.forEach((edge) => {
-    if (!edge.condition) return;
-
-    if (edge.axis === "x") {
-      snappedX = edge.value;
-    } else {
-      snappedY = edge.value;
-    }
-  });
-
-  return { x: snappedX, y: snappedY };
-}
-
-function applySnapping(x: number, y: number): { x: number; y: number } {
-  const dimensions = getElementDimensions();
-
-  if (!dimensions) return { x, y };
-
-  const { width, height } = dimensions;
-
-  const centreSnapped = snapToCentre(x, y, width, height);
-
-  return snapToEdge(centreSnapped.x, centreSnapped.y, width, height);
-}
 
 const throttle = useFrameThrottle();
 
@@ -174,6 +95,8 @@ watchThrottled(
       };
       startDrag.value = { x: newX, y: newY };
 
+      begin([props.node.id]);
+
       return;
     }
 
@@ -185,10 +108,16 @@ watchThrottled(
     const newPosX = startTransform.value.x + deltaX * scaleX;
     const newPosY = startTransform.value.y + deltaY * scaleY;
 
-    const snappedPos = applySnapping(newPosX, newPosY);
+    const rect = element.value?.getBoundingClientRect();
+    const snapped = apply({
+      left: newPosX,
+      top: newPosY,
+      width: (rect?.width ?? 0) * scaleX,
+      height: (rect?.height ?? 0) * scaleY,
+    });
 
-    transform.data.position.x = Math.round(snappedPos.x);
-    transform.data.position.y = Math.round(snappedPos.y);
+    transform.data.position.x = Math.round(snapped.left);
+    transform.data.position.y = Math.round(snapped.top);
   },
   { throttle },
 );
@@ -199,6 +128,7 @@ watch(isDragging, (newState) => {
   if (!newState) {
     startTransform.value = null;
     startDrag.value = null;
+    end();
   }
 });
 

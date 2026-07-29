@@ -1,20 +1,8 @@
 <template>
-  <div
-    ref="renderEl"
-    @click="clear"
-    @click.right="clear"
-    class="render"
-  >
-    <span
-      v-if="canEdit && isDragging && isVerticallyCentered"
-      class="w-full h-0.5 bg-red-500 absolute z-99 top-1/2 -translate-y-1/2"
-    ></span>
-    <span
-      v-if="canEdit && isDragging && isHorizontallyCentered"
-      class="h-full w-0.4 bg-red-500 absolute z-99 left-1/2 -translate-x-1/2"
-    ></span>
+  <div ref="renderEl" @click="clear" @click.right="clear" class="render">
     <AtelierRenderHandles v-if="canEdit" />
     <AtelierRenderMarquee v-if="canEdit" />
+    <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"
@@ -48,7 +36,7 @@
 <script setup lang="ts">
 const { currentTree } = storeToRefs(useDeckStore());
 const { clear } = useNodeSelection();
-const { isDragging, snapThreshold, canvasSize } = storeToRefs(useAtelierStore());
+const { canvasSize } = storeToRefs(useAtelierStore());
 
 const props = defineProps<{
   canEdit?: boolean;
@@ -67,71 +55,6 @@ const scale = computed(() =>
 
 provide(renderScaleKey, scale);
 
-const isHorizontallyCentered = ref(false);
-const isVerticallyCentered = ref(false);
-
-function checkAlignment() {
-  const sole = useDeckStore().soleSelected;
-  if (!isDragging.value || !renderEl.value || !sole) return;
-
-  const draggedElement = document.getElementById(sole.id);
-
-  if (!draggedElement) return;
-
-  const renderRect = renderEl.value.getBoundingClientRect();
-  const elementRect = draggedElement.getBoundingClientRect();
-
-  const renderCenterX = renderRect.left + renderRect.width / 2;
-  const renderCenterY = renderRect.top + renderRect.height / 2;
-
-  const elementCenterX = elementRect.left + elementRect.width / 2;
-  const elementCenterY = elementRect.top + elementRect.height / 2;
-
-  const horizontalDistance = Math.abs(elementCenterX - renderCenterX);
-
-  isHorizontallyCentered.value = horizontalDistance <= snapThreshold.value;
-
-  const verticalDistance = Math.abs(elementCenterY - renderCenterY);
-
-  isVerticallyCentered.value = verticalDistance <= snapThreshold.value;
-}
-
-let animationFrameId: number | null = null;
-
-function startAlignmentCheck() {
-  if (animationFrameId) return;
-
-  function checkLoop() {
-    checkAlignment();
-
-    if (isDragging.value) {
-      animationFrameId = requestAnimationFrame(checkLoop);
-    } else {
-      animationFrameId = null;
-    }
-  }
-
-  animationFrameId = requestAnimationFrame(checkLoop);
-}
-
-watch(isDragging, (newState) => {
-  if (newState) {
-    startAlignmentCheck();
-  } else {
-    isHorizontallyCentered.value = false;
-    isVerticallyCentered.value = false;
-
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-
-      animationFrameId = null;
-    }
-  }
-});
-
-onUnmounted(() => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-  }
-});
+const snapping = useSnapping();
+provide(snappingKey, snapping);
 </script>
