@@ -29,9 +29,6 @@
 <script setup lang="ts">
 const client = useSupabaseClient();
 
-// Derive the channel type from the client so it matches the exact
-// @supabase/realtime-js copy the client is built from (avoids the
-// duplicate-package type mismatch with @nuxtjs/supabase).
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
@@ -67,8 +64,10 @@ onMounted(async () => {
   document.addEventListener("visibilitychange", flushOnHide);
   window.addEventListener("pagehide", flushOnPageHide);
 
+  const id = useRoute().params.id as string;
+
   deckRC = client
-    .channel("public:decks")
+    .channel(`atelier:${id}:decks`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
@@ -77,7 +76,7 @@ onMounted(async () => {
     .subscribe();
 
   slidesRC = client
-    .channel("public:slides")
+    .channel(`atelier:${id}:slides`)
     .on(
       "postgres_changes",
       {
@@ -104,8 +103,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   snapshotScheduler.stop();
+
   document.removeEventListener("visibilitychange", flushOnHide);
   window.removeEventListener("pagehide", flushOnPageHide);
+
   client.removeAllChannels();
 });
 </script>

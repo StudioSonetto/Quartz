@@ -10,6 +10,7 @@
     @contextmenu.prevent="nextSlides()"
     @keydown.enter.space.right="nextSlides()"
     @keydown.left="prevSlides()"
+    @keydown.esc="leavePresentation()"
     @mousemove="onCursorMoved"
     tabindex="0"
     autofocus
@@ -42,21 +43,10 @@
 <script setup lang="ts">
 const client = useSupabaseClient();
 
-// Derive the channel type from the client so it matches the exact
-// @supabase/realtime-js copy the client is built from (avoids the
-// duplicate-package type mismatch with @nuxtjs/supabase).
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
 const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
-
-const { isFullscreen } = useFullscreen();
-
-watch(isFullscreen, (isFullscreen) => {
-  if (!isFullscreen) {
-    leavePresentation();
-  }
-});
 
 const cursorMoved = ref(false);
 
@@ -78,28 +68,28 @@ let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const { data: deck, refresh: refreshDeck } = await useAsyncData(
   "deck",
-  async () => await fetchDeck(useRoute().params.id as string)
+  async () => await fetchDeck(useRoute().params.id as string),
 );
 
 const { refresh: refreshSlides } = await useAsyncData(
   "slides",
-  async () => await fetchAllSlides(useRoute().params.id as string)
+  async () => await fetchAllSlides(useRoute().params.id as string),
 );
 
 onMounted(() => {
-  document.documentElement.requestFullscreen();
+  const id = useRoute().params.id as string;
 
   deckRC = client
-    .channel("public:decks")
+    .channel(`live:${id}:decks`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
-      () => refreshDeck()
+      () => refreshDeck(),
     )
     .subscribe();
 
   slidesRC = client
-    .channel("public:slides")
+    .channel(`live:${id}:slides`)
     .on(
       "postgres_changes",
       {
@@ -108,7 +98,7 @@ onMounted(() => {
         table: "slides",
         filter: `deck=eq.${deck.value?.id}`,
       },
-      () => refreshSlides()
+      () => refreshSlides(),
     )
     .on(
       "postgres_changes",
@@ -117,7 +107,7 @@ onMounted(() => {
         schema: "public",
         table: "slides",
       },
-      () => refreshSlides()
+      () => refreshSlides(),
     )
     .subscribe();
 });

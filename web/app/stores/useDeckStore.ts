@@ -26,11 +26,8 @@ export const useDeckStore = defineStore("deck", () => {
 
   const selectedNodeIds = ref<string[]>([]);
 
-  // The range anchor / keyboard-cursor fallback. Unlike the selection list,
-  // this is fixed by a plain or cmd/ctrl click (see useNodeSelection) and is
-  // NOT moved by shift-range extension — so every shift-click extends from the
-  // same origin, matching native file-explorer behaviour. Kept in sync at each
-  // direct write below (create selects the new node; clears reset it to null).
+  // Range anchor for shift-click: set by a plain/cmd click (see useNodeSelection),
+  // never moved by shift extension, so every range extends from the same origin.
   const anchorId = ref<string | null>(null);
 
   const selectedIdSet = computed(() => new Set(selectedNodeIds.value));
@@ -39,8 +36,7 @@ export const useDeckStore = defineStore("deck", () => {
     return selectedIdSet.value.has(id);
   }
 
-  // Selection is always scoped to the current slide (cleared on slide switch),
-  // so resolve ids against the current tree only, not the whole forest.
+  // Selection is scoped to the current slide, so resolve ids against its tree.
   const selectedNodes = computed<Tree[]>(() => {
     const tree = trees.value[currentSlidesIndex.value];
     if (!tree) return [];
@@ -67,17 +63,26 @@ export const useDeckStore = defineStore("deck", () => {
     components.value.push([]);
   });
 
-  // Load nodes for a slide the first time it becomes current.
-  watch(currentTree, async () => {
-    if (
-      currentTree.value?.id ||
-      slidesInLoading.value.has(currentSlidesIndex.value)
-    )
-      return;
+  // Load a slide's nodes when it first becomes current. Keyed on slide id, not
+  // currentTree: every empty trees[] slot shares one EMPTY_TREE reference, so a
+  // currentTree watch would never fire for the first slide.
+  watch(
+    () => currentSlides.value?.id,
+    async (id) => {
+      if (
+        !id ||
+        currentTree.value?.id ||
+        slidesInLoading.value.has(currentSlidesIndex.value)
+      )
+        return;
 
-    await fetchAllNodes(currentSlidesIndex.value);
-    await parallelLoad();
-  });
+      await Promise.all([
+        fetchAllNodes(currentSlidesIndex.value),
+        parallelLoad(),
+      ]);
+    },
+    { immediate: true },
+  );
 
   watch(currentSlidesIndex, () => {
     selectedNodeIds.value = [];
@@ -343,11 +348,11 @@ export const useDeckStore = defineStore("deck", () => {
     anchorId.value = selectedNodeIds.value.at(-1) ?? null;
   }
 
-  // Renormalize path + sort_order from the current tree STRUCTURE after a drag
-  // library has moved nodes between children arrays, then enqueue every node
-  // whose path or sort_order actually changed.
+  // After a drag reorders the tree, recompute path + sort_order from structure
+  // and enqueue every node that changed.
   function reorderNodes() {
     const root = trees.value[currentSlidesIndex.value];
+
     if (!root) return;
 
     const changed: string[] = [];
