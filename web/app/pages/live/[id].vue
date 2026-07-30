@@ -80,7 +80,7 @@ onMounted(() => {
   const id = useRoute().params.id as string;
 
   deckRC = client
-    .channel(`live:${id}:decks`)
+    .channel(`live:${id}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
@@ -89,7 +89,7 @@ onMounted(() => {
     .subscribe();
 
   slidesRC = client
-    .channel(`live:${id}:slides`)
+    .channel(`live:${id}:slides`, { config: { private: true } })
     .on(
       "postgres_changes",
       {

@@ -33,7 +33,7 @@ onMounted(() => {
   const userId = useAuthStore().user?.id;
 
   realtimeChannel = client
-    .channel(`dashboard:${userId}:decks`)
+    .channel(`dashboard:${userId}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },

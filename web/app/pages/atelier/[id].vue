@@ -67,7 +67,7 @@ onMounted(async () => {
   const id = useRoute().params.id as string;
 
   deckRC = client
-    .channel(`atelier:${id}:decks`)
+    .channel(`atelier:${id}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
@@ -76,7 +76,7 @@ onMounted(async () => {
     .subscribe();
 
   slidesRC = client
-    .channel(`atelier:${id}:slides`)
+    .channel(`atelier:${id}:slides`, { config: { private: true } })
     .on(
       "postgres_changes",
       {
