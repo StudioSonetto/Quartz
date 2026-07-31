@@ -1,6 +1,6 @@
 import { getNodeType, canContain } from "~/modules/registry";
 import { buildTree, flattenTree } from "~/utils/tree";
-import { ROOT_PATH, childPath } from "~/utils/nodePath";
+import { ROOT_PATH, childPath, isSelfOrDescendantPath } from "~/utils/nodePath";
 import { outermostNodes } from "~/utils/selection";
 import {
   nearestCommonAncestor,
@@ -324,7 +324,7 @@ export const useDeckStore = defineStore("deck", () => {
     const slideComponents = components.value[currentSlidesIndex.value] ?? [];
     const flat = currentFlat();
     const removed = flat.filter((n) =>
-      roots.some((r) => n.path === r.path || n.path.startsWith(`${r.path}.`)),
+      roots.some((r) => isSelfOrDescendantPath(n.path, r.path)),
     );
     const removedIds = new Set(removed.map((n) => n.id));
 

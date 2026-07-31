@@ -1,4 +1,5 @@
 import type { Rect } from "~/utils/selection";
+import { isDescendantPath, isSelfOrDescendantPath } from "~/utils/nodePath";
 
 export interface SnapLine {
   axis: "x" | "y";
@@ -26,9 +27,7 @@ export function relatedIds(
   for (const n of nodes) {
     const related = movingPaths.some(
       (mp) =>
-        n.path === mp ||
-        n.path.startsWith(`${mp}.`) ||
-        mp.startsWith(`${n.path}.`),
+        isSelfOrDescendantPath(n.path, mp) || isDescendantPath(mp, n.path),
     );
 
     if (related) out.add(n.id);

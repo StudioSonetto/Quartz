@@ -1,4 +1,5 @@
 import type { Tree } from "#shared/types";
+import { isDescendantPath } from "~/utils/nodePath";
 
 export interface Rect {
   left: number;
@@ -27,7 +28,7 @@ export function outermostNodes(nodes: Tree[]): Tree[] {
 
   return nodes.filter((n) => {
     for (const p of paths) {
-      if (p !== n.path && n.path.startsWith(`${p}.`)) return false;
+      if (isDescendantPath(n.path, p)) return false;
     }
 
     return true;
