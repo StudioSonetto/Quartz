@@ -7,6 +7,7 @@ export default {
   icon: "i-carbon-caret-down",
   accepts: ["core.group", "core.text", "webgl.canvas"],
   defaultComponents: ["core.base", "core.transform", "core.layout"],
+  creatable: false,
   renderer: {
     element: "div",
     render: (node, ctx): RenderResult => {

@@ -1,4 +1,4 @@
-import type { Command } from "#shared/types";
+import type { Command, Tree } from "#shared/types";
 import type { AlignOp } from "~/utils/align";
 
 const alignOps: { op: AlignOp; title: string; icon: string }[] = [
@@ -55,4 +55,27 @@ const distributeCommands: Command[] = [
   run: () => useAlignment().distribute(axis),
 }));
 
-export default [...alignCommands, ...distributeCommands];
+const groupCommand: Command = {
+  id: "core.selection.group",
+  title: "Group Selection",
+  category: "Arrange",
+  icon: "i-carbon-group-objects",
+  when: (ctx) => ctx.selectedNodes.length >= 2,
+  run: (ctx) => ctx.deck.groupSelection(),
+};
+
+const ungroupCommand: Command = {
+  id: "core.selection.ungroup",
+  title: "Ungroup",
+  category: "Arrange",
+  icon: "i-carbon-ungroup-objects",
+  when: (ctx) => ctx.selectedNodes.some((n: Tree) => n.type === "core.group"),
+  run: (ctx) => ctx.deck.ungroupSelection(),
+};
+
+export default [
+  ...alignCommands,
+  ...distributeCommands,
+  groupCommand,
+  ungroupCommand,
+];

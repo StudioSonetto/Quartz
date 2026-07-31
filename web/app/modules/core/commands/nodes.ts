@@ -1,9 +1,9 @@
-import { canContain } from "../../registry";
+import { canContain, isCreatable } from "../../registry";
 import { ROOT_PATH } from "~/utils/nodePath";
 import type { Command, NodeTypeDef } from "#shared/types";
 
 export function makeCreateCommands(defs: NodeTypeDef[]): Command[] {
-  return defs.map((def) => ({
+  return defs.filter(isCreatable).map((def) => ({
     id: `core.node.create.${def.type}`,
     title: `Add ${def.label}`,
     category: "Node",

@@ -82,6 +82,7 @@ export interface NodeTypeDef {
   accepts: NodeType[];
   defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
+  creatable?: boolean;
 }
 
 export interface Command {

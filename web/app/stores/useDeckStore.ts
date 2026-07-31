@@ -3,6 +3,11 @@ import { buildTree, flattenTree } from "~/utils/tree";
 import { ROOT_PATH, childPath } from "~/utils/nodePath";
 import { outermostNodes } from "~/utils/selection";
 import {
+  nearestCommonAncestor,
+  groupNodes,
+  ungroupNodes,
+} from "~/utils/nodeTreeOps";
+import {
   normaliseComponents,
   effectiveDefaults,
   entryType,
@@ -237,6 +242,26 @@ export const useDeckStore = defineStore("deck", () => {
     return siblings.reduce((max, n) => Math.max(max, n.sort_order), -1) + 1;
   }
 
+  // Strip Tree wrappers (children/parent) back to plain NodeModel rows.
+  function flatModels(): NodeModel[] {
+    return currentFlat().map(({ children, parent, ...n }) => n);
+  }
+
+  // The default components a node of `type` ships with, freshly instantiated.
+  function buildDefaultComponents(
+    nodeId: string,
+    type: NodeType,
+  ): ComponentModel[] {
+    return (getNodeType(type)?.defaultComponents ?? []).map((entry) => {
+      const componentType = entryType(entry);
+      return {
+        node: nodeId,
+        type: componentType,
+        data: effectiveDefaults(type, componentType),
+      } as ComponentModel;
+    });
+  }
+
   function createNode(name: string, type: NodeType) {
     if (!currentSlides.value) return;
 
@@ -258,22 +283,9 @@ export const useDeckStore = defineStore("deck", () => {
       sort_order: nextSiblingOrder(parentPath),
     };
 
-    const nodeDef = getNodeType(type);
-    const defaultComponents: ComponentModel[] = (
-      nodeDef?.defaultComponents ?? []
-    ).map((entry) => {
-      const componentType = entryType(entry);
-      return {
-        type: componentType,
-        node: id,
-        data: effectiveDefaults(type, componentType),
-      } as ComponentModel;
-    });
+    const defaultComponents = buildDefaultComponents(id, type);
 
-    trees.value[currentSlidesIndex.value] = buildTree([
-      ...currentFlat().map(({ children, parent, ...n }) => n),
-      node,
-    ]);
+    trees.value[currentSlidesIndex.value] = buildTree([...flatModels(), node]);
     components.value[currentSlidesIndex.value]!.push(...defaultComponents);
 
     sync.enqueueNode(id);
@@ -337,6 +349,89 @@ export const useDeckStore = defineStore("deck", () => {
 
   function deleteSelectedNodes() {
     deleteNodes(selectedNodes.value);
+  }
+
+  // The roots to wrap and their shared parent, or null if the selection can't
+  // be grouped. Shared by the guard and the action so it's derived once.
+  function planGroup(): { roots: Tree[]; ancestorPath: string } | null {
+    const roots = outermostNodes(selectedNodes.value).filter(
+      (n) => n.path !== ROOT_PATH,
+    );
+
+    if (roots.length < 2) return null;
+
+    const ancestorPath = nearestCommonAncestor(roots.map((n) => n.path));
+    const ancestor = currentFlat().find((n) => n.path === ancestorPath);
+    const ancestorType: NodeType = ancestor?.type ?? "core.group";
+
+    if (!canContain(ancestorType, "core.group")) return null;
+    if (!roots.every((r) => canContain("core.group", r.type))) return null;
+
+    return { roots, ancestorPath };
+  }
+
+  function groupSelection() {
+    const plan = planGroup();
+    if (!currentSlides.value || !plan) return;
+
+    const { roots, ancestorPath } = plan;
+
+    const id = crypto.randomUUID();
+    const group: NodeModel = {
+      id,
+      slides: currentSlides.value.id,
+      name: "Group",
+      path: childPath(ancestorPath, id),
+      type: "core.group",
+      reference: null,
+      sort_order: nextSiblingOrder(ancestorPath),
+    };
+
+    const nextFlat = groupNodes(
+      flatModels(),
+      roots.map((r) => r.path),
+      group,
+    );
+    trees.value[currentSlidesIndex.value] = buildTree(nextFlat);
+
+    // Group's default components (core.group ships transform + layout).
+    const groupDefaults = buildDefaultComponents(id, "core.group");
+    components.value[currentSlidesIndex.value]!.push(...groupDefaults);
+
+    sync.enqueueNode(id);
+    for (const c of groupDefaults) sync.enqueueComponent(c.node, c.type);
+    // Every reparented node changed path → enqueue.
+    for (const n of nextFlat) {
+      if (n.path !== ROOT_PATH && n.id !== id) sync.enqueueNode(n.id);
+    }
+    selectedNodeIds.value = [id];
+    anchorId.value = id;
+  }
+
+  function ungroupSelection() {
+    const groups = selectedNodes.value.filter((n) => n.type === "core.group");
+    if (!groups.length) return;
+
+    let flat = flatModels();
+    for (const g of groups) {
+      flat = ungroupNodes(flat, g.id);
+    }
+    trees.value[currentSlidesIndex.value] = buildTree(flat);
+
+    // Purge the dissolved groups' components and outbox entries; children survive.
+    const groupIds = new Set(groups.map((g) => g.id));
+    components.value[currentSlidesIndex.value] = (
+      components.value[currentSlidesIndex.value] ?? []
+    ).filter((c) => !groupIds.has(c.node));
+    for (const g of groups) {
+      sync.dropNode(g.id);
+      sync.enqueueDelete({ path: g.path, slides: g.slides }, g.id);
+    }
+    for (const n of flat) {
+      if (n.path !== ROOT_PATH) sync.enqueueNode(n.id);
+    }
+    selectedNodeIds.value = [];
+    anchorId.value = null;
   }
 
   function selectAll() {
@@ -433,6 +528,8 @@ export const useDeckStore = defineStore("deck", () => {
     createNode,
     updateNode,
     deleteSelectedNodes,
+    groupSelection,
+    ungroupSelection,
     selectAll,
     reorderNodes,
     updateComponent,
