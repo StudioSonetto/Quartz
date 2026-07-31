@@ -55,6 +55,7 @@ describe("cloneSubtree", () => {
     expect(out.nodes).toHaveLength(2);
     const newRoot = out.nodes.find((x) => x.name === "r")!;
     expect(newRoot.id).not.toBe("r");
+    expect(out.rootId).toBe(newRoot.id);
     expect(newRoot.path).toBe(`root.${nodeLabel(newRoot.id)}`);
     const newChild = out.nodes.find((x) => x.name === "c")!;
     expect(newChild.path).toBe(childPath(newRoot.path, newChild.id));

@@ -73,9 +73,49 @@ const ungroupCommand: Command = {
   run: (ctx) => ctx.deck.ungroupSelection(),
 };
 
+const duplicateCommand: Command = {
+  id: "core.selection.duplicate",
+  title: "Duplicate",
+  category: "Edit",
+  icon: "i-carbon-copy",
+  when: (ctx) => ctx.selectedNodes.length >= 1,
+  run: (ctx) => ctx.deck.duplicateSelection(),
+};
+
+const copyCommand: Command = {
+  id: "core.selection.copy",
+  title: "Copy",
+  category: "Edit",
+  icon: "i-carbon-copy-file",
+  when: (ctx) => ctx.selectedNodes.length >= 1,
+  run: (ctx) => ctx.deck.copySelection(),
+};
+
+const cutCommand: Command = {
+  id: "core.selection.cut",
+  title: "Cut",
+  category: "Edit",
+  icon: "i-carbon-cut",
+  when: (ctx) => ctx.selectedNodes.length >= 1,
+  run: (ctx) => ctx.deck.cutSelection(),
+};
+
+const pasteCommand: Command = {
+  id: "core.selection.paste",
+  title: "Paste",
+  category: "Edit",
+  icon: "i-carbon-paste",
+  when: (ctx) => !!ctx.deck.clipboard,
+  run: (ctx) => ctx.deck.paste(),
+};
+
 export default [
   ...alignCommands,
   ...distributeCommands,
   groupCommand,
   ungroupCommand,
+  duplicateCommand,
+  copyCommand,
+  cutCommand,
+  pasteCommand,
 ];

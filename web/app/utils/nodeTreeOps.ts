@@ -45,10 +45,10 @@ export function cloneSubtree(
   components: ComponentModel[],
   rootId: string,
   opts: { newSlides?: string; offset?: { x: number; y: number } } = {},
-): { nodes: NodeModel[]; components: ComponentModel[] } {
+): { nodes: NodeModel[]; components: ComponentModel[]; rootId: string } {
   const root = flat.find((n) => n.id === rootId);
 
-  if (!root) return { nodes: [], components: [] };
+  if (!root) return { nodes: [], components: [], rootId: "" };
 
   const subtree = flat.filter((n) => isSelfOrDescendantPath(n.path, root.path));
   const idMap = new Map<string, string>();
@@ -98,7 +98,7 @@ export function cloneSubtree(
     } as ComponentModel);
   }
 
-  return { nodes, components: newComponents };
+  return { nodes, components: newComponents, rootId: idMap.get(rootId)! };
 }
 
 export function groupNodes(

@@ -1,11 +1,17 @@
 import { getNodeType, canContain } from "~/modules/registry";
 import { buildTree, flattenTree } from "~/utils/tree";
-import { ROOT_PATH, childPath, isSelfOrDescendantPath } from "~/utils/nodePath";
+import {
+  ROOT_PATH,
+  childPath,
+  isSelfOrDescendantPath,
+  parentPath,
+} from "~/utils/nodePath";
 import { outermostNodes } from "~/utils/selection";
 import {
   nearestCommonAncestor,
   groupNodes,
   ungroupNodes,
+  cloneSubtree,
 } from "~/utils/nodeTreeOps";
 import {
   normaliseComponents,
@@ -34,6 +40,13 @@ export const useDeckStore = defineStore("deck", () => {
   // Range anchor for shift-click: set by a plain/cmd click (see useNodeSelection),
   // never moved by shift extension, so every range extends from the same origin.
   const anchorId = ref<string | null>(null);
+
+  interface ClipboardEntry {
+    nodes: NodeModel[];
+    components: ComponentModel[];
+    rootId: string;
+  }
+  const clipboard = ref<ClipboardEntry[] | null>(null);
 
   const selectedIdSet = computed(() => new Set(selectedNodeIds.value));
 
@@ -351,12 +364,25 @@ export const useDeckStore = defineStore("deck", () => {
     deleteNodes(selectedNodes.value);
   }
 
+  // The outermost selected nodes, excluding the slide root — the independent
+  // subtrees that composition ops (group / duplicate / copy) act on.
+  function selectionRoots(): Tree[] {
+    return outermostNodes(selectedNodes.value).filter(
+      (n) => n.path !== ROOT_PATH,
+    );
+  }
+
+  // Select a fresh set of nodes, anchoring on the last (mirrors createNode).
+  function selectNodes(ids: string[]) {
+    if (!ids.length) return;
+    selectedNodeIds.value = ids;
+    anchorId.value = ids[ids.length - 1]!;
+  }
+
   // The roots to wrap and their shared parent, or null if the selection can't
   // be grouped. Shared by the guard and the action so it's derived once.
   function planGroup(): { roots: Tree[]; ancestorPath: string } | null {
-    const roots = outermostNodes(selectedNodes.value).filter(
-      (n) => n.path !== ROOT_PATH,
-    );
+    const roots = selectionRoots();
 
     if (roots.length < 2) return null;
 
@@ -434,6 +460,103 @@ export const useDeckStore = defineStore("deck", () => {
     anchorId.value = null;
   }
 
+  // Insert already-cloned nodes/components (fresh ids) under `destPath`,
+  // rebasing the clone root's path onto that parent + a fresh sort_order.
+  function insertClone(
+    clone: { nodes: NodeModel[]; components: ComponentModel[]; rootId: string },
+    destPath: string,
+  ): string {
+    const root = clone.nodes.find((n) => n.id === clone.rootId);
+    if (!root || !currentSlides.value) return "";
+
+    const newRootPath = childPath(destPath, root.id);
+    const oldRootPath = root.path;
+    const slidesId = currentSlides.value.id;
+    const rebased = clone.nodes.map((n) => {
+      if (n.path === oldRootPath)
+        return {
+          ...n,
+          slides: slidesId,
+          path: newRootPath,
+          sort_order: nextSiblingOrder(destPath),
+        };
+      return {
+        ...n,
+        slides: slidesId,
+        path: newRootPath + n.path.slice(oldRootPath.length),
+      };
+    });
+
+    trees.value[currentSlidesIndex.value] = buildTree([
+      ...flatModels(),
+      ...rebased,
+    ]);
+    components.value[currentSlidesIndex.value]!.push(...clone.components);
+
+    for (const n of rebased) sync.enqueueNode(n.id);
+    for (const c of clone.components) sync.enqueueComponent(c.node, c.type);
+    return root.id;
+  }
+
+  const CLONE_OFFSET = { x: 24, y: 24 };
+
+  function duplicateSelection() {
+    const roots = selectionRoots();
+    if (!roots.length) return;
+    const flat = flatModels();
+    const slideComps = components.value[currentSlidesIndex.value] ?? [];
+    const newIds: string[] = [];
+    for (const r of roots) {
+      const clone = cloneSubtree(flat, slideComps, r.id, {
+        offset: CLONE_OFFSET,
+      });
+      const id = insertClone(clone, parentPath(r.path));
+      if (id) newIds.push(id);
+    }
+    selectNodes(newIds);
+  }
+
+  function copySelection() {
+    const roots = selectionRoots();
+    if (!roots.length) return;
+    const flat = flatModels();
+    const slideComps = components.value[currentSlidesIndex.value] ?? [];
+    clipboard.value = roots.map((r) => {
+      const sub = flat.filter((n) => isSelfOrDescendantPath(n.path, r.path));
+      const subIds = new Set(sub.map((n) => n.id));
+      const comps = slideComps.filter((c) => subIds.has(c.node));
+      return {
+        nodes: JSON.parse(JSON.stringify(sub)) as NodeModel[],
+        components: JSON.parse(JSON.stringify(comps)) as ComponentModel[],
+        rootId: r.id,
+      };
+    });
+  }
+
+  function cutSelection() {
+    copySelection();
+    deleteSelectedNodes();
+  }
+
+  function paste() {
+    if (!clipboard.value?.length) return;
+    const parent = soleSelected.value;
+    const destPath = parent?.path ?? ROOT_PATH;
+    const parentType: NodeType = parent?.type ?? "core.group";
+    const newIds: string[] = [];
+    for (const entry of clipboard.value) {
+      const rootType = entry.nodes.find((n) => n.id === entry.rootId)?.type;
+      if (!rootType || !canContain(parentType, rootType)) continue;
+      // Re-clone from the stored entry so repeated pastes get fresh ids + offset.
+      const clone = cloneSubtree(entry.nodes, entry.components, entry.rootId, {
+        offset: CLONE_OFFSET,
+      });
+      const id = insertClone(clone, destPath);
+      if (id) newIds.push(id);
+    }
+    selectNodes(newIds);
+  }
+
   function selectAll() {
     const tree = trees.value[currentSlidesIndex.value];
     if (!tree) return;
@@ -509,6 +632,7 @@ export const useDeckStore = defineStore("deck", () => {
     currentComponents,
     selectedNodeIds,
     anchorId,
+    clipboard,
     selectedNodes,
     soleSelected,
     isSelected,
@@ -528,6 +652,10 @@ export const useDeckStore = defineStore("deck", () => {
     createNode,
     updateNode,
     deleteSelectedNodes,
+    duplicateSelection,
+    copySelection,
+    cutSelection,
+    paste,
     groupSelection,
     ungroupSelection,
     selectAll,
