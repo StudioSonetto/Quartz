@@ -11,6 +11,7 @@
       <AtelierInspector />
       <div class="flex flex-1 flex-col min-w-0">
         <div class="render-container" @focusin="atelier.setFocus('canvas')">
+          <AtelierCanvasBar />
           <AtelierRender canEdit />
         </div>
         <AtelierTimeline />
@@ -22,7 +23,7 @@
 
 <style scoped lang="postcss">
 .render-container {
-  @apply px-[6.28%] flex flex-1 items-center;
+  @apply px-[6.28%] flex flex-1 flex-col justify-center gap-2;
 }
 </style>
 

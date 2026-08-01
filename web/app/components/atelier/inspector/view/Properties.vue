@@ -1,25 +1,35 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="[]">
     <div
-      v-if="soleSelected"
+      v-if="selectedNodes.length"
       class="view"
       tabindex="-1"
       @keydown="onKeydown"
       @contextmenu.prevent
     >
-      <template
-        v-for="{ component, def } in panels"
-        :key="`${component.node}-${component.type}`"
-      >
-        <Component
-          v-if="def"
-          :is="def.inspector"
-          :component="component"
-          :icon="def.icon"
+      <template v-if="soleSelected">
+        <template
+          v-for="{ component, def } in panels"
+          :key="`${component.node}-${component.type}`"
+        >
+          <Component
+            v-if="def"
+            :is="def.inspector"
+            :component="component"
+            :icon="def.icon"
+          />
+          <div v-else class="unavailable">
+            Unavailable component: {{ component.type }}
+          </div>
+        </template>
+      </template>
+      <template v-else>
+        <AtelierInspectorMergedPanel
+          v-for="type in commonTypes"
+          :key="type"
+          :type="type"
+          :nodes="selectedNodes"
         />
-        <div v-else class="unavailable">
-          Unavailable component: {{ component.type }}
-        </div>
       </template>
     </div>
     <div v-else class="placeholder" @contextmenu.prevent>
@@ -64,10 +74,11 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, soleSelected } = storeToRefs(useDeckStore());
+const { currentTree, soleSelected, selectedNodes } = storeToRefs(useDeckStore());
 const { getNodeComponents } = useNodeComponents();
 
 import { getComponentType } from "~/modules/registry";
+import { commonComponentTypes } from "~/utils/mergedComponent";
 import { isEditableTarget, wrapIndex } from "~/utils/dom";
 
 const { clear } = useNodeSelection();
@@ -83,6 +94,10 @@ const panels = computed(() =>
     component,
     def: getComponentType(component.type),
   })),
+);
+
+const commonTypes = computed(() =>
+  commonComponentTypes(selectedNodes.value.map((n) => getNodeComponents(n.id))),
 );
 
 const FOCUSABLE = "button, input, select, textarea, [href], [tabindex]";
