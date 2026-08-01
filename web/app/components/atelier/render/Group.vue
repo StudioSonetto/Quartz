@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { flattenTree } from "~/utils/tree";
 
-const { isSelected } = useDeckStore();
+const { isSelected, updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
@@ -108,8 +108,6 @@ const borderStyle = computed(() => {
 
 let rafId = 0;
 
-// Many child mutations can fire per frame during a drag; coalesce them into a
-// single bounds read per frame so we don't force repeated layout flushes.
 function scheduleBounds() {
   if (rafId) return;
 
@@ -193,6 +191,14 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
+    if (startPositions.value) {
+      for (const node of movable) {
+        const transform = getNodeComponent(node.id, "core.transform");
+
+        if (transform) updateComponent(transform);
+      }
+    }
+
     startPositions.value = null;
     startDrag.value = null;
     movable = [];

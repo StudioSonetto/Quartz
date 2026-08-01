@@ -9,9 +9,7 @@
       :step="props.step"
       :disabled="props.disabled"
       :placeholder="props.value === undefined ? 'Mixed' : undefined"
-      @input="
-        emit('update:value', ($event.target as HTMLInputElement).valueAsNumber)
-      "
+      @input="onInput"
     />
   </div>
 </template>
@@ -28,4 +26,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:value": [value: number];
 }>();
+
+function onInput(event: Event) {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+
+  if (!Number.isNaN(value)) emit("update:value", value);
+}
 </script>
