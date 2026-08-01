@@ -2,7 +2,8 @@
   <NodeComponent name="model" :icon="props.icon">
     <NodeComponentRow name="type">
       <NodeComponentRowFieldSelect
-        v-model:value="props.component.data.type"
+        :value="typeValue"
+        @update:value="(v) => set(['type'], v)"
         :options="[
           ...primitiveTypes,
           ...useAssetsStore().models.map((model) => model.name),
@@ -11,19 +12,22 @@
     </NodeComponentRow>
     <NodeComponentRow name="fallback">
       <NodeComponentRowFieldSelect
-        :disabled="primitiveTypes.includes(props.component.data.type)"
-        v-model:value="props.component.data.fallback"
+        :disabled="primitiveTypes.includes(typeValue)"
+        :value="field(['fallback'])"
+        @update:value="(v) => set(['fallback'], v)"
         :options="['none', ...primitiveTypes]"
       />
     </NodeComponentRow>
     <NodeComponentRow name="colour">
       <NodeComponentRowFieldColour
-        v-model:value="props.component.data.colour"
+        :value="field(['colour'])"
+        @update:value="(v) => set(['colour'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="texture">
       <NodeComponentRowFieldSelect
-        v-model:value="props.component.data.texture"
+        :value="field(['texture'])"
+        @update:value="(v) => set(['texture'], v)"
         :options="[
           'default',
           ...useAssetsStore().images.map((image) => image.name),
@@ -36,14 +40,14 @@
 <script setup lang="ts">
 import { primitiveTypes } from "../../lib/primitives";
 
-const { updateComponent } = useDeckStore();
-
 const props = defineProps<{
-  component: ComponentModel;
+  components: ComponentModel[];
+  nodes: Tree[];
   icon: string;
 }>();
 
-watch(props.component.data, () => {
-  updateComponent(props.component);
-});
+const { field, set } = useMergedFields(() => props.components);
+
+// `type` drives both the value and the fallback's disabled state — read once.
+const typeValue = computed(() => field(["type"]));
 </script>

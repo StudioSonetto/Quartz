@@ -1,6 +1,6 @@
 <template>
   <div class="actions" @contextmenu.prevent>
-    <div class="row">
+    <div class="buttons">
       <button
         v-for="a in buttons"
         :key="a.id"
@@ -19,7 +19,7 @@
   @apply flex items-center gap-3;
 }
 
-.row {
+.buttons {
   @apply flex flex-wrap gap-1;
 
   button {

@@ -2,41 +2,47 @@
   <NodeComponent name="transform" :icon="props.icon">
     <NodeComponentRow name="position">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.position.x"
+        :value="field(['position', 'x'])"
+        @update:value="(v) => set(['position', 'x'], v)"
       />
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.position.y"
+        :value="field(['position', 'y'])"
+        @update:value="(v) => set(['position', 'y'], v)"
       />
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.position.z"
+        :value="field(['position', 'z'])"
+        @update:value="(v) => set(['position', 'z'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="rotation">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.rotation.x"
+        :value="field(['rotation', 'x'])"
+        @update:value="(v) => set(['rotation', 'x'], v)"
       />
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.rotation.y"
+        :value="field(['rotation', 'y'])"
+        @update:value="(v) => set(['rotation', 'y'], v)"
       />
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.rotation.z"
+        :value="field(['rotation', 'z'])"
+        @update:value="(v) => set(['rotation', 'z'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="scale">
-      <NodeComponentRowFieldNumber v-model:value="props.component.data.scale" />
+      <NodeComponentRowFieldNumber
+        :value="field(['scale'])"
+        @update:value="(v) => set(['scale'], v)"
+      />
     </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <script setup lang="ts">
-const { updateComponent } = useDeckStore();
-
 const props = defineProps<{
-  component: ComponentModel;
+  components: ComponentModel[];
+  nodes: Tree[];
   icon: string;
 }>();
 
-watch(props.component.data, () => {
-  updateComponent(props.component);
-});
+const { field, set } = useMergedFields(() => props.components);
 </script>

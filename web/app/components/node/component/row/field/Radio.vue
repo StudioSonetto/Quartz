@@ -20,7 +20,7 @@
 
     .option {
       @apply opacity-40 hover:opacity-100 transition-opacity;
-      @apply ui-text-3;
+      @apply ui-text-3 text-light-200;
 
       &.selected {
         @apply opacity-100;
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  value: string | string[];
+  value?: string | string[];
   options: {
     value: string;
     icon: string;

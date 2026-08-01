@@ -8,6 +8,7 @@
       :max="props.max"
       :step="props.step"
       :disabled="props.disabled"
+      :placeholder="props.value === undefined ? 'Mixed' : undefined"
       @input="
         emit('update:value', ($event.target as HTMLInputElement).valueAsNumber)
       "
@@ -17,7 +18,7 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  value: string;
+  value?: string | number;
   min?: number;
   max?: number;
   step?: number;

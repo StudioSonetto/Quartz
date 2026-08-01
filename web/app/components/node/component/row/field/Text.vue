@@ -9,6 +9,7 @@
       :rows="props.isParagraph ? 5 : 1"
       :maxlength="props.isParagraph ? 300 : 30"
       :value="props.value ?? ''"
+      :placeholder="props.value === undefined ? 'Mixed' : undefined"
       @input="
         emit('update:value', ($event.target as HTMLTextAreaElement).value)
       "
@@ -19,7 +20,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   isParagraph?: boolean;
-  value: string;
+  value?: string;
   disabled?: boolean;
 }>();
 

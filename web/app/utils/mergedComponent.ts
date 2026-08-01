@@ -1,15 +1,4 @@
-import type { ComponentModel, ComponentType } from "#shared/types";
-
-export function commonComponentTypes(
-  componentsByNode: ComponentModel[][],
-): ComponentType[] {
-  if (!componentsByNode.length) return [];
-  const first = componentsByNode[0]!;
-  const rest = componentsByNode.slice(1);
-  return first
-    .map((c) => c.type)
-    .filter((type) => rest.every((list) => list.some((c) => c.type === type)));
-}
+import type { ComponentModel } from "#shared/types";
 
 // Read a nested key path out of a component's data, tolerant of nulls.
 function at(data: any, path: string[]): any {
@@ -27,12 +16,34 @@ function sameValue(a: any, b: any): boolean {
   return false;
 }
 
-export function mergedValue(
-  components: ComponentModel[],
-  path: string[],
-): { value: any; mixed: boolean } {
+// The shared value at a key path across components, or `undefined` when they
+// disagree — the merged panels render that blank.
+export function mergedValue(components: ComponentModel[], path: string[]): any {
   const values = components.map((c) => at(c.data, path));
   const first = values[0];
   const mixed = values.some((v) => !sameValue(v, first));
-  return { value: mixed ? undefined : first, mixed };
+  return mixed ? undefined : first;
+}
+
+// The shared value across a list, or `mixed` when the items disagree — the
+// generic "blank when they differ" reduction the merged panels lean on for
+// values that live outside component data (e.g. a node's own fields).
+export function allEqual<T>(values: T[], mixed: T): T {
+  if (!values.length) return mixed;
+  const first = values[0]!;
+  return values.every((v) => v === first) ? first : mixed;
+}
+
+// Clone `data` along the given key path and set the value at its end, leaving
+// the original (and any untouched nested objects) unchanged. Used by the merged
+// panels to write one field without mutating the stored component data in place.
+export function setNested(data: any, path: string[], value: unknown): any {
+  // Immutable nested set via spread — copies only the touched path and reads
+  // values through the (possibly reactive/Proxy) source, so it is safe on Pinia
+  // store data where structuredClone throws a DataCloneError on the Proxy.
+  const [head, ...rest] = path;
+  return {
+    ...data,
+    [head!]: rest.length ? setNested(data[head!], rest, value) : value,
+  };
 }

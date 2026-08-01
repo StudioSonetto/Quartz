@@ -126,6 +126,14 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
+    // A drag actually happened only if startTransform was set (first move).
+    // The drag handler mutates transform.data.position in place but never
+    // enqueues — persist the final position here (the inspector panel used to
+    // do this via a data watch, which no longer exists).
+    if (startTransform.value) {
+      const transform = getNodeComponent(props.node.id, "core.transform");
+      if (transform) updateComponent(transform);
+    }
     startTransform.value = null;
     startDrag.value = null;
     end();
