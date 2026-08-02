@@ -98,8 +98,11 @@ const { x, y, isDragging } = useDraggable(element, {
   disabled: editing,
 });
 
-const startTransform = ref<{ x: number; y: number } | null>(null);
-const startDrag = ref<{ x: number; y: number } | null>(null);
+const dragStart = ref<{
+  transform: { x: number; y: number };
+  pointer: { x: number; y: number };
+  size: { width: number; height: number };
+} | null>(null);
 
 const throttle = useFrameThrottle();
 
@@ -113,32 +116,35 @@ watchThrottled(
 
     if (!transform) return;
 
-    if (!startTransform.value || !startDrag.value) {
-      startTransform.value = {
-        x: transform.data.position.x,
-        y: transform.data.position.y,
+    if (!dragStart.value) {
+      const rect = element.value?.getBoundingClientRect();
+      const { x: scaleX, y: scaleY } = scale();
+
+      dragStart.value = {
+        transform: {
+          x: transform.data.position.x,
+          y: transform.data.position.y,
+        },
+        pointer: { x: newX, y: newY },
+        size: {
+          width: (rect?.width ?? 0) * scaleX,
+          height: (rect?.height ?? 0) * scaleY,
+        },
       };
-      startDrag.value = { x: newX, y: newY };
 
       begin([props.node.id]);
 
       return;
     }
 
-    const deltaX = newX - startDrag.value.x;
-    const deltaY = newY - startDrag.value.y;
-
+    const { transform: startPos, pointer, size } = dragStart.value;
     const { x: scaleX, y: scaleY } = scale();
 
-    const newPosX = startTransform.value.x + deltaX * scaleX;
-    const newPosY = startTransform.value.y + deltaY * scaleY;
-
-    const rect = element.value?.getBoundingClientRect();
     const snapped = apply({
-      left: newPosX,
-      top: newPosY,
-      width: (rect?.width ?? 0) * scaleX,
-      height: (rect?.height ?? 0) * scaleY,
+      left: startPos.x + (newX - pointer.x) * scaleX,
+      top: startPos.y + (newY - pointer.y) * scaleY,
+      width: size.width,
+      height: size.height,
     });
 
     transform.data.position.x = Math.round(snapped.left);
@@ -151,14 +157,13 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    if (startTransform.value) {
+    if (dragStart.value) {
       const transform = getNodeComponent(props.node.id, "core.transform");
 
       if (transform) updateComponent(transform);
     }
 
-    startTransform.value = null;
-    startDrag.value = null;
+    dragStart.value = null;
 
     end();
   }

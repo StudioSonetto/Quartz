@@ -429,7 +429,8 @@ export const useDeckStore = defineStore("deck", () => {
 
     sync.enqueueNode(id);
     for (const c of groupDefaults) sync.enqueueComponent(c.node, c.type);
-    // Every reparented node changed path → enqueue.
+    // Persist every node — reparented ones changed path, and recanonicalisation
+    // may have changed sibling sort_order.
     for (const n of nextFlat) {
       if (n.path !== ROOT_PATH && n.id !== id) sync.enqueueNode(n.id);
     }
