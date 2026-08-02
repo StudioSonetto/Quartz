@@ -101,6 +101,26 @@ export function cloneSubtree(
   return { nodes, components: newComponents, rootId: idMap.get(rootId)! };
 }
 
+// Renumber every parent's children to a gap-free 0..n `sort_order` in their
+// current array order, so reparenting ops (group/ungroup) persist canonical
+// values. Without this, reparented nodes keep their old parent's ranks, which
+// collide under the new parent — and `buildTree` breaks ties by id, silently
+// reordering siblings by UUID. PRECONDITION: `flat` is in document order (as
+// produced by flattenTree / groupNodes / ungroupNodes), which this preserves.
+export function canonicaliseSortOrder(flat: NodeModel[]): NodeModel[] {
+  const nextOrder = new Map<string, number>();
+
+  return flat.map((node) => {
+    if (node.path === ROOT_PATH) return node;
+
+    const parent = parentPath(node.path);
+    const order = nextOrder.get(parent) ?? 0;
+    nextOrder.set(parent, order + 1);
+
+    return node.sort_order === order ? node : { ...node, sort_order: order };
+  });
+}
+
 export function groupNodes(
   flat: NodeModel[],
   rootPaths: string[],

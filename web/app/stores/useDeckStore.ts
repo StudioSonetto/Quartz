@@ -12,6 +12,7 @@ import {
   groupNodes,
   ungroupNodes,
   cloneSubtree,
+  canonicaliseSortOrder,
 } from "~/utils/nodeTreeOps";
 import {
   normaliseComponents,
@@ -413,10 +414,12 @@ export const useDeckStore = defineStore("deck", () => {
       sort_order: nextSiblingOrder(ancestorPath),
     };
 
-    const nextFlat = groupNodes(
-      flatModels(),
-      roots.map((r) => r.path),
-      group,
+    const nextFlat = canonicaliseSortOrder(
+      groupNodes(
+        flatModels(),
+        roots.map((r) => r.path),
+        group,
+      ),
     );
     trees.value[currentSlidesIndex.value] = buildTree(nextFlat);
 
@@ -442,6 +445,9 @@ export const useDeckStore = defineStore("deck", () => {
     for (const g of groups) {
       flat = ungroupNodes(flat, g.id);
     }
+
+    flat = canonicaliseSortOrder(flat);
+
     trees.value[currentSlidesIndex.value] = buildTree(flat);
 
     // Purge the dissolved groups' components and outbox entries; children survive.

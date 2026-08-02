@@ -4,8 +4,9 @@ import {
   cloneSubtree,
   groupNodes,
   ungroupNodes,
+  canonicaliseSortOrder,
 } from "~/utils/nodeTreeOps";
-import { childPath, nodeLabel } from "~/utils/nodePath";
+import { childPath, nodeLabel, ROOT_PATH } from "~/utils/nodePath";
 import type { ComponentModel, NodeModel } from "#shared/types";
 
 const n = (
@@ -30,6 +31,39 @@ describe("nearestCommonAncestor", () => {
   });
   it("falls back to root when they diverge at top", () => {
     expect(nearestCommonAncestor(["root.na", "root.nb"])).toBe("root");
+  });
+});
+
+describe("canonicaliseSortOrder", () => {
+  it("renumbers a parent's children to gap-free 0..n in array order, breaking collisions", () => {
+    const flat = [
+      n("root", ROOT_PATH, { sort_order: 0, type: "core.group" }),
+      n("a", "root.na", { sort_order: 5 }),
+      n("b", "root.nb", { sort_order: 5 }), // collides with a
+      n("c", "root.nc", { sort_order: 2 }),
+    ];
+    const order = Object.fromEntries(
+      canonicaliseSortOrder(flat).map((x) => [x.id, x.sort_order]),
+    );
+    expect(order).toMatchObject({ a: 0, b: 1, c: 2 });
+  });
+
+  it("numbers each parent independently and leaves the root's order untouched", () => {
+    const flat = [
+      n("root", ROOT_PATH, { sort_order: 7, type: "core.group" }),
+      n("g", "root.ng", { sort_order: 3, type: "core.group" }),
+      n("x", "root.ng.nx", { sort_order: 9 }),
+      n("y", "root.ng.ny", { sort_order: 9 }),
+    ];
+    const byId = Object.fromEntries(
+      canonicaliseSortOrder(flat).map((x) => [x.id, x.sort_order]),
+    );
+    expect(byId).toMatchObject({ root: 7, g: 0, x: 0, y: 1 });
+  });
+
+  it("returns the same node reference when its order is already canonical", () => {
+    const a = n("a", "root.na", { sort_order: 0 });
+    expect(canonicaliseSortOrder([a])[0]).toBe(a);
   });
 });
 
