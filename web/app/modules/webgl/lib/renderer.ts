@@ -298,7 +298,10 @@ export function createWebglApi(
           0.1,
           1000,
         ),
-        renderer: new WebGLRenderer({ antialias: true }),
+        renderer: new WebGLRenderer({
+          antialias: true,
+          preserveDrawingBuffer: true,
+        }),
         loaders: {
           fbx: new FBXLoader(),
           gltf: new GLTFLoader(),

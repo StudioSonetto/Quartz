@@ -1,5 +1,5 @@
 <template>
-  <div class="guides">
+  <div data-html2canvas-ignore class="guides">
     <span
       v-for="(g, i) in guides"
       :key="i"

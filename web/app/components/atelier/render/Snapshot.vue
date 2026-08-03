@@ -1,20 +1,15 @@
 <template>
   <div v-if="url" class="snapshot">
-    <NuxtImg
-      :src="url"
-      :alt="`snapshot of ${props.deck}`"
-      loading="lazy"
-      class="snapshot"
-    />
+    <NuxtImg :src="url" :alt="`snapshot of ${props.deck}`" loading="lazy" />
   </div>
 </template>
 
 <style scoped lang="postcss">
 .snapshot {
-  @apply relative w-full aspect-video border-rd;
+  @apply relative w-full h-full border-rd overflow-hidden;
 
   img {
-    @apply absolute inset-0 p-0.5;
+    @apply absolute inset-0 w-full h-full object-cover;
   }
 }
 </style>

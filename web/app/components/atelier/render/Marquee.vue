@@ -1,6 +1,15 @@
 <template>
-  <div class="marquee-detector" @pointerdown="onDown"></div>
-  <div v-if="rect" class="marquee" :style="rectStyle"></div>
+  <div
+    data-html2canvas-ignore
+    class="marquee-detector"
+    @pointerdown="onDown"
+  ></div>
+  <div
+    v-if="rect"
+    data-html2canvas-ignore
+    class="marquee"
+    :style="rectStyle"
+  ></div>
 </template>
 
 <style scoped lang="postcss">

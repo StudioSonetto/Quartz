@@ -1,6 +1,7 @@
 <template>
   <div
     v-if="box"
+    data-html2canvas-ignore
     class="selection"
     :style="{
       left: `${box.left}px`,
