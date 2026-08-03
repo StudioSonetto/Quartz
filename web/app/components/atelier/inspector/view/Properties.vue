@@ -16,16 +16,19 @@
             :nodes="selectedNodes"
             :icon="def.icon"
           />
-          <div v-else class="unavailable">Unavailable component: {{ type }}</div>
+          <div v-else class="unavailable">
+            Unavailable component: {{ type }}
+          </div>
         </template>
       </template>
-      <div v-else class="hint">
-        Select nodes of the same type to edit properties.
+      <div v-else class="placeholder">
+        <div class="i-carbon-error"></div>
+        <p>Can't edit nodes of different types</p>
       </div>
     </div>
     <div v-else class="placeholder" @contextmenu.prevent>
       <div class="i-carbon-error"></div>
-      <p>No node selected</p>
+      <p>No nodes selected</p>
     </div>
   </AtelierInspectorView>
 </template>
