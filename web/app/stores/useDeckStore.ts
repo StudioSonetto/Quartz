@@ -183,11 +183,25 @@ export const useDeckStore = defineStore("deck", () => {
     return apiFetch<SlidesModel>("/api/slides", { query: { deck, index } });
   }
 
+  const insertingSlides = ref(false);
+
   async function insertNewSlides(deck: string) {
-    return apiFetch("/api/slides", {
-      method: "POST",
-      body: { deck, index: slides.value.length },
-    });
+    if (insertingSlides.value) return;
+
+    insertingSlides.value = true;
+
+    try {
+      const slide = await apiFetch<SlidesModel>("/api/slides", {
+        method: "POST",
+        body: { deck, index: slides.value.length },
+      });
+
+      if (slide) slides.value = [...slides.value, slide];
+
+      return slide;
+    } finally {
+      insertingSlides.value = false;
+    }
   }
 
   async function fetchAllNodes(
@@ -659,6 +673,7 @@ export const useDeckStore = defineStore("deck", () => {
     fetchAllSlides,
     fetchSlides,
     insertNewSlides,
+    insertingSlides,
     fetchAllNodes,
     fetchNodeComponents,
     createNode,

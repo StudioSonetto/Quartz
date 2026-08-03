@@ -8,10 +8,13 @@
       />
       <button
         key="new"
-        :class="{ 'opacity-100! cursor-not-allowed': isLoading }"
+        :class="{ 'opacity-100! cursor-not-allowed': insertingSlides }"
         @click="insertNewSlides"
       >
-        <div :class="{ 'animate-spin': isLoading }" class="i-carbon-add" />
+        <div
+          :class="{ 'animate-spin': insertingSlides }"
+          class="i-carbon-add"
+        />
       </button>
     </TransitionGroup>
   </div>
@@ -83,11 +86,9 @@
 import Sortable, { Swap } from "sortablejs";
 
 const deckStore = useDeckStore();
-const { slides } = storeToRefs(useDeckStore());
+const { slides, insertingSlides } = storeToRefs(useDeckStore());
 
 const timeline = useTemplateRef<HTMLDivElement>("timeline");
-
-const isLoading = ref(false);
 
 const { x } = useScroll(timeline, { behavior: "smooth" });
 
@@ -113,18 +114,8 @@ watchThrottled(
   { throttle },
 );
 
-async function insertNewSlides() {
-  if (isLoading.value) return;
-
-  try {
-    isLoading.value = true;
-
-    await deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
-  } finally {
-    setTimeout(() => {
-      isLoading.value = false;
-    }, 3000);
-  }
+function insertNewSlides() {
+  return deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
 }
 
 onMounted(() => {

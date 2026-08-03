@@ -33,6 +33,7 @@ const client = useSupabaseClient();
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
+const { slides } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const sync = useDeckSync();
 const atelier = useAtelierStore();
@@ -42,8 +43,6 @@ let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const snapshotScheduler = useSnapshotScheduler();
 
-// Flush any edits still inside the debounce window when the tab is closed,
-// navigated away, or backgrounded — sendBeacon survives page teardown.
 const flushOnHide = () => {
   if (document.visibilityState === "hidden") sync.flushBeacon();
 };
@@ -86,7 +85,11 @@ onMounted(async () => {
         table: "slides",
         filter: `deck=eq.${deck.value?.id}`,
       },
-      () => refreshSlides(),
+      (payload) => {
+        if (slides.value.some((s) => s.id === payload.new.id)) return;
+
+        refreshSlides();
+      },
     )
     .on(
       "postgres_changes",
