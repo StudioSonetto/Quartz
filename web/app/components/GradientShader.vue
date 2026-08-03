@@ -120,8 +120,8 @@ onLoop(({ delta }) => {
   uniforms.uTime.value += 0.01 * delta;
 
   if (glassMesh.value) {
-    glassMesh.value.rotation.x += 0.001;
-    glassMesh.value.rotation.y += 0.001;
+    glassMesh.value.rotation.x += 0.06 * delta;
+    glassMesh.value.rotation.y += 0.06 * delta;
   }
 });
 </script>
