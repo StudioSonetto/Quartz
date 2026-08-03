@@ -47,6 +47,7 @@ type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
 const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
+const { fetchAssets } = useAssetsStore();
 
 const cursorMoved = ref(false);
 
@@ -76,7 +77,7 @@ const { refresh: refreshSlides } = await useAsyncData(
   async () => await fetchAllSlides(useRoute().params.id as string),
 );
 
-onMounted(() => {
+onMounted(async () => {
   const id = useRoute().params.id as string;
 
   deckRC = client
@@ -110,6 +111,8 @@ onMounted(() => {
       () => refreshSlides(),
     )
     .subscribe();
+
+  if (deck.value?.id) await fetchAssets(deck.value.id);
 });
 
 onUnmounted(() => {

@@ -1,5 +1,6 @@
 import { markRaw } from "vue";
 import Group from "~/components/atelier/render/Group.vue";
+import { backgroundStyle, gridStyle } from "~/utils/layoutStyle";
 
 export default {
   type: "core.group",
@@ -29,13 +30,9 @@ export default {
           width: "max-content",
           height: "max-content",
           zIndex: transform.position.z,
-          background: layout.background,
           transform: transformStyle(transform, ctx.scale),
-          display: "grid",
-          gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
-          gap: `${layout.gap}px`,
-          padding: `${layout.padding}px`,
-          alignItems: layout.align,
+          ...backgroundStyle(layout.background, ctx.assetUrl),
+          ...gridStyle(layout),
         },
       };
     },

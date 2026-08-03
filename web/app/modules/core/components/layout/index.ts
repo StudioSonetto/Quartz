@@ -6,7 +6,7 @@ export default {
   inspector: Panel,
   defaultData: () => ({
     mode: "free",
-    background: "transparent",
+    background: { type: "none" },
     padding: 0,
     columns: 1,
     gap: 0,
