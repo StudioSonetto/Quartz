@@ -206,15 +206,13 @@ export const useDeckStore = defineStore("deck", () => {
     ]);
 
     if (data) {
-      const { components: normalised, enqueue } = normaliseComponents(
+      // Normalisation is in-memory only — it never writes back, so loading a
+      // deck cannot trigger a save.
+      components.value[index] = normaliseComponents(
         data,
         fetchedComponents ?? [],
       );
-
-      components.value[index] = normalised;
       trees.value[index] = buildTree(data);
-
-      for (const { node, type } of enqueue) sync.enqueueComponent(node, type);
 
       return trees.value[index].children;
     }
@@ -439,10 +437,14 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function ungroupSelection() {
-    const groups = selectedNodes.value.filter((n) => n.type === "core.group");
+    const groups = selectedNodes.value.filter(
+      (n) => n.type === "core.group" && n.path !== ROOT_PATH,
+    );
+
     if (!groups.length) return;
 
     let flat = flatModels();
+
     for (const g of groups) {
       flat = ungroupNodes(flat, g.id);
     }
@@ -451,18 +453,21 @@ export const useDeckStore = defineStore("deck", () => {
 
     trees.value[currentSlidesIndex.value] = buildTree(flat);
 
-    // Purge the dissolved groups' components and outbox entries; children survive.
     const groupIds = new Set(groups.map((g) => g.id));
+
     components.value[currentSlidesIndex.value] = (
       components.value[currentSlidesIndex.value] ?? []
     ).filter((c) => !groupIds.has(c.node));
+
     for (const g of groups) {
       sync.dropNode(g.id);
       sync.enqueueDelete({ path: g.path, slides: g.slides }, g.id);
     }
+
     for (const n of flat) {
       if (n.path !== ROOT_PATH) sync.enqueueNode(n.id);
     }
+
     selectedNodeIds.value = [];
     anchorId.value = null;
   }

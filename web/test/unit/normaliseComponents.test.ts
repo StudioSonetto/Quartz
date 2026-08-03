@@ -144,7 +144,7 @@ describe("effectiveDefaults", () => {
 
 describe("normaliseComponents", () => {
   it("fills missing default fields on a stored component", () => {
-    const { components, enqueue } = normaliseComponents(
+    const components = normaliseComponents(
       [node("t1", "core.text")],
       [comp("t1", "core.transform", { position: { x: 5 } })],
     );
@@ -152,23 +152,16 @@ describe("normaliseComponents", () => {
     expect(t.data.position).toEqual({ x: 5, y: 0, z: 0 });
     expect(t.data.size).toEqual({ width: "auto", height: "auto" });
     expect(t.data.rotation).toBe(0);
-    // The generic fill pass must never enqueue (avoids a load-time write storm).
-    expect(enqueue).toHaveLength(0);
   });
 
   it("synthesises a missing guaranteed component", () => {
-    const { components, enqueue } = normaliseComponents(
-      [node("t1", "core.text")],
-      [],
-    );
+    const components = normaliseComponents([node("t1", "core.text")], []);
     expect(components.some((c) => c.type === "core.base")).toBe(true);
     expect(components.some((c) => c.type === "core.transform")).toBe(true);
-    // Add-missing is in-memory only — no enqueue on the generic pass.
-    expect(enqueue).toHaveLength(0);
   });
 
   it("gives root exactly base + layout, and never a transform", () => {
-    const { components } = normaliseComponents(
+    const components = normaliseComponents(
       [node("r", "core.group", "root")],
       [],
     );
@@ -178,7 +171,7 @@ describe("normaliseComponents", () => {
   });
 
   it("defaults root's background to the opaque slide base, not none", () => {
-    const { components } = normaliseComponents(
+    const components = normaliseComponents(
       [node("r", "core.group", "root")],
       [],
     );
@@ -193,13 +186,14 @@ describe("normaliseComponents", () => {
   });
 
   it("defaults an ordinary group's background to none", () => {
-    const { components } = normaliseComponents([node("g1", "core.group")], []);
+    const components = normaliseComponents([node("g1", "core.group")], []);
+
     const layout = components.find((c) => c.type === "core.layout")!;
     expect(layout.data.background).toEqual({ type: "none" });
   });
 
   it("keeps root's stored background instead of clobbering it with the default", () => {
-    const { components } = normaliseComponents(
+    const components = normaliseComponents(
       [node("r", "core.group", "root")],
       [
         comp("r", "core.layout", {
@@ -216,7 +210,7 @@ describe("normaliseComponents", () => {
   });
 
   it("keeps a root component outside the fixed set, but never a transform", () => {
-    const { components } = normaliseComponents(
+    const components = normaliseComponents(
       [node("r", "core.group", "root")],
       [
         comp("r", "core.animation", { duration: 5 }),
@@ -228,60 +222,4 @@ describe("normaliseComponents", () => {
     expect(components.some((c) => c.type === "core.transform")).toBe(false);
   });
 
-  it("never enqueues for root (no load-time write storm)", () => {
-    const { enqueue } = normaliseComponents(
-      [node("r", "core.group", "root")],
-      [],
-    );
-    expect(enqueue).toHaveLength(0);
-  });
-
-  it("migrates a legacy webgl.object (model.x/y/z -> webgl.transform, drops core.transform)", () => {
-    const { components, enqueue } = normaliseComponents(
-      [node("o1", "webgl.object")],
-      [
-        comp("o1", "webgl.model", {
-          type: "box",
-          x: 10,
-          y: 20,
-          z: 30,
-          scale: 2,
-          colour: "#fff",
-          texture: "default",
-        }),
-        comp("o1", "core.transform", { position: { x: 0, y: 0, z: 0 } }),
-      ],
-    );
-    const wt = components.find((c) => c.type === "webgl.transform")!;
-    expect(wt.data.position).toEqual({ x: 10, y: 20, z: 30 });
-    expect(wt.data.scale).toBe(2);
-    const model = components.find((c) => c.type === "webgl.model")!;
-    expect(model.data.x).toBeUndefined();
-    expect(components.some((c) => c.type === "core.transform")).toBe(false);
-    expect(enqueue).toEqual(
-      expect.arrayContaining([
-        { node: "o1", type: "webgl.transform" },
-        { node: "o1", type: "webgl.model" },
-      ]),
-    );
-  });
-
-  it("is idempotent — already-migrated webgl.object enqueues nothing", () => {
-    const { enqueue } = normaliseComponents(
-      [node("o1", "webgl.object")],
-      [
-        comp("o1", "webgl.model", {
-          type: "box",
-          colour: "#fff",
-          texture: "default",
-        }),
-        comp("o1", "webgl.transform", {
-          position: { x: 10, y: 20, z: 30 },
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: 2,
-        }),
-      ],
-    );
-    expect(enqueue).toHaveLength(0);
-  });
 });

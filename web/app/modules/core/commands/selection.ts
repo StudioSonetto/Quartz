@@ -1,5 +1,6 @@
 import type { Command, Tree } from "#shared/types";
 import type { AlignOp } from "~/utils/align";
+import { ROOT_PATH } from "~/utils/nodePath";
 
 const alignOps: { op: AlignOp; title: string; icon: string }[] = [
   { op: "left", title: "Align Left", icon: "i-carbon-align-horizontal-left" },
@@ -69,7 +70,10 @@ const ungroupCommand: Command = {
   title: "Ungroup",
   category: "Arrange",
   icon: "i-carbon-ungroup-objects",
-  when: (ctx) => ctx.selectedNodes.some((n: Tree) => n.type === "core.group"),
+  when: (ctx) =>
+    ctx.selectedNodes.some(
+      (n: Tree) => n.type === "core.group" && n.path !== ROOT_PATH,
+    ),
   run: (ctx) => ctx.deck.ungroupSelection(),
 };
 

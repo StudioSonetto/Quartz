@@ -43,15 +43,11 @@ const ROOT_LAYOUT_DEFAULTS = {
 export function normaliseComponents(
   nodes: NodeModel[],
   components: ComponentModel[],
-): {
-  components: ComponentModel[];
-  enqueue: { node: string; type: ComponentType }[];
-} {
+): ComponentModel[] {
   const result: ComponentModel[] = [];
-  const enqueue: { node: string; type: ComponentType }[] = [];
 
   for (const node of nodes) {
-    let kept = components.filter((c) => c.node === node.id);
+    const kept = components.filter((c) => c.node === node.id);
 
     if (node.path === ROOT_PATH) {
       for (const type of ROOT_COMPONENTS) {
@@ -118,5 +114,5 @@ export function normaliseComponents(
     }
   }
 
-  return { components: result, enqueue };
+  return result;
 }

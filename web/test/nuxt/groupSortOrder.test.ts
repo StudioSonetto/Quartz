@@ -152,4 +152,33 @@ describe("group / ungroup sort_order recanonicalisation", () => {
     expect(sent[C0].path).toBe(childPath(ROOT_PATH, C0));
     expect(sent[C1].path).toBe(childPath(ROOT_PATH, C1));
   });
+
+  // Root is a `core.group`, so it matches the plain type filter. Dissolving it
+  // would enqueue a delete for path "root", which the server expands to
+  // `path <@ 'root'` — every node on the slide.
+  it("refuses to ungroup the root node", async () => {
+    const store = useDeckStore();
+    const sync = useDeckSync();
+    store.slides = [{ id: SLIDE }] as any;
+    store.currentSlidesIndex = 0;
+    store.trees = [
+      buildTree([
+        root(),
+        mk(X, childPath(ROOT_PATH, X), 0),
+        mk(Y, childPath(ROOT_PATH, Y), 1),
+      ] as any),
+    ];
+    store.components = [[]] as any;
+    store.selectedNodeIds = [ROOT_ID];
+
+    store.ungroupSelection();
+
+    const body = await flushAndGetBody(sync);
+    expect(body?.nodesToDelete ?? []).toHaveLength(0);
+    // The tree is untouched: root still anchors both children.
+    const paths = store.currentFlat().map((n: any) => n.path);
+    expect(paths).toContain(ROOT_PATH);
+    expect(paths).toContain(childPath(ROOT_PATH, X));
+    expect(paths).toContain(childPath(ROOT_PATH, Y));
+  });
 });
