@@ -31,7 +31,7 @@ import { rectsIntersect, type Rect } from "~/utils/selection";
 const deck = useDeckStore();
 const { currentTree } = storeToRefs(deck);
 
-const { renderEl } = useCanvasScale();
+const { renderRoot } = useCanvasScale();
 const { extendSelection, clear } = useNodeSelection();
 const { arm } = useSuppressClickAfterDrag();
 
@@ -52,7 +52,7 @@ let origin: { x: number; y: number; c: DOMRect; additive: boolean } | null =
 let moved = false;
 
 function onDown(e: PointerEvent) {
-  const container = renderEl();
+  const container = renderRoot.value;
 
   if (!container) return;
 

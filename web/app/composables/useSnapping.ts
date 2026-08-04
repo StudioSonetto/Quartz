@@ -18,13 +18,13 @@ export function useSnapping() {
   const deck = useDeckStore();
   const { currentTree } = storeToRefs(deck);
   const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
-  const { renderEl, scale } = useCanvasScale();
+  const { findRenderEl, scale } = useCanvasScale();
 
   const guides = ref<SnapLine[]>([]);
   let candidates: SnapLine[] = [];
 
   function begin(movingIds: string[]) {
-    const container = renderEl();
+    const container = findRenderEl();
 
     if (!container || !currentTree.value) {
       candidates = [];

@@ -28,7 +28,7 @@ function toPng(captured: HTMLCanvasElement, source: Size) {
 export function useSnapshot() {
   const client = useSupabaseClient();
 
-  const { renderEl } = useCanvasScale();
+  const { findRenderEl } = useCanvasScale();
 
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 
@@ -39,7 +39,7 @@ export function useSnapshot() {
     const tree = trees.value[slides.index];
     if (!tree || isEmptyTree(tree)) return;
 
-    const render = renderEl();
+    const render = findRenderEl();
     if (!render) return;
 
     const rect = render.getBoundingClientRect();

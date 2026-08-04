@@ -81,6 +81,8 @@ const props = defineProps<{
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
 
+provide(renderRootKey, renderEl);
+
 const { width, height } = useElementSize(renderEl);
 
 const scale = computed(() =>

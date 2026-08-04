@@ -27,11 +27,10 @@ import { snappingKey } from "~/composables/useSnapping";
 const deck = useDeckStore();
 const { selectedNodes } = storeToRefs(deck);
 const comps = useNodeComponents();
-const { renderEl, scale } = useCanvasScale();
+const { renderRoot, scale } = useCanvasScale();
 const snapping = inject(snappingKey)!;
 const { arm } = useSuppressClickAfterDrag();
 
-// Movable = selected leaves/groups with a canvas-space core.transform.
 const movable = computed(() =>
   selectedNodes.value.filter(
     (n) =>
@@ -42,7 +41,7 @@ const movable = computed(() =>
 const box = ref<Rect | null>(null);
 
 function computeBox() {
-  const container = renderEl();
+  const container = renderRoot.value;
 
   if (!container || selectedNodes.value.length < 2) {
     box.value = null;
@@ -88,21 +87,16 @@ function scheduleBox() {
   });
 }
 
-// The box tracks the selection live: node style mutations (incl. a drag in
-// progress), container resize, and selection changes all schedule a recompute
-// through the same rAF gate.
-useMutationObserver(renderEl, scheduleBox, {
+useMutationObserver(renderRoot, scheduleBox, {
   subtree: true,
   attributes: true,
   attributeFilter: ["style"],
 });
-useResizeObserver(renderEl, scheduleBox);
+useResizeObserver(renderRoot, scheduleBox);
 watch(selectedNodes, scheduleBox, { deep: false });
 onMounted(() => nextTick(computeBox));
 onUnmounted(() => rafId && cancelAnimationFrame(rafId));
 
-// One entry per moving node: its transform component (cached at drag-start so
-// the per-frame loop never re-scans the component list) + its start position.
 type DragEntry = {
   t: NonNullable<ReturnType<typeof comps.getNodeComponent>>;
   x: number;

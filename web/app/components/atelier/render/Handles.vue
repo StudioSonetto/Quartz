@@ -35,48 +35,39 @@
   }
 
   .h-nw {
-    left: 0;
-    top: 0;
+    @apply left-0 top-0;
   }
 
   .h-n {
-    left: 50%;
-    top: 0;
+    @apply left-1/2 top-0;
   }
 
   .h-ne {
-    left: 100%;
-    top: 0;
+    @apply left-full top-0;
   }
 
   .h-e {
-    left: 100%;
-    top: 50%;
+    @apply left-full top-1/2;
   }
 
   .h-se {
-    left: 100%;
-    top: 100%;
+    @apply left-full top-full;
   }
+
   .h-s {
-    left: 50%;
-    top: 100%;
+    @apply left-1/2 top-full;
   }
 
   .h-sw {
-    left: 0;
-    top: 100%;
+    @apply left-0 top-full;
   }
 
   .h-w {
-    left: 0;
-    top: 50%;
+    @apply left-0 top-1/2;
   }
 
   .rotate {
-    left: 50%;
-    top: -24px;
-    @apply rounded-full;
+    @apply left-1/2 -top-6 rounded-full;
   }
 }
 </style>
@@ -98,7 +89,7 @@ const resizeHandles: { pos: Pos; dx: number; dy: number }[] = [
 const { soleSelected } = storeToRefs(useDeckStore());
 const { updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
-const { renderEl, scale } = useCanvasScale();
+const { renderRoot, scale } = useCanvasScale();
 
 const box = ref<{
   left: number;
@@ -117,7 +108,7 @@ function computeBox() {
   }
 
   const el = document.getElementById(node.id);
-  const container = renderEl();
+  const container = renderRoot.value;
 
   if (!el || !container) {
     box.value = null;
@@ -150,14 +141,14 @@ function scheduleBounds() {
   });
 }
 
-useMutationObserver(renderEl, scheduleBounds, {
+useMutationObserver(renderRoot, scheduleBounds, {
   subtree: true,
   attributes: true,
   attributeFilter: ["style"],
   characterData: true,
 });
 
-useResizeObserver(renderEl, scheduleBounds);
+useResizeObserver(renderRoot, scheduleBounds);
 
 watch(soleSelected, () => nextTick(computeBox));
 

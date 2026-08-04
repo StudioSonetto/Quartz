@@ -37,7 +37,7 @@ const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 
-const { renderEl, scale } = useCanvasScale();
+const { renderRoot, scale } = useCanvasScale();
 
 const props = defineProps<{
   node: Tree;
@@ -55,7 +55,7 @@ const bounds = ref<{
 } | null>(null);
 
 function computeBounds() {
-  const render = renderEl();
+  const render = renderRoot.value;
 
   if (!render) return;
 
@@ -125,7 +125,7 @@ useMutationObserver(container, scheduleBounds, {
   characterData: true,
 });
 
-useResizeObserver(renderEl, scheduleBounds);
+useResizeObserver(renderRoot, scheduleBounds);
 
 onMounted(() => nextTick(computeBounds));
 
