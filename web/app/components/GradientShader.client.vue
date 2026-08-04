@@ -5,7 +5,7 @@
       :position="[0, 0, 0.1]"
     />
     <TresMesh>
-      <TresPlaneGeometry :args="[1.2, 1.2, 150, 150]" />
+      <TresPlaneGeometry :args="[1.2, 1.2, 100, 100]" />
       <TresShaderMaterial
         :vertex-shader="vertexShader"
         :fragment-shader="fragmentShader"

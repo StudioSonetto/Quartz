@@ -22,10 +22,10 @@
   .title {
     @apply absolute select-none opacity-90;
     @apply top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-    @apply w-full text-center px-6;
+    @apply w-full text-center;
 
     h1 {
-      @apply text-5xl md:text-6xl lg:text-9xl font-400 tracking-tight;
+      @apply text-6xl md:text-7xl lg:text-8xl font-400 tracking-tight;
     }
   }
 

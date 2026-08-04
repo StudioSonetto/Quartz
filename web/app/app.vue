@@ -72,10 +72,6 @@ main {
   @apply overflow-x-hidden;
 }
 
-section {
-  @apply h-screen;
-}
-
 select {
   @apply bg-transparent appearance-none;
   @apply border-0! border-b-1! border-light-200;

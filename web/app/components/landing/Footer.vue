@@ -15,7 +15,7 @@
 <style scoped lang="postcss">
 footer {
   @apply flex items-center justify-between;
-  @apply bg-dark-800 px-10 py-20;
+  @apply bg-dark-800 px-90 py-30;
   @apply border-solid border-0 border-t-2 border-dark-200;
   @apply select-none;
 }
