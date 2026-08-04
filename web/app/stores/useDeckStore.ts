@@ -220,13 +220,13 @@ export const useDeckStore = defineStore("deck", () => {
     ]);
 
     if (data) {
-      // Normalisation is in-memory only — it never writes back, so loading a
-      // deck cannot trigger a save.
       components.value[index] = normaliseComponents(
         data,
         fetchedComponents ?? [],
       );
       trees.value[index] = buildTree(data);
+
+      ensureFonts(fontsInComponents(components.value[index]));
 
       return trees.value[index].children;
     }

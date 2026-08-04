@@ -11,7 +11,7 @@
       <NodeComponentRowFieldDropdown
         :options="[...fonts, ...fontAssets].sort()"
         :value="field(['font'])"
-        @update:value="(v) => set(['font'], v)"
+        @update:value="setFont"
       />
     </NodeComponentRow>
     <NodeComponentRow name="size">
@@ -103,4 +103,10 @@ const fontAssets = computed(() =>
     .fonts.map((font) => font.name.split(".")[0])
     .filter((font) => font !== undefined),
 );
+
+function setFont(font: string) {
+  ensureFonts([font]);
+
+  set(["font"], font);
+}
 </script>
