@@ -1,3 +1,5 @@
+const spaRoutes = ["/atelier", "/auth", "/live"];
+
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-05",
   devtools: {
@@ -33,14 +35,14 @@ export default defineNuxtConfig({
   routeRules: {
     "/": { prerender: true },
     "/docs/**": { prerender: true },
-    "/atelier/**": { ssr: false },
-    "/live/**": { ssr: false },
-    "/auth/**": { ssr: false },
+    ...Object.fromEntries(
+      spaRoutes.map((route) => [`${route}/**`, { ssr: false }]),
+    ),
   },
   nitro: {
     prerender: {
       crawlLinks: true,
-      ignore: ["/atelier", "/auth", "/live"],
+      ignore: spaRoutes,
     },
   },
   runtimeConfig: {
