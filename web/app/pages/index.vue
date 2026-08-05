@@ -1,11 +1,13 @@
 <template>
   <LandingNavbar />
+  <LandingHero />
   <LandingSection title="Node powered" description="...">
     <div class="bg-dark-500 w-full h-xl my-12"></div>
   </LandingSection>
   <LandingSection title="Keyboard driven" description="...">
     <div class="bg-dark-500 w-full h-xl my-12"></div>
   </LandingSection>
+  <LandingModules />
   <LandingPricing />
   <LandingFooter />
 </template>

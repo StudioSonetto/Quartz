@@ -1,7 +1,7 @@
 <template>
   <footer>
     <div>
-      <h1>Quartz</h1>
+      <h1 class="font-300">Quartz</h1>
       <div class="whitespace"></div>
       <p>© {{ new Date().getFullYear() }} Studio Concertos</p>
     </div>
@@ -15,7 +15,7 @@
 <style scoped lang="postcss">
 footer {
   @apply flex items-center justify-between;
-  @apply bg-dark-800 px-90 py-30;
+  @apply bg-dark-800 px-80 py-30;
   @apply border-solid border-0 border-t-2 border-dark-200;
   @apply select-none;
 }

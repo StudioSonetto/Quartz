@@ -1,8 +1,9 @@
 <template>
   <section>
-    <h2>{{ props.title }}</h2>
+    <h2>{{ props.title }}/</h2>
     <div class="whitespace"></div>
-    <p>{{ props.description }}</p>
+    <p class="opacity-60 font-400">{{ props.description }}</p>
+    <div class="whitespace"></div>
     <div class="whitespace"></div>
     <div class="whitespace"></div>
     <slot />
@@ -11,10 +12,10 @@
 
 <style scoped lang="postcss">
 section {
-  @apply min-h-screen px-90 py-30;
+  @apply px-80 py-30;
 
   h2 {
-    @apply uppercase font-100 text-6xl;
+    @apply uppercase font-100 text-4xl;
   }
 }
 </style>
