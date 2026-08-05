@@ -1,11 +1,13 @@
 <template>
-  <section>
-    <h2>{{ props.title }}/</h2>
-    <div class="whitespace"></div>
-    <p class="opacity-60 font-400">{{ props.description }}</p>
-    <div class="whitespace"></div>
-    <div class="whitespace"></div>
-    <div class="whitespace"></div>
+  <section :id="props.title.toLowerCase()">
+    <div v-if="props.title && props.description" class="info">
+      <h2 class="title">{{ props.title }}/</h2>
+      <div class="whitespace"></div>
+      <p class="description">{{ props.description }}</p>
+      <div class="whitespace"></div>
+      <div class="whitespace"></div>
+      <div class="whitespace"></div>
+    </div>
     <slot />
   </section>
 </template>
@@ -14,8 +16,14 @@
 section {
   @apply px-80 py-30;
 
-  h2 {
-    @apply uppercase font-100 text-4xl;
+  .info {
+    .title {
+      @apply uppercase font-400 text-4xl;
+    }
+
+    .description {
+      @apply text-light-200/60;
+    }
   }
 }
 </style>
@@ -23,6 +31,6 @@ section {
 <script setup lang="ts">
 const props = defineProps<{
   title: string;
-  description: string;
+  description?: string;
 }>();
 </script>

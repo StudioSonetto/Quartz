@@ -1,6 +1,5 @@
 <template>
   <LandingSection
-    id="modules"
     title="Modules"
     description="One time module payment instead of subscriptions."
   >

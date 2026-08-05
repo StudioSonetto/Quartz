@@ -3,7 +3,7 @@
     <div>
       <h1 class="font-300">Quartz</h1>
       <div class="whitespace"></div>
-      <p>© {{ new Date().getFullYear() }} Studio Concertos</p>
+      <p>© {{ new Date().getFullYear() }} Sonetto</p>
     </div>
     <div class="flex items-center gap-12">
       <NuxtLink to="/">Privacy Policy</NuxtLink>

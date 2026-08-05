@@ -1,20 +1,20 @@
 <template>
   <LandingSection
     title="Pricing"
-    description="One time module payment instead of subscriptions."
+    description="Only pay for the features you want."
   >
     <div class="pricing">
       <table>
         <colgroup>
-          <col class="w-2/5" />
-          <col class="w-3/10" />
-          <col class="w-3/10" />
+          <col class="w-1.5/4" />
+          <col class="w-1.25/4" />
+          <col class="w-1.25/4" />
         </colgroup>
         <thead>
           <tr>
             <th></th>
             <th>
-              <h3>Core</h3>
+              <h3>Core Editor</h3>
               <p>Free forever.</p>
             </th>
             <th>
@@ -27,7 +27,7 @@
             <td class="feature">{{ row.label }}</td>
             <td class="value">{{ row.free }}</td>
             <td class="value">
-              <span v-if="row.unlimited" class="unlimited">∞</span>
+              <div v-if="row.unlimited" class="text-xl i-carbon-infinity"></div>
               <template v-else-if="row.module">
                 with <span class="module">{{ row.module }}</span> ·
                 {{ row.paid }}
@@ -36,30 +36,28 @@
             </td>
           </tr>
           <tr class="actions">
-            <td class="feature">Local presenting · full editor</td>
+            <td class="feature"></td>
             <td>
               <NuxtLink class="btn" to="/auth">Start free</NuxtLink>
             </td>
             <td>
               <NuxtLink class="btn btn-solid" to="#modules">
-                Browse modules
+                Browse all modules
               </NuxtLink>
             </td>
           </tr>
         </tbody>
       </table>
-      <p class="footnote">
-        <span class="unlimited">∞</span> Buying <span class="dim">any</span>
-        module removes every limit — they never expire.
-      </p>
+      <div class="whitespace"></div>
+      <div class="whitespace"></div>
+      <div class="whitespace"></div>
+      <p class="footnote">* Purchasing any module unlock every size limits.</p>
     </div>
   </LandingSection>
 </template>
 
 <style scoped lang="postcss">
 .pricing {
-  @apply select-none;
-
   table {
     @apply w-full table-fixed border-collapse;
     @apply border-solid border-1 border-dark-200;
@@ -67,7 +65,7 @@
 
   th,
   td {
-    @apply text-left align-middle px-8 py-5;
+    @apply text-left align-middle p-8;
     @apply border-solid border-0 border-b-1 border-l-1 border-dark-200;
   }
 
@@ -85,11 +83,11 @@
       @apply py-8;
 
       h3 {
-        @apply uppercase font-100 text-4xl m-0;
+        @apply uppercase font-400 text-3xl m-0;
       }
 
       p {
-        @apply ui-text-3 mt-3 mb-0 text-light-200/50;
+        @apply ui-text-3 mt-3 text-light-200/60;
       }
     }
   }
@@ -106,10 +104,6 @@
     @apply text-accent;
   }
 
-  .unlimited {
-    @apply text-accent;
-  }
-
   .dim {
     @apply text-light-200/50;
   }
@@ -119,10 +113,9 @@
   }
 
   .btn {
-    @apply inline-flex justify-center items-center;
-    @apply border-solid border-1 border-light-200/60 border-rd;
-    @apply px-6 py-3 ui-text-3 transition-all;
-    @apply hover:bg-light-200 hover:text-dark-900 active:opacity-80;
+    @apply border-solid border-1.5 border-light-200/60 border-rd;
+    @apply px-6 py-3 ui-text-3 transition-colors;
+    @apply hover:bg-light-200 hover:text-dark-900;
   }
 
   .btn-solid {
@@ -131,11 +124,7 @@
   }
 
   .footnote {
-    @apply flex items-center gap-3 ui-text-3 mt-10 mb-0 font-500;
-  }
-
-  .note {
-    @apply ui-text-3 mt-8 mb-0 text-light-200/50;
+    @apply flex items-center ui-text-3;
   }
 }
 </style>
@@ -154,9 +143,9 @@ const rows: PricingRow[] = [
   { label: "Max Slides per Deck", free: "30", paid: "∞", unlimited: true },
   { label: "Max Nodes per Slides", free: "20", paid: "∞", unlimited: true },
   {
-    label: "3D Rendering",
-    free: "Basic",
-    paid: "$100",
+    label: "3D Rendering & Support",
+    free: "Basic features only.",
+    paid: "$50",
     module: "WebGL",
   },
 ];

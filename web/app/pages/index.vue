@@ -9,6 +9,13 @@
   </LandingSection>
   <LandingModules />
   <LandingPricing />
+  <LandingRoadmap />
+  <LandingFAQ />
+  <LandingSection title="cta">
+    <div class="flex flex-col items-center justify-center">
+      <p class="text-4xl">Start pitching easy.</p>
+    </div>
+  </LandingSection>
   <LandingFooter />
 </template>
 
