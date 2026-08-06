@@ -49,6 +49,11 @@ export const useDeckStore = defineStore("deck", () => {
   }
   const clipboard = ref<ClipboardEntry[] | null>(null);
 
+  // Next free offset slot for each clipboard entry on each slide, keyed
+  // `rootId:slideId`. Pastes re-clone from the stored entry, so without this
+  // every repeat would reproduce the same coordinates. Reset on copy.
+  const pasteSlots = new Map<string, number>();
+
   const selectedIdSet = computed(() => new Set(selectedNodeIds.value));
 
   function isSelected(id: string): boolean {
@@ -75,6 +80,12 @@ export const useDeckStore = defineStore("deck", () => {
   });
 
   const slidesInLoading = ref<Set<number>>(new Set());
+
+  // Deck-wide lookups — peers above all — only see slides that have arrived.
+  // Anything whose answer would be wrong for a half-loaded deck waits on this.
+  const allSlidesLoaded = computed(() =>
+    slides.value.every((_, i) => !!trees.value[i]?.id),
+  );
 
   watch(slides, (newSlides) => {
     if (trees.value.length >= newSlides.length) return;
@@ -116,8 +127,11 @@ export const useDeckStore = defineStore("deck", () => {
 
   // ---- Selectors used by the sync layer ----
 
+  // `parallelLoad` resolves out of order, so mid-load these arrays hold gaps.
+
   function getNodeById(id: string): NodeModel | undefined {
     for (const tree of trees.value) {
+      if (!tree?.id) continue;
       const found = flattenTree(tree).find((n) => n.id === id);
       if (found) {
         const { children, parent, ...node } = found;
@@ -132,12 +146,82 @@ export const useDeckStore = defineStore("deck", () => {
     type: string,
   ): ComponentModel | undefined {
     for (const slideComponents of components.value) {
+      if (!slideComponents) continue;
       const found = slideComponents.find(
         (c) => c.node === node && c.type === type,
       );
       if (found) return found;
     }
     return undefined;
+  }
+
+  // Deck-wide, not scoped to the current slide: fan-out writes nodes on others.
+  // The current slide is tried first — drag and rotate call this per frame via
+  // `updateComponent`, and scanning in slide order would flatten every loaded
+  // slide before reaching the node under the cursor.
+  function locateNode(id: string): { node: Tree; slideIndex: number } | null {
+    const findIn = (i: number) => {
+      const tree = trees.value[i];
+      if (!tree?.id) return null;
+
+      const found = flattenTree(tree).find((n) => n.id === id);
+      return found ? { node: found, slideIndex: i } : null;
+    };
+
+    const current = findIn(currentSlidesIndex.value);
+    if (current) return current;
+
+    for (let i = 0; i < trees.value.length; i++) {
+      if (i === currentSlidesIndex.value) continue;
+
+      const found = findIn(i);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function slideIndexOf(nodeId: string): number | null {
+    return locateNode(nodeId)?.slideIndex ?? null;
+  }
+
+  function componentsOf(nodeId: string): ComponentModel[] {
+    for (const slideComponents of components.value) {
+      if (!slideComponents) continue;
+      const found = slideComponents.filter((c) => c.node === nodeId);
+      if (found.length) return found;
+    }
+    return [];
+  }
+
+  // Every other node in the deck sharing this node's non-empty `reference` and
+  // type. Peers on unloaded slides are missing here; `save.post.ts` covers them.
+  //
+  // Never a node on the source's own slide: two peers sharing a slide would
+  // share a transform and drag as one. Decks predating this feature contain
+  // such pairs — the old reference field wrote one key across a whole
+  // multi-selection — and they must keep behaving as independent nodes.
+  // `save.post.ts` excludes the source slide the same way.
+  //
+  // `located` lets the per-frame callers hand over a lookup they already did.
+  function peersOf(
+    id: string,
+    located: { node: Tree; slideIndex: number } | null = locateNode(id),
+  ): { node: Tree; slideIndex: number }[] {
+    if (!located) return [];
+
+    const { reference: key, type } = located.node;
+    if (!key) return [];
+
+    const out: { node: Tree; slideIndex: number }[] = [];
+    trees.value.forEach((tree, slideIndex) => {
+      if (!tree?.id || slideIndex === located.slideIndex) return;
+
+      for (const n of flattenTree(tree)) {
+        if (n.reference === key && n.type === type)
+          out.push({ node: n, slideIndex });
+      }
+    });
+    return out;
   }
 
   // ---- Deck / slide CRUD (thin API passthroughs) ----
@@ -322,11 +406,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function getNodeAsTree(id: string): Tree | null {
-    for (const tree of trees.value) {
-      const found = flattenTree(tree).find((n) => n.id === id);
-      if (found) return found;
-    }
-    return null;
+    return locateNode(id)?.node ?? null;
   }
 
   function updateNode(
@@ -334,10 +414,19 @@ export const useDeckStore = defineStore("deck", () => {
     patch: Partial<Pick<NodeModel, "name" | "reference">>,
   ) {
     const target = getNodeAsTree(id);
+
     if (!target) return;
+
     Object.assign(target, patch);
-    // Path is id-based, so name changes never touch the path — no reorder.
+
     sync.enqueueNode(id);
+
+    if (patch.name === undefined || patch.reference !== undefined) return;
+
+    for (const { node } of peersOf(id)) {
+      node.name = patch.name;
+      sync.enqueueNode(node.id);
+    }
   }
 
   function deleteNodes(nodes: Tree[]) {
@@ -536,6 +625,7 @@ export const useDeckStore = defineStore("deck", () => {
       const clone = cloneSubtree(flat, slideComps, r.id, {
         offset: CLONE_OFFSET,
       });
+      for (const n of clone.nodes) n.reference = null;
       const id = insertClone(clone, parentPath(r.path));
       if (id) newIds.push(id);
     }
@@ -547,6 +637,7 @@ export const useDeckStore = defineStore("deck", () => {
     if (!roots.length) return;
     const flat = flatModels();
     const slideComps = components.value[currentSlidesIndex.value] ?? [];
+    pasteSlots.clear();
     clipboard.value = roots.map((r) => {
       const sub = flat.filter((n) => isSelfOrDescendantPath(n.path, r.path));
       const subIds = new Set(sub.map((n) => n.id));
@@ -565,18 +656,47 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function paste() {
-    if (!clipboard.value?.length) return;
+    if (!clipboard.value?.length || !currentSlides.value) return;
     const parent = soleSelected.value;
     const destPath = parent?.path ?? ROOT_PATH;
     const parentType: NodeType = parent?.type ?? "core.group";
     const newIds: string[] = [];
     for (const entry of clipboard.value) {
-      const rootType = entry.nodes.find((n) => n.id === entry.rootId)?.type;
-      if (!rootType || !canContain(parentType, rootType)) continue;
-      // Re-clone from the stored entry so repeated pastes get fresh ids + offset.
+      const source = entry.nodes.find((n) => n.id === entry.rootId);
+      if (!source || !canContain(parentType, source.type)) continue;
+
+      // At most one peer per slide — two would drag as one and collapse onto
+      // each other. Recomputed per entry so earlier entries in this paste count.
+      const destKeys = new Set(
+        currentFlat()
+          .map((n) => n.reference)
+          .filter((r): r is string => !!r),
+      );
+      const wouldDuplicatePeer = entry.nodes.some(
+        (n) => n.reference && destKeys.has(n.reference),
+      );
+
+      // Unlink when the copy can't stand alone where it lands. An unkeyed
+      // same-slide copy has no key to collide with, so both tests are needed.
+      const sameSlide = source.slides === currentSlides.value.id;
+      const detach = sameSlide || wouldDuplicatePeer;
+
+      // A linked peer has to sit exactly where its peers sit, so it lands
+      // unmoved — but only if that spot is free. It isn't when the source or an
+      // existing peer already holds it, and it isn't for a repeat paste, since
+      // each clone comes from the same stored coordinates. Each copy takes the
+      // next slot along instead of stacking invisibly on the last.
+      const slotKey = `${entry.rootId}:${currentSlides.value.id}`;
+      const steps = pasteSlots.get(slotKey) ?? (detach ? 1 : 0);
+      pasteSlots.set(slotKey, steps + 1);
+
+      // Re-clone from the stored entry so repeated pastes get fresh ids.
       const clone = cloneSubtree(entry.nodes, entry.components, entry.rootId, {
-        offset: CLONE_OFFSET,
+        offset: steps
+          ? { x: CLONE_OFFSET.x * steps, y: CLONE_OFFSET.y * steps }
+          : undefined,
       });
+      if (detach) for (const n of clone.nodes) n.reference = null;
       const id = insertClone(clone, destPath);
       if (id) newIds.push(id);
     }
@@ -627,9 +747,10 @@ export const useDeckStore = defineStore("deck", () => {
     for (const id of changed) sync.enqueueNode(id);
   }
 
-  function updateComponent(component: ComponentModel) {
-    const slideComponents = components.value[currentSlidesIndex.value];
+  function writeComponentAt(slideIndex: number, component: ComponentModel) {
+    const slideComponents = components.value[slideIndex];
     if (!slideComponents) return;
+
     const index = slideComponents.findIndex(
       (c) => c.node === component.node && c.type === component.type,
     );
@@ -637,6 +758,25 @@ export const useDeckStore = defineStore("deck", () => {
     else slideComponents.push(component);
 
     sync.enqueueComponent(component.node, component.type);
+  }
+
+  function updateComponent(component: ComponentModel) {
+    const located = locateNode(component.node);
+
+    writeComponentAt(
+      located?.slideIndex ?? currentSlidesIndex.value,
+      component,
+    );
+
+    if (!located?.node.reference) return;
+
+    for (const { slideIndex, node } of peersOf(component.node, located)) {
+      writeComponentAt(slideIndex, {
+        ...component,
+        node: node.id,
+        data: JSON.parse(JSON.stringify(component.data)),
+      });
+    }
   }
 
   function nextSlides() {
@@ -662,9 +802,14 @@ export const useDeckStore = defineStore("deck", () => {
     selectedNodes,
     soleSelected,
     isSelected,
+    allSlidesLoaded,
     currentFlat,
     getNodeById,
     getComponent,
+    getNodeAsTree,
+    slideIndexOf,
+    componentsOf,
+    peersOf,
     fetchAllDecks,
     fetchDeck,
     insertNewDeck,

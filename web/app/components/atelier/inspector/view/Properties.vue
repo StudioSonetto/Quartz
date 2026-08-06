@@ -133,6 +133,10 @@ function onKeydown(e: KeyboardEvent) {
   // so deselecting is one press from here as well. Also means the wrapping
   // below can never trap keyboard users.
   if (e.key === "Escape") {
+    // A field with an unsaved edit claims the first press to abandon it, so
+    // deselecting takes a second one.
+    if (e.defaultPrevented) return;
+
     e.preventDefault();
     clear();
     return;
