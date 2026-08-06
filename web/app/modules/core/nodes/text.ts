@@ -52,7 +52,7 @@ export default {
               : `${transform.size.height}px`,
           transform: transformStyle(transform, ctx.scale),
           zIndex: transform.position.z,
-          whiteSpace: "pre-line",
+          whiteSpace: "pre-wrap",
           lineHeight: typography.lineHeight,
           letterSpacing: `${typography.letterSpacing}px`,
           textTransform: typography.textTransform,

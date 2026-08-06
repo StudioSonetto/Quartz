@@ -6,11 +6,7 @@
     }"
     class="frame"
   >
-    <AtelierRenderSnapshot
-      v-if="slide"
-      :deck="slide.deck"
-      :slides="slide.id"
-    />
+    <AtelierRenderSnapshot v-if="slide" :deck="slide.deck" :slides="slide.id" />
     <div class="overlay">
       <div
         v-if="isSelected"

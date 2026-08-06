@@ -11,6 +11,7 @@
       <AtelierInspector />
       <div class="flex flex-1 flex-col min-w-0">
         <div class="render-container" @focusin="atelier.setFocus('canvas')">
+          <AtelierCanvasBar />
           <AtelierRender canEdit />
         </div>
         <AtelierTimeline />
@@ -22,19 +23,17 @@
 
 <style scoped lang="postcss">
 .render-container {
-  @apply px-[6.28%] flex flex-1 items-center;
+  @apply px-[6.28%] flex flex-1 flex-col justify-center gap-2;
 }
 </style>
 
 <script setup lang="ts">
 const client = useSupabaseClient();
 
-// Derive the channel type from the client so it matches the exact
-// @supabase/realtime-js copy the client is built from (avoids the
-// duplicate-package type mismatch with @nuxtjs/supabase).
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
+const { slides } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const sync = useDeckSync();
 const atelier = useAtelierStore();
@@ -44,8 +43,6 @@ let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const snapshotScheduler = useSnapshotScheduler();
 
-// Flush any edits still inside the debounce window when the tab is closed,
-// navigated away, or backgrounded — sendBeacon survives page teardown.
 const flushOnHide = () => {
   if (document.visibilityState === "hidden") sync.flushBeacon();
 };
@@ -67,8 +64,10 @@ onMounted(async () => {
   document.addEventListener("visibilitychange", flushOnHide);
   window.addEventListener("pagehide", flushOnPageHide);
 
+  const id = useRoute().params.id as string;
+
   deckRC = client
-    .channel("public:decks")
+    .channel(`atelier:${id}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },
@@ -77,7 +76,7 @@ onMounted(async () => {
     .subscribe();
 
   slidesRC = client
-    .channel("public:slides")
+    .channel(`atelier:${id}:slides`, { config: { private: true } })
     .on(
       "postgres_changes",
       {
@@ -86,7 +85,11 @@ onMounted(async () => {
         table: "slides",
         filter: `deck=eq.${deck.value?.id}`,
       },
-      () => refreshSlides(),
+      (payload) => {
+        if (slides.value.some((s) => s.id === payload.new.id)) return;
+
+        refreshSlides();
+      },
     )
     .on(
       "postgres_changes",
@@ -104,8 +107,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   snapshotScheduler.stop();
+
   document.removeEventListener("visibilitychange", flushOnHide);
   window.removeEventListener("pagehide", flushOnPageHide);
+
   client.removeAllChannels();
 });
 </script>

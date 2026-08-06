@@ -1,11 +1,11 @@
 <template>
-  <TresCanvas @ready="onReady">
+  <TresCanvas render-mode="manual" @ready="onReady">
     <TresPerspectiveCamera
       :args="[45, 1, 0.001, 1000]"
       :position="[0, 0, 0.1]"
     />
     <TresMesh>
-      <TresPlaneGeometry :args="[1.2, 1.2, 150, 150]" />
+      <TresPlaneGeometry :args="[1.2, 1.2, 100, 100]" />
       <TresShaderMaterial
         :vertex-shader="vertexShader"
         :fragment-shader="fragmentShader"
@@ -50,14 +50,24 @@ const palette: [Color, Color, Color] = [
 ];
 
 let envMap: Texture | undefined;
+let advance: (() => void) | undefined;
+
+const canvasEl = shallowRef<HTMLCanvasElement>();
+
+const isVisible = useElementVisibility(canvasEl);
 
 function onReady(context: {
   renderer: { value: WebGLRenderer };
   scene: { value: Scene };
+  advance: () => void;
 }) {
   const renderer = context.renderer?.value;
   const scene = context.scene?.value;
+
   if (!renderer || !scene) return;
+
+  advance = context.advance;
+  canvasEl.value = renderer.domElement;
 
   const canvas = document.createElement("canvas");
 
@@ -101,6 +111,8 @@ function onReady(context: {
 
   equirect.dispose();
   pmrem.dispose();
+
+  context.advance();
 }
 
 onBeforeUnmount(() => envMap?.dispose());
@@ -117,11 +129,15 @@ const { onLoop } = useRenderLoop();
 const glassMesh = shallowRef<Mesh>();
 
 onLoop(({ delta }) => {
+  if (!advance || !isVisible.value) return;
+
   uniforms.uTime.value += 0.01 * delta;
 
   if (glassMesh.value) {
-    glassMesh.value.rotation.x += 0.001;
-    glassMesh.value.rotation.y += 0.001;
+    glassMesh.value.rotation.x += 0.06 * delta;
+    glassMesh.value.rotation.y += 0.06 * delta;
   }
+
+  advance();
 });
 </script>

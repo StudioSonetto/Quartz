@@ -31,6 +31,13 @@ const isAnimating = ref(false);
 
 const sizeVec = new Vector2();
 
+const spinRate = 0.6;
+
+const maxDelta = 0.1;
+
+let lastFrame = 0;
+let elapsed = 0;
+
 function setupCanvas(canvas: string) {
   const domElement = contexts.get(canvas)!.renderer.domElement;
 
@@ -39,20 +46,22 @@ function setupCanvas(canvas: string) {
   document.getElementById(canvas)?.appendChild(domElement);
 
   if (!isAnimating.value) {
-    animate();
+    lastFrame = performance.now();
+
+    requestAnimationFrame(animate);
 
     isAnimating.value = true;
   }
 }
 
-function animate() {
+function animate(now: number) {
   requestAnimationFrame(animate);
 
+  elapsed += Math.min((now - lastFrame) / 1000, maxDelta);
+  lastFrame = now;
+
   contexts.forEach((context) => {
-    context.scene.children.forEach((child) => {
-      child.rotation.x += 0.01;
-      child.rotation.y += 0.01;
-    });
+    context.objects.forEach(applyAnimatedRotation);
 
     context.renderer.render(context.scene, context.camera);
   });
@@ -204,6 +213,13 @@ function shouldRecreateObject(
   );
 }
 
+function applyAnimatedRotation(object: Mesh | Group) {
+  const authored = object.userData.authoredRotation ?? { x: 0, y: 0, z: 0 };
+  const spin = spinRate * elapsed;
+
+  object.rotation.set(authored.x + spin, authored.y + spin, authored.z);
+}
+
 function applyTransform(object: Mesh | Group, transform: any) {
   object.position.set(
     transform.position.x,
@@ -211,11 +227,14 @@ function applyTransform(object: Mesh | Group, transform: any) {
     transform.position.z,
   );
   object.scale.set(transform.scale, transform.scale, transform.scale);
-  object.rotation.set(
-    (transform.rotation.x * Math.PI) / 180,
-    (transform.rotation.y * Math.PI) / 180,
-    (transform.rotation.z * Math.PI) / 180,
-  );
+
+  object.userData.authoredRotation = {
+    x: (transform.rotation.x * Math.PI) / 180,
+    y: (transform.rotation.y * Math.PI) / 180,
+    z: (transform.rotation.z * Math.PI) / 180,
+  };
+
+  applyAnimatedRotation(object);
 }
 
 async function instantiateObject(
@@ -298,7 +317,10 @@ export function createWebglApi(
           0.1,
           1000,
         ),
-        renderer: new WebGLRenderer({ antialias: true }),
+        renderer: new WebGLRenderer({
+          antialias: true,
+          preserveDrawingBuffer: true,
+        }),
         loaders: {
           fbx: new FBXLoader(),
           gltf: new GLTFLoader(),

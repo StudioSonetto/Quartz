@@ -22,6 +22,14 @@ export const canContain = (
   childType: NodeType,
 ): boolean => getNodeType(parentType)?.accepts.includes(childType) ?? false;
 
+// A node type the user can create from a menu (vs. one produced only by an
+// operation, e.g. groups via ⌘G). Defaults to creatable.
+export const isCreatable = (t: NodeTypeDef): boolean => t.creatable !== false;
+
+// The node types a user may create directly under a given parent.
+export const creatableTypesFor = (parentType: NodeType): NodeTypeDef[] =>
+  allNodeTypes().filter((t) => isCreatable(t) && canContain(parentType, t.type));
+
 export const getCommand = (id: string) => commands.get(id);
 export const allCommands = (): Command[] => [...commands.values()];
 

@@ -61,7 +61,7 @@ describe("createNode containment guard", () => {
   it("creates a valid child under the root group", () => {
     const store = useDeckStore();
     seedRootOnly(store);
-    store.selectedNode = null; // parent = root (group)
+    store.selectedNodeIds = []; // parent = root (group)
     expect(() => store.createNode("hello", "core.text")).not.toThrow();
     // The new text node is now in the tree.
     const names = store.trees[0]!.children.map((n) => n.name);
@@ -79,7 +79,7 @@ describe("createNode containment guard", () => {
         { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "core.text", reference: null, sort_order: 0 },
       ] as any),
     ];
-    store.selectedNode = store.trees[0]!.children[0]!; // the text node
+    store.selectedNodeIds = [store.trees[0]!.children[0]!.id]; // the text node
     // Pin the message so an unrelated exception can't masquerade as a pass.
     expect(() => store.createNode("nope", "core.group")).toThrow(
       /cannot be placed inside/,

@@ -3,4 +3,5 @@
 .nuxt
 .nitro
 .cache
+.vercel
 dist

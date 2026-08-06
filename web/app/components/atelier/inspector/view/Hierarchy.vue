@@ -94,9 +94,9 @@ import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
 
-import { allNodeTypes, getNodeType } from "~/modules/registry";
+import { allNodeTypes, creatableTypesFor } from "~/modules/registry";
 
-const { currentTree, currentSlides, selectedNode } =
+const { currentTree, currentSlides, soleSelected } =
   storeToRefs(useDeckStore());
 const { highlightedNodeId } = storeToRefs(useAtelierStore());
 const { onKeydown, onFocusin, onFocusout, onPointerdown } = useTreeKeyboard();
@@ -106,11 +106,9 @@ const modal = ref<typeof Modal>();
 const nodeTypes = allNodeTypes();
 const typeValues = nodeTypes.map((t) => t.type) as [NodeType, ...NodeType[]];
 
-const availableTypes = computed(() => {
-  const parentType: NodeType = selectedNode.value?.type ?? "core.group";
-  const accepts = getNodeType(parentType)?.accepts ?? [];
-  return nodeTypes.filter((t) => accepts.includes(t.type));
-});
+const availableTypes = computed(() =>
+  creatableTypesFor(soleSelected.value?.type ?? "core.group"),
+);
 
 const nodeSchema = toTypedSchema(
   zod.object({

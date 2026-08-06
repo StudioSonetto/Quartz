@@ -1,20 +1,30 @@
+import type { ShallowRef } from "vue";
+
+export const renderRootKey: InjectionKey<
+  Readonly<ShallowRef<HTMLElement | null>>
+> = Symbol("renderRoot");
+
 export function useCanvasScale() {
   const { canvasSize } = storeToRefs(useAtelierStore());
 
-  let cached: HTMLElement | null = null;
+  const provided = getCurrentInstance() ? inject(renderRootKey, null) : null;
+  const found = shallowRef<HTMLElement | null>(null);
 
-  function renderEl() {
+  const renderRoot = provided ?? found;
+
+  function findRenderEl() {
     if (import.meta.server) return null;
 
-    if (!cached || !cached.isConnected) {
-      cached = document.querySelector(".render");
-    }
+    if (provided) return provided.value;
 
-    return cached;
+    if (!found.value?.isConnected)
+      found.value = document.querySelector<HTMLElement>(".render");
+
+    return found.value;
   }
 
   function scale() {
-    const el = renderEl();
+    const el = findRenderEl();
 
     return {
       x: canvasSize.value.width / (el?.clientWidth || canvasSize.value.width),
@@ -23,5 +33,5 @@ export function useCanvasScale() {
     };
   }
 
-  return { renderEl, scale };
+  return { findRenderEl, renderRoot, scale };
 }

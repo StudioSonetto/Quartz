@@ -5,6 +5,7 @@ export const renderScaleKey: InjectionKey<Ref<number>> = Symbol("renderScale");
 
 export function useElementRenderer() {
   const { getNodeComponent } = useNodeComponents();
+  const { imageUrl } = useAssetsStore();
 
   function findComponent(node: Tree, type: ComponentType) {
     return getNodeComponent(node.id, type);
@@ -34,6 +35,7 @@ export function useElementRenderer() {
 
         return api;
       },
+      assetUrl: imageUrl,
     };
 
     return { element: def.renderer.element, ...def.renderer.render(node, ctx) };

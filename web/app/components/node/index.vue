@@ -16,7 +16,7 @@
         ></div>
         <input
           maxlength="30"
-          @keydown.enter.esc="($event.target as HTMLInputElement).blur()"
+          @keydown.enter.esc.prevent="($event.target as HTMLInputElement).blur()"
           v-model.lazy="nodeName"
           :style="isSelected ? 'width: 100%' : `width: ${nodeName.length}ch`"
           :class="{ 'text-dark-900': isSelected }"
@@ -53,7 +53,7 @@
               shortcut: '⌫',
               danger: true,
               action: () => {
-                deleteSelectedNode();
+                run('core.node.delete');
               },
             },
           ])
@@ -128,11 +128,12 @@ import { useDraggable } from "vue-draggable-plus";
 import { getNodeType, canContain } from "~/modules/registry";
 import { isEditableTarget } from "~/utils/dom";
 
-const { deleteSelectedNode, updateNode, reorderNodes } = useDeckStore();
-const { selectedNode } = storeToRefs(useDeckStore());
+const { updateNode, reorderNodes } = useDeckStore();
+const { run } = useCommands();
+const { isSelected: isNodeSelected } = useDeckStore();
 const atelier = useAtelierStore();
 const { highlightedNodeId } = storeToRefs(atelier);
-const { selectNode } = useNodeSelection();
+const { select, toggle, range } = useNodeSelection();
 
 const props = defineProps<{
   node: Tree;
@@ -153,9 +154,7 @@ const nodeIcon = computed(
   () => getNodeType(props.node.type)?.icon ?? "i-carbon-help",
 );
 
-const isSelected = computed(() => {
-  return selectedNode.value?.id === props.node.id;
-});
+const isSelected = computed(() => isNodeSelected(props.node.id));
 const isGroup = computed(() => {
   return props.node.type === "core.group";
 });
@@ -191,7 +190,9 @@ useDraggable(nested, children, {
 });
 
 function onSelect(node: Tree, event: MouseEvent) {
-  selectNode(node, { handOffFocus: !isEditableTarget(event.target) });
+  if (event.shiftKey) return range(node);
+  if (event.metaKey || event.ctrlKey) return toggle(node);
+  select(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 
 function toggleGroup() {
@@ -200,9 +201,13 @@ function toggleGroup() {
   atelier.toggleCollapsed(props.node.id);
 }
 
+// Route through the command so the delete guard (`core.node.delete`'s `when`)
+// stays single-sourced — the row must not delete on rules the command wouldn't.
+// The Backspace guard stays local: it protects the inline rename input, where
+// Backspace edits text rather than deleting the node.
 function handleDelete(event: KeyboardEvent) {
   if (event.key === "Backspace") return;
 
-  deleteSelectedNode();
+  run("core.node.delete");
 }
 </script>

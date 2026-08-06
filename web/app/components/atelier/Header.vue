@@ -103,7 +103,7 @@
 import type Modal from "@/components/Modal.vue";
 
 const { updateDeckTitle } = useDeckStore();
-const { selectedNode } = storeToRefs(useDeckStore());
+const { clear } = useNodeSelection();
 
 const props = defineProps<{
   title: string;
@@ -140,7 +140,7 @@ function commit() {
 async function onSubmit() {
   modal.value?.close();
 
-  selectedNode.value = null;
+  clear();
 
   await navigateTo(`/live/${useRoute().params.id}`);
 }

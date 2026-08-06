@@ -3,31 +3,39 @@
     <NodeComponentRow name="content">
       <NodeComponentRowFieldText
         isParagraph
-        v-model:value="props.component.data.content"
+        :value="field(['content'])"
+        @update:value="(v) => set(['content'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="font">
       <NodeComponentRowFieldDropdown
         :options="[...fonts, ...fontAssets].sort()"
-        v-model:value="props.component.data.font"
+        :value="field(['font'])"
+        @update:value="setFont"
       />
     </NodeComponentRow>
     <NodeComponentRow name="size">
-      <NodeComponentRowFieldNumber v-model:value="props.component.data.size" />
+      <NodeComponentRowFieldNumber
+        :value="field(['size'])"
+        @update:value="(v) => set(['size'], v)"
+      />
     </NodeComponentRow>
     <NodeComponentRow name="weight">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.weight"
+        :value="field(['weight'])"
+        @update:value="(v) => set(['weight'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="line height">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.lineHeight"
+        :value="field(['lineHeight'])"
+        @update:value="(v) => set(['lineHeight'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="letter spacing">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.letterSpacing"
+        :value="field(['letterSpacing'])"
+        @update:value="(v) => set(['letterSpacing'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="transform">
@@ -38,17 +46,20 @@
           { value: 'lowercase', icon: 'i-carbon-text-small-caps' },
           { value: 'capitalize', icon: 'i-carbon-text-selection' },
         ]"
-        v-model:value="props.component.data.textTransform"
+        :value="field(['textTransform'])"
+        @update:value="(v) => set(['textTransform'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="opacity">
       <NodeComponentRowFieldNumber
-        v-model:value="props.component.data.opacity"
+        :value="field(['opacity'])"
+        @update:value="(v) => set(['opacity'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="colour">
       <NodeComponentRowFieldColour
-        v-model:value="props.component.data.colour"
+        :value="field(['colour'])"
+        @update:value="(v) => set(['colour'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="style">
@@ -59,7 +70,8 @@
           { value: 'strikethrough', icon: 'i-carbon-text-strikethrough' },
         ]"
         toggleMode
-        v-model:value="props.component.data.style"
+        :value="field(['style'])"
+        @update:value="(v) => set(['style'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="alignment">
@@ -70,27 +82,31 @@
           { value: 'right', icon: 'i-carbon-text-align-right' },
           { value: 'justify', icon: 'i-carbon-text-align-justify' },
         ]"
-        v-model:value="props.component.data.alignment"
+        :value="field(['alignment'])"
+        @update:value="(v) => set(['alignment'], v)"
       />
     </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <script setup lang="ts">
-const { updateComponent } = useDeckStore();
-
 const props = defineProps<{
-  component: ComponentModel;
+  components: ComponentModel[];
+  nodes: Tree[];
   icon: string;
 }>();
 
-watch(props.component.data, () => {
-  updateComponent(props.component);
-});
+const { field, set } = useMergedFields(() => props.components);
 
-const fontAssets = computed(() => {
-  return [
-    ...useAssetsStore().fonts.map((font) => font.name.split(".")[0]),
-  ].filter((font) => font !== undefined);
-});
+const fontAssets = computed(() =>
+  useAssetsStore()
+    .fonts.map((font) => font.name.split(".")[0])
+    .filter((font) => font !== undefined),
+);
+
+function setFont(font: string) {
+  ensureFonts([font]);
+
+  set(["font"], font);
+}
 </script>

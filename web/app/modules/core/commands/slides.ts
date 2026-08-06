@@ -26,8 +26,8 @@ const add: Command = {
   when: (ctx) => !!ctx.deckId,
   run: async (ctx) => {
     if (!ctx.deckId) return;
+
     await ctx.deck.insertNewSlides(ctx.deckId);
-    await ctx.deck.fetchAllSlides(ctx.deckId);
   },
 };
 

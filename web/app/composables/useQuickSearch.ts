@@ -23,7 +23,7 @@ export function useQuickSearch() {
   // Same routine as a click or tree Enter — sets the keyboard cursor and hands
   // focus to Properties — so picking a node from the palette lands you in the
   // same place as picking it any other way.
-  const { selectNode } = useNodeSelection();
+  const { select: selectNode } = useNodeSelection();
 
   function goToSlide(index: number) {
     if (index >= 0 && index < deck.slides.length) {

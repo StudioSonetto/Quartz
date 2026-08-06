@@ -2,21 +2,19 @@
   <NodeComponent name="scene" :icon="props.icon">
     <NodeComponentRow name="background">
       <NodeComponentRowFieldColour
-        v-model:value="props.component.data.background"
+        :value="field(['background'])"
+        @update:value="(v) => set(['background'], v)"
       />
     </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <script setup lang="ts">
-const { updateComponent } = useDeckStore();
-
 const props = defineProps<{
-  component: ComponentModel;
+  components: ComponentModel[];
+  nodes: Tree[];
   icon: string;
 }>();
 
-watch(props.component.data, () => {
-  updateComponent(props.component);
-});
+const { field, set } = useMergedFields(() => props.components);
 </script>

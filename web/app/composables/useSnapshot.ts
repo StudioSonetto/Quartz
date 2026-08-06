@@ -1,9 +1,34 @@
 import html2canvas from "html2canvas";
 
+/** Crops the painted area out of the capture and rescales it to a thumbnail. */
+function toPng(captured: HTMLCanvasElement, source: Size) {
+  const output = document.createElement("canvas");
+  output.width = SNAPSHOT_WIDTH;
+  output.height = SNAPSHOT_HEIGHT;
+
+  const context = output.getContext("2d")!;
+
+  context.drawImage(
+    captured,
+    0,
+    0,
+    source.width,
+    source.height,
+    0,
+    0,
+    SNAPSHOT_WIDTH,
+    SNAPSHOT_HEIGHT,
+  );
+
+  return new Promise<Blob>((resolve) =>
+    output.toBlob((blob) => resolve(blob!), "image/png"),
+  );
+}
+
 export function useSnapshot() {
   const client = useSupabaseClient();
 
-  const { renderEl } = useCanvasScale();
+  const { findRenderEl } = useCanvasScale();
 
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 
@@ -14,30 +39,36 @@ export function useSnapshot() {
     const tree = trees.value[slides.index];
     if (!tree || isEmptyTree(tree)) return;
 
-    const render = renderEl();
+    const render = findRenderEl();
     if (!render) return;
 
-    const blob = await html2canvas(render, {
-      width: 192,
-      height: 108,
-      scale: 10,
+    const rect = render.getBoundingClientRect();
+
+    const scale = snapshotScale(rect);
+    if (!scale) return;
+
+    // The clone re-resolves its viewport-relative width, so it is the only
+    // reliable measure of what actually got painted.
+    let painted: Size = rect;
+
+    const captured = await html2canvas(render, {
+      scale,
       useCORS: true,
-      onclone: (document, clone) => {
+      onclone: (cloned, clone) => {
         clone.style.borderRadius = "0px";
 
-        // TODO: Use another method to get the elements.
-        const elements = document.querySelectorAll(".element");
+        // The accent outline marks the selection on screen; it is not content.
+        cloned
+          .querySelectorAll<HTMLElement>(".element")
+          .forEach((element) => (element.style.outline = "none"));
 
-        elements.forEach((element) => {
-          (element as HTMLElement).style.transform = `scale(${192 / 1920})`;
-        });
+        painted = clone.getBoundingClientRect();
       },
-    }).then(
-      (canvas) =>
-        new Promise<Blob>((resolve) =>
-          canvas.toBlob((blob) => resolve(blob!), "image/png")
-        )
-    );
+    });
+
+    const source = snapshotSource(painted, scale, captured);
+
+    const blob = await toPng(captured, source);
 
     const { error } = await client.storage
       .from("snapshots")

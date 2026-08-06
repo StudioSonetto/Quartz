@@ -4,7 +4,8 @@
 
 <script setup lang="ts">
 const props = defineProps<{
-  component: ComponentModel;
+  components: ComponentModel[];
+  nodes: Tree[];
   icon: string;
 }>();
 </script>

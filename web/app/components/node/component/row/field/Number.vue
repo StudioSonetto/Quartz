@@ -8,16 +8,15 @@
       :max="props.max"
       :step="props.step"
       :disabled="props.disabled"
-      @input="
-        emit('update:value', ($event.target as HTMLInputElement).valueAsNumber)
-      "
+      :placeholder="props.value === undefined ? 'Mixed' : undefined"
+      @input="onInput"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 const props = defineProps<{
-  value: string;
+  value?: string | number;
   min?: number;
   max?: number;
   step?: number;
@@ -27,4 +26,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:value": [value: number];
 }>();
+
+function onInput(event: Event) {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+
+  if (!Number.isNaN(value)) emit("update:value", value);
+}
 </script>

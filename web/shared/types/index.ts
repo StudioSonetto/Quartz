@@ -57,6 +57,7 @@ export interface RenderContext {
   optional: (node: Tree, type: ComponentType) => any | undefined;
   scale: number;
   module: <T>(moduleId: string) => T;
+  assetUrl: (name: string) => string | undefined;
 }
 
 export interface NodeRenderer {
@@ -82,6 +83,7 @@ export interface NodeTypeDef {
   accepts: NodeType[];
   defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
+  creatable?: boolean;
 }
 
 export interface Command {
@@ -108,7 +110,9 @@ export interface CommandContext {
   // build context without Nuxt's auto-import globals and breaks `nuxt build`.
   deck: any;
   atelier: any;
-  selectedNode: Tree | null;
+  soleSelected: Tree | null;
+  selectedNodes: Tree[];
+  selectedNodeIds: string[];
   activeTab: number;
   focus: AtelierFocus;
   deckId: string | null;

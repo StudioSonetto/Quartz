@@ -1,30 +1,34 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="[]">
     <div
-      v-if="selectedNode"
+      v-if="selectedNodes.length"
       class="view"
       tabindex="-1"
       @keydown="onKeydown"
       @contextmenu.prevent
     >
-      <template
-        v-for="{ component, def } in panels"
-        :key="`${component.node}-${component.type}`"
-      >
-        <Component
-          v-if="def"
-          :is="def.inspector"
-          :component="component"
-          :icon="def.icon"
-        />
-        <div v-else class="unavailable">
-          Unavailable component: {{ component.type }}
-        </div>
+      <template v-if="sameType">
+        <template v-for="{ type, def } in typePanels" :key="type">
+          <Component
+            v-if="def"
+            :is="def.inspector"
+            :components="componentsByType.get(type) ?? []"
+            :nodes="selectedNodes"
+            :icon="def.icon"
+          />
+          <div v-else class="unavailable">
+            Unavailable component: {{ type }}
+          </div>
+        </template>
       </template>
+      <div v-else class="placeholder">
+        <div class="i-carbon-error"></div>
+        <p>Can't edit nodes of different types</p>
+      </div>
     </div>
     <div v-else class="placeholder" @contextmenu.prevent>
       <div class="i-carbon-error"></div>
-      <p>No node selected</p>
+      <p>No nodes selected</p>
     </div>
   </AtelierInspectorView>
 </template>
@@ -58,32 +62,50 @@
   }
 }
 
-.unavailable {
+.unavailable,
+.hint {
   @apply p-6 ui-text-3 opacity-60 italic;
 }
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode } = storeToRefs(useDeckStore());
+const { selectedNodes } = storeToRefs(useDeckStore());
 const { getNodeComponents } = useNodeComponents();
 
 import { getComponentType } from "~/modules/registry";
 import { isEditableTarget, wrapIndex } from "~/utils/dom";
 
-const { releaseSelection } = useNodeSelection();
+const { clear } = useNodeSelection();
 
-const nodeComponents = computed<ComponentModel[]>(() => {
-  if (!selectedNode.value?.id || !currentTree.value) return [];
+const sameType = computed(
+  () => new Set(selectedNodes.value.map((n) => n.type)).size === 1,
+);
 
-  return getNodeComponents(selectedNode.value.id);
+// Homogeneous ⇒ every node has the same component set, so derive the panel list
+// from the anchor (first selected) node.
+const typePanels = computed(() => {
+  const anchor = selectedNodes.value[0];
+  if (!anchor) return [];
+  return getNodeComponents(anchor.id).map((c) => ({
+    type: c.type,
+    def: getComponentType(c.type),
+  }));
 });
 
-const panels = computed(() =>
-  nodeComponents.value.map((component) => ({
-    component,
-    def: getComponentType(component.type),
-  })),
-);
+// One pass over the selection groups every component by type, so each panel's
+// `:components` is a cached, stable array rather than an O(types × nodes) lookup
+// recomputed per row on every render.
+const componentsByType = computed(() => {
+  const map = new Map<ComponentType, ComponentModel[]>();
+  for (const node of selectedNodes.value) {
+    for (const c of getNodeComponents(node.id)) {
+      const list = map.get(c.type);
+      if (list) list.push(c);
+      else map.set(c.type, [c]);
+    }
+  }
+  return map;
+});
 
 const FOCUSABLE = "button, input, select, textarea, [href], [tabindex]";
 
@@ -111,8 +133,12 @@ function onKeydown(e: KeyboardEvent) {
   // so deselecting is one press from here as well. Also means the wrapping
   // below can never trap keyboard users.
   if (e.key === "Escape") {
+    // A field with an unsaved edit claims the first press to abandon it, so
+    // deselecting takes a second one.
+    if (e.defaultPrevented) return;
+
     e.preventDefault();
-    releaseSelection();
+    clear();
     return;
   }
 

@@ -20,9 +20,6 @@
 <script setup lang="ts">
 const client = useSupabaseClient();
 
-// Derive the channel type from the client so it matches the exact
-// @supabase/realtime-js copy the client is built from (avoids the
-// duplicate-package type mismatch with @nuxtjs/supabase).
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 let realtimeChannel: RealtimeChannel;
@@ -33,8 +30,10 @@ const { data: decks, refresh: refreshDecks } = await useAsyncData(
 );
 
 onMounted(() => {
+  const userId = useAuthStore().user?.id;
+
   realtimeChannel = client
-    .channel("public:decks")
+    .channel(`dashboard:${userId}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks" },

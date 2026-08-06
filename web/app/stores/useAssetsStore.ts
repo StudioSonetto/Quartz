@@ -9,6 +9,14 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isImage(asset.name));
   });
 
+  const imageUrls = computed(
+    () => new Map(images.value.map((a) => [a.name, a.url.toString()])),
+  );
+
+  function imageUrl(name: string) {
+    return imageUrls.value.get(name);
+  }
+
   const fonts = computed(() => {
     return assets.value.filter((asset) => isFont(asset.name));
   });
@@ -55,7 +63,7 @@ export const useAssetsStore = defineStore("assets", () => {
         const { url, response } = await getStorageObject(
           "assets",
           deck,
-          asset.name
+          asset.name,
         );
 
         if (response.ok) {
@@ -100,6 +108,7 @@ export const useAssetsStore = defineStore("assets", () => {
   return {
     assets,
     images,
+    imageUrl,
     fonts,
     models,
     isImage,

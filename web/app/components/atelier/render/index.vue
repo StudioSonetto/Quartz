@@ -1,19 +1,15 @@
 <template>
   <div
     ref="renderEl"
-    @click="selectedNode = null"
-    @click.right="selectedNode = null"
+    :style="rootStyle"
+    @click="onCanvasClick"
+    @click.right="onCanvasClick"
     class="render"
   >
-    <span
-      v-if="canEdit && isDragging && isVerticallyCentered"
-      class="w-full h-0.5 bg-red-500 absolute z-99 top-1/2 -translate-y-1/2"
-    ></span>
-    <span
-      v-if="canEdit && isDragging && isHorizontallyCentered"
-      class="h-full w-0.4 bg-red-500 absolute z-99 left-1/2 -translate-x-1/2"
-    ></span>
     <AtelierRenderHandles v-if="canEdit" />
+    <AtelierRenderMarquee v-if="canEdit" />
+    <AtelierRenderSelection v-if="canEdit" />
+    <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"
@@ -45,14 +41,47 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, selectedNode } = storeToRefs(useDeckStore());
-const { isDragging, snapThreshold, canvasSize } = storeToRefs(useAtelierStore());
+import { backgroundStyle, gridStyle } from "~/utils/layoutStyle";
+
+const { currentTree } = storeToRefs(useDeckStore());
+const { select, clear } = useNodeSelection();
+const { canvasSize } = storeToRefs(useAtelierStore());
+const { getNodeComponent } = useNodeComponents();
+const { imageUrl } = useAssetsStore();
+
+const rootLayout = computed(() => {
+  const root = currentTree.value;
+
+  if (!root || isEmptyTree(root)) return undefined;
+
+  return getNodeComponent(root.id, "core.layout")?.data;
+});
+
+const rootStyle = computed(() => {
+  const layout = rootLayout.value;
+
+  if (!layout) return {};
+
+  return {
+    ...backgroundStyle(layout.background, imageUrl),
+    ...(layout.mode === "grid" ? gridStyle(layout) : {}),
+  };
+});
+
+function onCanvasClick() {
+  const root = currentTree.value;
+
+  if (rootLayout.value?.mode === "grid" && root) select(root);
+  else clear();
+}
 
 const props = defineProps<{
   canEdit?: boolean;
 }>();
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
+
+provide(renderRootKey, renderEl);
 
 const { width, height } = useElementSize(renderEl);
 
@@ -65,70 +94,6 @@ const scale = computed(() =>
 
 provide(renderScaleKey, scale);
 
-const isHorizontallyCentered = ref(false);
-const isVerticallyCentered = ref(false);
-
-function checkAlignment() {
-  if (!isDragging.value || !renderEl.value || !selectedNode.value) return;
-
-  const draggedElement = document.getElementById(selectedNode.value.id);
-
-  if (!draggedElement) return;
-
-  const renderRect = renderEl.value.getBoundingClientRect();
-  const elementRect = draggedElement.getBoundingClientRect();
-
-  const renderCenterX = renderRect.left + renderRect.width / 2;
-  const renderCenterY = renderRect.top + renderRect.height / 2;
-
-  const elementCenterX = elementRect.left + elementRect.width / 2;
-  const elementCenterY = elementRect.top + elementRect.height / 2;
-
-  const horizontalDistance = Math.abs(elementCenterX - renderCenterX);
-
-  isHorizontallyCentered.value = horizontalDistance <= snapThreshold.value;
-
-  const verticalDistance = Math.abs(elementCenterY - renderCenterY);
-
-  isVerticallyCentered.value = verticalDistance <= snapThreshold.value;
-}
-
-let animationFrameId: number | null = null;
-
-function startAlignmentCheck() {
-  if (animationFrameId) return;
-
-  function checkLoop() {
-    checkAlignment();
-
-    if (isDragging.value) {
-      animationFrameId = requestAnimationFrame(checkLoop);
-    } else {
-      animationFrameId = null;
-    }
-  }
-
-  animationFrameId = requestAnimationFrame(checkLoop);
-}
-
-watch(isDragging, (newState) => {
-  if (newState) {
-    startAlignmentCheck();
-  } else {
-    isHorizontallyCentered.value = false;
-    isVerticallyCentered.value = false;
-
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-
-      animationFrameId = null;
-    }
-  }
-});
-
-onUnmounted(() => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-  }
-});
+const snapping = useSnapping();
+provide(snappingKey, snapping);
 </script>

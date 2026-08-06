@@ -13,22 +13,25 @@
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      selectedNode === props.node ? 'outline-accent!' : '',
+      isSelected(props.node.id) ? 'outline-accent!' : '',
     ]"
     ref="element"
     class="element"
     :tabindex="0"
-    @click="selectNode"
-    @mousedown="selectNode"
-    @click.right="releaseSelection"
-    @keydown.esc="releaseSelection"
-    @keydown.up.prevent="nudge(0, -1, $event)"
-    @keydown.down.prevent="nudge(0, 1, $event)"
-    @keydown.left.prevent="nudge(-1, 0, $event)"
-    @keydown.right.prevent="nudge(1, 0, $event)"
+    :contenteditable="editing ? 'plaintext-only' : 'false'"
+    @click="onSelect"
+    @mousedown="onSelect"
+    @dblclick="onDoubleClick"
+    @blur="saveEditing"
+    @click.right="clear"
+    @keydown.esc="onEscape"
+    @keydown.up="nudge(0, -1, $event)"
+    @keydown.down="nudge(0, 1, $event)"
+    @keydown.left="nudge(-1, 0, $event)"
+    @keydown.right="nudge(1, 0, $event)"
   >
-    {{ render.content }}
-    <AtelierRenderElement
+    {{ render.content
+    }}<AtelierRenderElement
       v-for="child in props.node.children"
       :key="child.id"
       :node="child"
@@ -48,16 +51,17 @@
 <script setup lang="ts">
 import { getModuleApi } from "~/modules/registry";
 import type { WebglApi } from "~/modules/webgl/types";
+import { snappingKey } from "~/composables/useSnapping";
 
 const { resolveRender } = useElementRenderer();
-const { selectedNode } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
-const { updateComponent } = useDeckStore();
-const { canvasSize, snapThreshold } = storeToRefs(useAtelierStore());
 
 const { scale } = useCanvasScale();
+const { begin, apply, end } = inject(snappingKey)!;
 
 const element = useTemplateRef<HTMLElement>("element");
 
@@ -68,92 +72,37 @@ const props = defineProps<{
 
 const isGridChild = computed(() => isNodeGridChild(props.node));
 
+const {
+  editing,
+  editable,
+  start: startEditing,
+  save: saveEditing,
+} = useInlineTextEdit(
+  () => props.node,
+  () => element.value,
+);
+
+function onDoubleClick(event: MouseEvent) {
+  if (!editing.value && editable()) startEditing(event);
+}
+
+function onEscape() {
+  if (editing.value) saveEditing();
+  else clear();
+}
+
 const isMounted = ref(false);
 
-const { x, y, isDragging } = useDraggable(element, { exact: true });
+const { x, y, isDragging } = useDraggable(element, {
+  exact: true,
+  disabled: editing,
+});
 
-const startTransform = ref<{ x: number; y: number } | null>(null);
-const startDrag = ref<{ x: number; y: number } | null>(null);
-
-const canvasCentre = {
-  x: canvasSize.value.width / 2,
-  y: canvasSize.value.height / 2,
-};
-
-function getElementDimensions() {
-  const elementBounds = element.value?.getBoundingClientRect();
-
-  if (!elementBounds) return;
-
-  const { x: scaleX, y: scaleY } = scale();
-
-  return {
-    width: elementBounds.width * scaleX,
-    height: elementBounds.height * scaleY,
-    scaleX,
-    scaleY,
-  };
-}
-
-function snapToCentre(x: number, y: number, width: number, height: number) {
-  const centreX = x + width / 2;
-  const centreY = y + height / 2;
-
-  return {
-    x:
-      Math.abs(centreX - canvasCentre.x) < snapThreshold.value
-        ? canvasCentre.x - width / 2
-        : x,
-    y:
-      Math.abs(centreY - canvasCentre.y) < snapThreshold.value
-        ? canvasCentre.y - height / 2
-        : y,
-  };
-}
-
-function snapToEdge(x: number, y: number, width: number, height: number) {
-  const edges = [
-    { condition: Math.abs(x) < snapThreshold.value, value: 0, axis: "x" },
-    { condition: Math.abs(y) < snapThreshold.value, value: 0, axis: "y" },
-    {
-      condition: Math.abs(x + width - 1920) < snapThreshold.value,
-      value: canvasSize.value.width - width,
-      axis: "x",
-    },
-    {
-      condition: Math.abs(y + height - 1080) < snapThreshold.value,
-      value: canvasSize.value.height - height,
-      axis: "y",
-    },
-  ];
-
-  let snappedX = x;
-  let snappedY = y;
-
-  edges.forEach((edge) => {
-    if (!edge.condition) return;
-
-    if (edge.axis === "x") {
-      snappedX = edge.value;
-    } else {
-      snappedY = edge.value;
-    }
-  });
-
-  return { x: snappedX, y: snappedY };
-}
-
-function applySnapping(x: number, y: number): { x: number; y: number } {
-  const dimensions = getElementDimensions();
-
-  if (!dimensions) return { x, y };
-
-  const { width, height } = dimensions;
-
-  const centreSnapped = snapToCentre(x, y, width, height);
-
-  return snapToEdge(centreSnapped.x, centreSnapped.y, width, height);
-}
+const dragStart = ref<{
+  transform: { x: number; y: number };
+  pointer: { x: number; y: number };
+  size: { width: number; height: number };
+} | null>(null);
 
 const throttle = useFrameThrottle();
 
@@ -167,28 +116,39 @@ watchThrottled(
 
     if (!transform) return;
 
-    if (!startTransform.value || !startDrag.value) {
-      startTransform.value = {
-        x: transform.data.position.x,
-        y: transform.data.position.y,
+    if (!dragStart.value) {
+      const rect = element.value?.getBoundingClientRect();
+      const { x: scaleX, y: scaleY } = scale();
+
+      dragStart.value = {
+        transform: {
+          x: transform.data.position.x,
+          y: transform.data.position.y,
+        },
+        pointer: { x: newX, y: newY },
+        size: {
+          width: (rect?.width ?? 0) * scaleX,
+          height: (rect?.height ?? 0) * scaleY,
+        },
       };
-      startDrag.value = { x: newX, y: newY };
+
+      begin([props.node.id]);
 
       return;
     }
 
-    const deltaX = newX - startDrag.value.x;
-    const deltaY = newY - startDrag.value.y;
-
+    const { transform: startPos, pointer, size } = dragStart.value;
     const { x: scaleX, y: scaleY } = scale();
 
-    const newPosX = startTransform.value.x + deltaX * scaleX;
-    const newPosY = startTransform.value.y + deltaY * scaleY;
+    const snapped = apply({
+      left: startPos.x + (newX - pointer.x) * scaleX,
+      top: startPos.y + (newY - pointer.y) * scaleY,
+      width: size.width,
+      height: size.height,
+    });
 
-    const snappedPos = applySnapping(newPosX, newPosY);
-
-    transform.data.position.x = Math.round(snappedPos.x);
-    transform.data.position.y = Math.round(snappedPos.y);
+    transform.data.position.x = Math.round(snapped.left);
+    transform.data.position.y = Math.round(snapped.top);
   },
   { throttle },
 );
@@ -197,8 +157,15 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    startTransform.value = null;
-    startDrag.value = null;
+    if (dragStart.value) {
+      const transform = getNodeComponent(props.node.id, "core.transform");
+
+      if (transform) updateComponent(transform);
+    }
+
+    dragStart.value = null;
+
+    end();
   }
 });
 
@@ -213,30 +180,45 @@ const elementStyle = computed(() => {
 
   if (!base || !isGridChild.value) return base;
 
-  return {
+  const grid = {
     ...base,
     position: "static",
     left: "",
     top: "",
     transform: "",
-    pointerEvents: "none",
   };
+
+  // Editable (text) grid children keep pointer events (inline text edit)
+  return editable() ? grid : { ...grid, pointerEvents: "none" };
 });
 
-const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+const { selectFromEvent, clear } = useNodeSelection();
+const { soleSelected } = storeToRefs(deck);
 
-function selectNode(event: Event) {
-  event.stopPropagation();
+function onSelect(event: MouseEvent) {
+  if (editing.value) {
+    event.stopPropagation();
 
-  if (selectedNode.value === props.node) return;
+    return;
+  }
 
-  commitSelection(props.node);
+  const target =
+    isGridChild.value && props.node.parent ? props.node.parent : props.node;
+
+  selectFromEvent(target, event);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
-  if (props.isLocked || selectedNode.value !== props.node || isGridChild.value)
+  // Arrow keys move the caret while editing, not the node.
+  if (
+    editing.value ||
+    props.isLocked ||
+    soleSelected.value?.id !== props.node.id ||
+    isGridChild.value
+  )
     return;
 
+  event.preventDefault();
   event.stopPropagation();
 
   const step = event.shiftKey ? 10 : 1;

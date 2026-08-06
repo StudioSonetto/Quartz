@@ -4,13 +4,13 @@
       ref="border"
       :id="props.node.id"
       class="group-border"
-      :class="[selectedNode === props.node ? 'outline-accent!' : '']"
+      :class="[isSelected(props.node.id) ? 'outline-accent!' : '']"
       :style="borderStyle"
       :tabindex="0"
-      @click="selectNode"
-      @mousedown="selectNode"
-      @click.right="releaseSelection"
-      @keydown.esc="releaseSelection"
+      @click="onSelect"
+      @mousedown="onSelect"
+      @click.right="clear"
+      @keydown.esc="clear"
     ></div>
     <AtelierRenderElement
       v-for="child in props.node.children"
@@ -32,12 +32,12 @@
 <script setup lang="ts">
 import { flattenTree } from "~/utils/tree";
 
-const { selectedNode } = storeToRefs(useDeckStore());
+const { isSelected, updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 
-const { renderEl, scale } = useCanvasScale();
+const { renderRoot, scale } = useCanvasScale();
 
 const props = defineProps<{
   node: Tree;
@@ -55,7 +55,7 @@ const bounds = ref<{
 } | null>(null);
 
 function computeBounds() {
-  const render = renderEl();
+  const render = renderRoot.value;
 
   if (!render) return;
 
@@ -108,8 +108,6 @@ const borderStyle = computed(() => {
 
 let rafId = 0;
 
-// Many child mutations can fire per frame during a drag; coalesce them into a
-// single bounds read per frame so we don't force repeated layout flushes.
 function scheduleBounds() {
   if (rafId) return;
 
@@ -127,7 +125,7 @@ useMutationObserver(container, scheduleBounds, {
   characterData: true,
 });
 
-useResizeObserver(renderEl, scheduleBounds);
+useResizeObserver(renderRoot, scheduleBounds);
 
 onMounted(() => nextTick(computeBounds));
 
@@ -193,19 +191,23 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
+    if (startPositions.value) {
+      for (const node of movable) {
+        const transform = getNodeComponent(node.id, "core.transform");
+
+        if (transform) updateComponent(transform);
+      }
+    }
+
     startPositions.value = null;
     startDrag.value = null;
     movable = [];
   }
 });
 
-const { selectNode: commitSelection, releaseSelection } = useNodeSelection();
+const { selectFromEvent, clear } = useNodeSelection();
 
-function selectNode(event: Event) {
-  event.stopPropagation();
-
-  if (selectedNode.value === props.node) return;
-
-  commitSelection(props.node);
+function onSelect(event: MouseEvent) {
+  selectFromEvent(props.node, event);
 }
 </script>

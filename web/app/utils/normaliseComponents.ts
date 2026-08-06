@@ -34,63 +34,69 @@ export function effectiveDefaults(
   return deepMerge(base, override);
 }
 
+const ROOT_COMPONENTS: ComponentType[] = ["core.base", "core.layout"];
+
+const ROOT_LAYOUT_DEFAULTS = {
+  background: { type: "colour", value: "#FAFAFA" },
+};
+
 export function normaliseComponents(
   nodes: NodeModel[],
   components: ComponentModel[],
-): {
-  components: ComponentModel[];
-  enqueue: { node: string; type: ComponentType }[];
-} {
+): ComponentModel[] {
   const result: ComponentModel[] = [];
-  const enqueue: { node: string; type: ComponentType }[] = [];
 
   for (const node of nodes) {
-    let kept = components.filter((c) => c.node === node.id);
+    const kept = components.filter((c) => c.node === node.id);
 
-    // The root node is a bare container; nothing spatial applies to it.
     if (node.path === ROOT_PATH) {
-      result.push(...kept);
+      for (const type of ROOT_COMPONENTS) {
+        const eff =
+          type === "core.layout"
+            ? deepMerge(
+                effectiveDefaults("core.group", type),
+                ROOT_LAYOUT_DEFAULTS,
+              )
+            : effectiveDefaults("core.group", type);
+
+        const existing = kept.find((c) => c.type === type);
+
+        if (existing) {
+          existing.data = deepMerge(eff, existing.data);
+          result.push(existing);
+        } else {
+          result.push({ node: node.id, type, data: eff } as ComponentModel);
+        }
+      }
+
+      for (const c of kept) {
+        if (ROOT_COMPONENTS.includes(c.type) || c.type === "core.transform")
+          continue;
+
+        c.data = deepMerge(effectiveDefaults("core.group", c.type), c.data);
+        result.push(c);
+      }
+
       continue;
     }
 
     const def = getNodeType(node.type);
+
     if (!def) {
       result.push(...kept);
-      continue;
-    }
 
-    // --- The one explicit structural migration: legacy webgl.object ---
-    if (node.type === "webgl.object") {
-      const model = kept.find((c) => c.type === "webgl.model");
-      const hasTransform = kept.some((c) => c.type === "webgl.transform");
-      if (model && !hasTransform && model.data?.x !== undefined) {
-        const { x, y, z, scale, ...rest } = model.data;
-        model.data = rest;
-        kept.push({
-          node: node.id,
-          type: "webgl.transform",
-          data: {
-            position: { x: x ?? 0, y: y ?? 0, z: z ?? 0 },
-            rotation: { x: 0, y: 0, z: 0 },
-            scale: scale ?? 1,
-          },
-        } as ComponentModel);
-        enqueue.push({ node: node.id, type: "webgl.transform" });
-        enqueue.push({ node: node.id, type: "webgl.model" });
-      }
-      // Retire the dead core.transform row: exclude it from the working set.
-      // (Left as a harmless DB orphan — no component-delete infra for one row.)
-      kept = kept.filter((c) => c.type !== "core.transform");
+      continue;
     }
 
     const guaranteed = def.defaultComponents.map(entryType);
 
-    // Guaranteed components first: merge over effective defaults, or synthesise.
     for (const type of guaranteed) {
       const eff = effectiveDefaults(node.type, type);
       const existing = kept.find((c) => c.type === type);
+
       if (existing) {
         existing.data = deepMerge(eff, existing.data);
+
         result.push(existing);
       } else {
         result.push({ node: node.id, type, data: eff } as ComponentModel);
@@ -101,10 +107,12 @@ export function normaliseComponents(
     // merged over their own type defaults when the type is known.
     for (const c of kept) {
       if (guaranteed.includes(c.type)) continue;
+
       c.data = deepMerge(effectiveDefaults(node.type, c.type), c.data);
+
       result.push(c);
     }
   }
 
-  return { components: result, enqueue };
+  return result;
 }

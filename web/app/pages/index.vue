@@ -1,23 +1,23 @@
 <template>
   <LandingNavbar />
   <LandingHero />
-  <section>
-    <div>
-      <h2>Why<br />Quartz?</h2>
+  <LandingSection title="Node powered" description="...">
+    <div class="bg-dark-500 w-full h-xl my-12"></div>
+  </LandingSection>
+  <LandingSection title="Keyboard driven" description="...">
+    <div class="bg-dark-500 w-full h-xl my-12"></div>
+  </LandingSection>
+  <LandingModules />
+  <LandingPricing />
+  <LandingRoadmap />
+  <LandingFAQ />
+  <LandingSection title="cta">
+    <div class="flex flex-col items-center justify-center">
+      <p class="text-4xl">Start pitching easy.</p>
     </div>
-  </section>
+  </LandingSection>
   <LandingFooter />
 </template>
-
-<style scoped lang="postcss">
-section {
-  @apply h-screen px-12 py-24;
-
-  h2 {
-    @apply uppercase font-100 text-8xl;
-  }
-}
-</style>
 
 <script setup lang="ts">
 useSeoMeta({
