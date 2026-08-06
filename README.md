@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://github.com/user-attachments/assets/12754ced-aa32-4c01-94b2-8490f2876c57" width="150" alt="Quartz Logo" />
   <h3>Quartz</h3>
-  <p>Open source slides engine; built for ambitious presentations.</p>
+  <p>Open core slides engine; built for ambitious presentations.</p>
 
   <br />
 
