@@ -20,9 +20,6 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "nuxt-resend",
   ],
-  imports: {
-    dirs: ["modules"],
-  },
   app: {
     head: {
       link: [
