@@ -20,6 +20,22 @@ export default defineNuxtConfig({
     "@vueuse/nuxt",
     "nuxt-resend",
   ],
+  $development: {
+    extends: ["../../QuartzWebGLModule"],
+  },
+  $production: {
+    extends: process.env.GITHUB_TOKEN
+      ? [
+          [
+            "github:StudioSonetto/QuartzWebGLModule",
+            { auth: process.env.GITHUB_TOKEN, install: true },
+          ],
+        ]
+      : [],
+  },
+  imports: {
+    dirs: ["modules"],
+  },
   app: {
     head: {
       link: [
