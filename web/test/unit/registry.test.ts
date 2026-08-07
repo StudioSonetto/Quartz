@@ -4,6 +4,7 @@ import {
   getNodeType,
   getComponentType,
   canContain,
+  creatableTypesFor,
   __resetRegistry,
   getCommand,
   allCommands,
@@ -60,6 +61,44 @@ describe("registry", () => {
     expect(canContain("webgl_canvas", "group")).toBe(false);
     expect(canContain("text", "group")).toBe(false);
     expect(canContain("webgl_object", "webgl_object")).toBe(false);
+  });
+
+  it("canContain honours a child-declared parents entry", () => {
+    registerModule({
+      id: "core",
+      nodeTypes: [{ ...node("group"), accepts: ["group", "text"] }],
+      componentTypes: [],
+    });
+    registerModule({
+      id: "webgl",
+      nodeTypes: [{ ...node("webgl_canvas"), accepts: [], parents: ["group"] }],
+      componentTypes: [],
+    });
+
+    expect(canContain("group", "webgl_canvas")).toBe(true);
+    expect(canContain("webgl_canvas", "group")).toBe(false);
+  });
+
+  it("creatableTypesFor includes a child that qualifies only via parents", () => {
+    registerModule({
+      id: "core",
+      nodeTypes: [
+        { ...node("group"), accepts: ["text"] },
+        { ...node("text"), accepts: [] },
+      ],
+      componentTypes: [],
+    });
+    registerModule({
+      id: "webgl",
+      nodeTypes: [{ ...node("webgl_canvas"), accepts: [], parents: ["group"] }],
+      componentTypes: [],
+    });
+
+    expect(
+      creatableTypesFor("group")
+        .map((t) => t.type)
+        .sort(),
+    ).toEqual(["text", "webgl_canvas"]);
   });
 
   it("canContain returns false for an unregistered parent type", () => {
