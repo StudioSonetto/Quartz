@@ -1,5 +1,8 @@
 import { initModules } from "~/modules";
 
-export default defineNuxtPlugin(() => {
-  initModules();
+export default defineNuxtPlugin({
+  name: "quartz-modules",
+  setup() {
+    initModules();
+  },
 });
