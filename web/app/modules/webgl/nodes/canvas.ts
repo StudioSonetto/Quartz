@@ -5,6 +5,7 @@ export default {
   label: "3D Canvas",
   icon: "i-carbon-assembly-cluster",
   accepts: ["webgl.object"],
+  parents: ["core.group"],
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 640, height: 360 } } },
