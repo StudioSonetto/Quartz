@@ -20,9 +20,7 @@ export const allNodeTypes = () => [...nodeTypes.values()];
 export const canContain = (
   parentType: NodeType,
   childType: NodeType,
-): boolean =>
-  (getNodeType(parentType)?.accepts.includes(childType) ?? false) ||
-  (getNodeType(childType)?.parents?.includes(parentType) ?? false);
+): boolean => getNodeType(parentType)?.accepts.includes(childType) ?? false;
 
 // A node type the user can create from a menu (vs. one produced only by an
 // operation, e.g. groups via ⌘G). Defaults to creatable.
