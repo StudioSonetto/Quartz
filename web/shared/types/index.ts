@@ -84,17 +84,6 @@ export interface NodeTypeDef {
   defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
   creatable?: boolean;
-  /**
-   * Parent types that accept this node, declared from the child's side.
-   * Lets a module add itself to a parent owned by another module without
-   * that module naming it.
-   */
-  parents?: NodeType[];
-  /**
-   * Called after the node's element mounts, on the next tick. Lets a node
-   * type run its own post-mount setup without core naming the module.
-   */
-  onMount?: (nodeId: string) => void;
 }
 
 export interface Command {

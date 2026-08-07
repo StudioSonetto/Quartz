@@ -49,7 +49,8 @@
 </style>
 
 <script setup lang="ts">
-import { getNodeType } from "~/modules/registry";
+import { getModuleApi } from "~/modules/registry";
+import type { WebglApi } from "~/modules/webgl/types";
 import { snappingKey } from "~/composables/useSnapping";
 
 const { resolveRender } = useElementRenderer();
@@ -234,8 +235,10 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 onMounted(() => {
   isMounted.value = true;
 
-  const def = getNodeType(props.node.type);
-
-  if (def?.onMount) nextTick(() => def.onMount!(props.node.id));
+  if (props.node.type === "webgl.canvas") {
+    nextTick(() => {
+      getModuleApi<WebglApi>("webgl")?.setupCanvas(props.node.id);
+    });
+  }
 });
 </script>
