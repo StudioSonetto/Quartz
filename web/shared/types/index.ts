@@ -90,6 +90,11 @@ export interface NodeTypeDef {
    * that module naming it.
    */
   parents?: NodeType[];
+  /**
+   * Called after the node's element mounts, on the next tick. Lets a node
+   * type run its own post-mount setup without core naming the module.
+   */
+  onMount?: (nodeId: string) => void;
 }
 
 export interface Command {

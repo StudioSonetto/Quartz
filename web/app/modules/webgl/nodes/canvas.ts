@@ -1,3 +1,4 @@
+import { getModuleApi } from "../../registry";
 import type { WebglApi } from "../types";
 
 export default {
@@ -6,6 +7,9 @@ export default {
   icon: "i-carbon-assembly-cluster",
   accepts: ["webgl.object"],
   parents: ["core.group"],
+  onMount: (nodeId) => {
+    getModuleApi<WebglApi>("webgl")?.setupCanvas(nodeId);
+  },
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 640, height: 360 } } },
