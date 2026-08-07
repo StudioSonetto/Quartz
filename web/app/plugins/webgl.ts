@@ -1,4 +1,3 @@
-import { registerModule } from "~/modules/registry";
 import { webgl } from "~/modules/webgl";
 
 export default defineNuxtPlugin({
