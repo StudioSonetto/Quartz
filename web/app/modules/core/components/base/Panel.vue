@@ -84,7 +84,7 @@ function candidate(id: string): LinkCandidate | null {
 function peersFor(key: string, excluding: Set<string>): LinkCandidate[] {
   const out: LinkCandidate[] = [];
 
-  for (const tree of deck.trees) {
+  for (const tree of deck.trees.values()) {
     if (!tree?.id) continue;
     for (const n of flattenTree(tree)) {
       if (excluding.has(n.id) || n.reference !== key) continue;

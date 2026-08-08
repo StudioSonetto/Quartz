@@ -67,10 +67,12 @@ describe("reorderNodes", () => {
     const bPath = childPath(ROOT_PATH, B);
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [buildTree([root(), mk(A, aPath, 0), mk(B, bPath, 1)] as any)];
+    store.trees = new Map([
+      [SLIDE, buildTree([root(), mk(A, aPath, 0), mk(B, bPath, 1)] as any)],
+    ]);
 
     // Simulate the drag library swapping the two children in place.
-    const r = store.trees[0]!;
+    const r = store.trees.get(SLIDE)!;
     r.children = [r.children[1]!, r.children[0]!];
 
     store.reorderNodes();
@@ -92,10 +94,12 @@ describe("reorderNodes", () => {
     const aPath = childPath(ROOT_PATH, A);
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [buildTree([root(), mk(G, gPath, 0), mk(A, aPath, 1)] as any)];
+    store.trees = new Map([
+      [SLIDE, buildTree([root(), mk(G, gPath, 0), mk(A, aPath, 1)] as any)],
+    ]);
 
     // Simulate dragging A out of root and into G.
-    const r = store.trees[0]!;
+    const r = store.trees.get(SLIDE)!;
     const gTree = r.children.find((n) => n.id === G)!;
     const aTree = r.children.find((n) => n.id === A)!;
     r.children = r.children.filter((n) => n.id !== A);
@@ -121,12 +125,15 @@ describe("reorderNodes", () => {
     const cPath = childPath(pPath, C); // C is A's child
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [
-      buildTree([root(), mk(G, gPath, 0), mk(A, pPath, 0), mk(C, cPath, 0)] as any),
-    ];
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([root(), mk(G, gPath, 0), mk(A, pPath, 0), mk(C, cPath, 0)] as any),
+      ],
+    ]);
 
     // Simulate dragging A (with child C) out of G up to root level.
-    const r = store.trees[0]!;
+    const r = store.trees.get(SLIDE)!;
     const gTree = r.children.find((n) => n.id === G)!;
     const aTree = gTree.children.find((n) => n.id === A)!;
     gTree.children = gTree.children.filter((n) => n.id !== A);
@@ -148,7 +155,7 @@ describe("reorderNodes", () => {
     const sync = useDeckSync();
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = []; // no tree for the current slide
+    store.trees = new Map(); // no tree for the current slide
 
     expect(() => store.reorderNodes()).not.toThrow();
     expect(sync.hasPending).toBe(false);
@@ -161,7 +168,9 @@ describe("reorderNodes", () => {
     const bPath = childPath(ROOT_PATH, B);
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [buildTree([root(), mk(A, aPath, 0), mk(B, bPath, 1)] as any)];
+    store.trees = new Map([
+      [SLIDE, buildTree([root(), mk(A, aPath, 0), mk(B, bPath, 1)] as any)],
+    ]);
 
     // No drag happened — children order and paths are already canonical.
     store.reorderNodes();

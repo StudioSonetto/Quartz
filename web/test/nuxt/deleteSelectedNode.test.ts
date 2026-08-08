@@ -78,9 +78,11 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
 
     store.slides = [{ id: slidesId }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [tree];
+    store.trees = new Map([[slidesId, tree]]);
     // The child's (dirty) component lives in the local component bag.
-    store.components = [[{ id: "c-child", node: childId, type: "core.base", data: {} }]] as any;
+    store.components = new Map([
+      [slidesId, [{ id: "c-child", node: childId, type: "core.base", data: {} }]],
+    ]) as any;
 
     // Outbox has the child node + its component pending.
     sync.enqueueNode(childId);
@@ -104,7 +106,7 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
     expect(sentChildComponent).toBeUndefined();
 
     // And it must be gone from local component state.
-    const localChildComponent = (store.components[0] ?? []).find(
+    const localChildComponent = (store.components.get(slidesId) ?? []).find(
       (c: any) => c.node === childId,
     );
     expect(localChildComponent).toBeUndefined();

@@ -75,15 +75,11 @@
       transform: rotate(360deg);
     }
   }
-
-  .swap {
-    @apply opacity-100;
-  }
 }
 </style>
 
 <script setup lang="ts">
-import Sortable, { Swap } from "sortablejs";
+import { useDraggable } from "vue-draggable-plus";
 
 const deckStore = useDeckStore();
 const { slides, insertingSlides } = storeToRefs(useDeckStore());
@@ -118,20 +114,13 @@ function insertNewSlides() {
   return deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
 }
 
-onMounted(() => {
-  if (!timeline.value) return;
+useDraggable(timeline, slides, {
+  draggable: ".frame",
+  animation: 200,
+  onEnd: (event) => {
+    if (event.oldIndex === event.newIndex) return;
 
-  try {
-    Sortable.mount(new Swap());
-  } catch (error) {}
-
-  Sortable.create(timeline.value, {
-    draggable: ".frame",
-    swap: true,
-    swapClass: "swap",
-    onEnd: function (event) {
-      console.log(event.oldIndex, event.newIndex);
-    },
-  });
+    deckStore.reorderSlides().catch(() => {});
+  },
 });
 </script>

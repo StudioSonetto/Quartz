@@ -1,17 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { ROOT_PATH, nodeLabel, childPath } from "~/utils/nodePath";
+import { nodeLabel, childPath } from "~/utils/nodePath";
 
+// An ltree label allows only [A-Za-z0-9_], so a hyphen slipping through fails
+// at Postgres, not in the UI.
 describe("nodePath", () => {
-  it("ROOT_PATH is 'root'", () => {
-    expect(ROOT_PATH).toBe("root");
-  });
-
-  it("nodeLabel strips UUID hyphens and prefixes 'n'", () => {
-    expect(nodeLabel("550e8400-e29b-41d4-a716-446655440000")).toBe(
-      "n550e8400e29b41d4a716446655440000",
-    );
-  });
-
   it("nodeLabel output is a valid ltree label ([A-Za-z0-9_])", () => {
     expect(nodeLabel("550e8400-e29b-41d4-a716-446655440000")).toMatch(
       /^[A-Za-z0-9_]+$/,

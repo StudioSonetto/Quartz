@@ -73,7 +73,7 @@ main {
 }
 
 select {
-  @apply bg-transparent appearance-none;
+  @apply bg-transparent;
   @apply border-0! border-b-1! border-light-200;
   @apply ui-text-3 text-light-200
   @apply py-4 cursor-pointer;
@@ -85,10 +85,6 @@ select {
 
 textarea {
   @apply resize-none;
-}
-
-.absolute-center {
-  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
 }
 
 .border-r {

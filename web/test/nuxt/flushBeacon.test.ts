@@ -18,12 +18,15 @@ const seedTreeWithA = (store: ReturnType<typeof useDeckStore>) => {
   const aPath = childPath(ROOT_PATH, A);
   store.slides = [{ id: SLIDE }] as any;
   store.currentSlidesIndex = 0;
-  store.trees = [
-    buildTree([
-      { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
-      { id: A, slides: SLIDE, name: "a", path: aPath, type: "core.group", reference: null, sort_order: 0 },
-    ] as any),
-  ];
+  store.trees = new Map([
+    [
+      SLIDE,
+      buildTree([
+        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
+        { id: A, slides: SLIDE, name: "a", path: aPath, type: "core.group", reference: null, sort_order: 0 },
+      ] as any),
+    ],
+  ]);
 };
 
 describe("flushBeacon (page-unload flush)", () => {
