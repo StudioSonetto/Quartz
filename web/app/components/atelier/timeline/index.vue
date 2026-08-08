@@ -79,7 +79,7 @@
 </style>
 
 <script setup lang="ts">
-import Sortable from "sortablejs";
+import { useDraggable } from "vue-draggable-plus";
 
 const deckStore = useDeckStore();
 const { slides, insertingSlides } = storeToRefs(useDeckStore());
@@ -114,32 +114,13 @@ function insertNewSlides() {
   return deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
 }
 
-onMounted(() => {
-  if (!timeline.value) return;
+useDraggable(timeline, slides, {
+  draggable: ".frame",
+  animation: 200,
+  onEnd: (event) => {
+    if (event.oldIndex === event.newIndex) return;
 
-  Sortable.create(timeline.value, {
-    draggable: ".frame",
-    onEnd: async (event) => {
-      const { oldIndex, newIndex, item, from } = event;
-      if (oldIndex === undefined || newIndex === undefined) return;
-      if (oldIndex === newIndex) return;
-
-      // SortableJS mutates the real DOM directly, but these frames are
-      // rendered by a v-for and Vue's vdom still describes the old order.
-      // Undo the library's move and let the reactive array drive the
-      // re-render, or the next patch corrupts the strip.
-      from.insertBefore(
-        item,
-        revertReference([...from.children], item, oldIndex),
-      );
-
-      try {
-        await deckStore.reorderSlides(oldIndex, newIndex);
-      } catch {
-        // reorderSlides restores the store itself; the revert above means
-        // the DOM is already consistent with it either way.
-      }
-    },
-  });
+    deckStore.reorderSlides().catch(() => {});
+  },
 });
 </script>

@@ -3,8 +3,25 @@ export const useDeckStore = defineStore("deck", () => {
   const sync = useDeckSync();
 
   const slides = ref<SlidesModel[]>([]);
-  const currentSlidesIndex = ref<number>(0);
-  const currentSlides = computed(() => slides.value[currentSlidesIndex.value]);
+
+  const currentSlideId = ref<string | null>(null);
+
+  const currentSlides = computed(
+    () =>
+      slides.value.find((s) => s.id === currentSlideId.value) ??
+      slides.value[0],
+  );
+
+  const currentSlidesIndex = computed<number>({
+    get: () => {
+      const i = slides.value.findIndex((s) => s.id === currentSlideId.value);
+      return i === -1 ? 0 : i;
+    },
+    set: (i) => {
+      const id = slides.value[i]?.id;
+      if (id) currentSlideId.value = id;
+    },
+  });
 
   // Keyed by slide id. `slides` is the only thing that holds order, so moving
   // a slide never touches these and a slide's tree cannot be the wrong one.
@@ -256,44 +273,36 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   const reorderingSlides = ref(false);
+  let resaveWanted = false;
 
-  // `trees`/`components` are keyed by slide id, so moving `slides` alone
-  // cannot desync a slide from its own content.
-  async function reorderSlides(from: number, to: number) {
-    // Two overlapping drags would each snapshot the other's half-applied
-    // state, and a failure would undo the wrong one.
-    if (reorderingSlides.value) return;
-    if (from === to) return;
-    if (from < 0 || from >= slides.value.length) return;
-    if (to < 0 || to >= slides.value.length) return;
+  async function reorderSlides() {
+    const deck = slides.value[0]?.deck;
 
-    // No deck ref in the store — it's page-level state — read it off the slide.
-    const deck = slides.value[from]?.deck;
     if (!deck) return;
 
-    const apply = (a: number, b: number) => {
-      const currentId = currentSlides.value?.id;
+    slides.value = slides.value.map((s, i) => ({ ...s, index: i }));
 
-      // Whole-array reassignment, not in-place splice: one reactive update.
-      slides.value = movePosition(slides.value, a, b).map((s, i) => ({
-        ...s,
-        index: i,
-      }));
+    if (reorderingSlides.value) {
+      resaveWanted = true;
 
-      const next = slides.value.findIndex((s) => s.id === currentId);
-      if (next !== -1) currentSlidesIndex.value = next;
-    };
+      return;
+    }
 
     reorderingSlides.value = true;
-    apply(from, to);
 
     try {
-      await apiFetch(`/api/decks/${deck}/slides`, {
-        method: "PATCH",
-        body: { order: slides.value.map((s) => s.id) },
-      });
+      do {
+        resaveWanted = false;
+        await apiFetch(`/api/decks/${deck}/slides`, {
+          method: "PATCH",
+          body: { order: slides.value.map((s) => s.id) },
+        });
+      } while (resaveWanted);
     } catch (err) {
-      apply(to, from);
+      // Undoing by index cannot be right once another drag has landed, so
+      // take the server's order as truth instead.
+      await fetchAllSlides(deck).catch(() => {});
+
       throw err;
     } finally {
       reorderingSlides.value = false;
