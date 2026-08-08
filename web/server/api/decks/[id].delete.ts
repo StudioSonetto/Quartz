@@ -7,7 +7,14 @@ export default defineEventHandler(async (event) => {
 
   const id = getRouterParam(event, "id")!;
 
-  await db
-    .delete(decks)
-    .where(and(eq(decks.id, id), eq(decks.lapidarist, user.id)));
+  await requireDeckOwner(id, user.id);
+
+  const [paths] = await Promise.all([
+    listSnapshots(event, id),
+    db
+      .delete(decks)
+      .where(and(eq(decks.id, id), eq(decks.lapidarist, user.id))),
+  ]);
+
+  await removeSnapshots(event, paths);
 });

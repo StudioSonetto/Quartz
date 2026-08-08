@@ -11,7 +11,8 @@
     "db:pull": "bunx drizzle-kit pull --config=drizzle.config.ts",
     "db:push": "bunx drizzle-kit push --config=drizzle.config.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "vue-tsc -b"
   },
   "dependencies": {
     "@iconify-json/carbon": "^1.2.24",

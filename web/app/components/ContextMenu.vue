@@ -86,10 +86,18 @@ onKeyStroke("Escape", () => {
 });
 
 function handleItemClick(item: ContextMenuItem) {
-  item.action();
+  Promise.resolve(item.action()).catch((error) =>
+    console.error("context menu action failed", item.label, error),
+  );
 
   isVisible.value = false;
 }
+
+// Each action closes over its component's scope, so holding the last menu's
+// items keeps that scope alive. Click-outside and Escape close it too.
+watch(isVisible, (visible) => {
+  if (!visible) menuItems.value = [];
+});
 
 const openContextMenu = (event: MouseEvent, _menuItems: ContextMenuItem[]) => {
   x.value = event.clientX + 10;
