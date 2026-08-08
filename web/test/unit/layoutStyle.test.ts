@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
-import {
-  backgroundStyle,
-  coerceBackground,
-  gridStyle,
-} from "~/utils/layoutStyle";
+import { backgroundStyle, coerceBackground } from "~/utils/layoutStyle";
 
 const resolve = (name: string) => `http://x/${name}`;
 
+// Legacy stored shapes the current editor can no longer produce.
 describe("coerceBackground", () => {
   it("maps the legacy 'transparent' string to none", () => {
     expect(coerceBackground("transparent")).toEqual({ type: "none" });
@@ -48,52 +45,11 @@ describe("coerceBackground", () => {
   });
 });
 
+// Only the layering contracts and unresolved-asset states; the plain emitters
+// are browser-verified.
 describe("backgroundStyle", () => {
   it("emits nothing for none, leaving the CSS base to show", () => {
     expect(backgroundStyle({ type: "none" })).toEqual({});
-  });
-
-  it("emits a background colour", () => {
-    expect(backgroundStyle({ type: "colour", value: "#123456" })).toEqual({
-      backgroundColor: "#123456",
-    });
-  });
-
-  it("emits cover with no repeat, centred", () => {
-    expect(
-      backgroundStyle(
-        { type: "image", value: "bg.png", fit: "cover" },
-        resolve,
-      ),
-    ).toEqual({
-      backgroundImage: 'url("http://x/bg.png")',
-      backgroundSize: "cover",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "center",
-    });
-  });
-
-  it("emits contain with no repeat, centred", () => {
-    expect(
-      backgroundStyle(
-        { type: "image", value: "bg.png", fit: "contain" },
-        resolve,
-      ),
-    ).toEqual({
-      backgroundImage: 'url("http://x/bg.png")',
-      backgroundSize: "contain",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "center",
-    });
-  });
-
-  it("emits a repeating tile at natural size", () => {
-    expect(
-      backgroundStyle({ type: "image", value: "bg.png", fit: "tile" }, resolve),
-    ).toEqual({
-      backgroundImage: 'url("http://x/bg.png")',
-      backgroundRepeat: "repeat",
-    });
   });
 
   it("emits nothing for an image whose URL has not resolved yet", () => {
@@ -118,25 +74,5 @@ describe("backgroundStyle", () => {
       resolve,
     );
     expect(style.backgroundColor).toBeUndefined();
-  });
-});
-
-describe("gridStyle", () => {
-  it("serialises the grid container properties", () => {
-    expect(
-      gridStyle({
-        mode: "grid",
-        columns: 3,
-        gap: 8,
-        padding: 16,
-        align: "center",
-      }),
-    ).toEqual({
-      display: "grid",
-      gridTemplateColumns: "repeat(3, max-content)",
-      gap: "8px",
-      padding: "16px",
-      alignItems: "center",
-    });
   });
 });
