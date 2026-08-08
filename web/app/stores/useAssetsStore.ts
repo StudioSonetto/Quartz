@@ -9,6 +9,8 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isImage(asset.name));
   });
 
+  const imageNames = computed(() => images.value.map((a) => a.name));
+
   const imageUrls = computed(
     () => new Map(images.value.map((a) => [a.name, a.url.toString()])),
   );
@@ -108,6 +110,7 @@ export const useAssetsStore = defineStore("assets", () => {
   return {
     assets,
     images,
+    imageNames,
     imageUrl,
     fonts,
     models,

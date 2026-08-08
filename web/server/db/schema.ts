@@ -24,6 +24,7 @@ export const nodeType = pgEnum("node_type", [
   "core.text",
   "webgl.canvas",
   "webgl.object",
+  "core.image",
 ]);
 
 export const componentType = pgEnum("component_type", [
@@ -36,6 +37,7 @@ export const componentType = pgEnum("component_type", [
   "core.transform",
   "core.typography",
   "webgl.transform",
+  "core.image",
 ]);
 
 export const lapidaries = pgTable.withRLS(

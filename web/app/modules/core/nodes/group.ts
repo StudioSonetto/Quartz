@@ -1,6 +1,5 @@
 import { markRaw } from "vue";
 import Group from "~/components/atelier/render/Group.vue";
-import { backgroundStyle, gridStyle } from "~/utils/layoutStyle";
 
 export default {
   type: "core.group",
@@ -9,6 +8,7 @@ export default {
   accepts: ["core.group", "core.text"],
   defaultComponents: ["core.base", "core.transform", "core.layout"],
   creatable: false,
+  sizing: "derived",
   renderer: {
     element: "div",
     render: (node, ctx): RenderResult => {
@@ -20,17 +20,11 @@ export default {
 
       const transform = ctx.data(node, "core.transform");
 
-      const xPercent = (transform.position.x / 1920) * 100;
-      const yPercent = (transform.position.y / 1080) * 100;
-
       return {
         style: {
-          left: `${xPercent}%`,
-          top: `${yPercent}%`,
+          ...boxStyle(transform, ctx.scale),
           width: "max-content",
           height: "max-content",
-          zIndex: transform.position.z,
-          transform: transformStyle(transform, ctx.scale),
           ...backgroundStyle(layout.background, ctx.assetUrl),
           ...gridStyle(layout),
         },

@@ -482,6 +482,8 @@ export const useDeckStore = defineStore("deck", () => {
 
     selectedNodeIds.value = [id];
     anchorId.value = id;
+
+    getNodeType(type)?.onCreate?.(id);
   }
 
   function getNodeAsTree(id: string): Tree | null {
@@ -621,6 +623,8 @@ export const useDeckStore = defineStore("deck", () => {
     }
     selectedNodeIds.value = [id];
     anchorId.value = id;
+
+    getNodeType("core.group")?.onCreate?.(id);
   }
 
   function ungroupSelection() {

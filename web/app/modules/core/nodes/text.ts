@@ -10,9 +10,6 @@ export default {
       const typography = ctx.data(node, "core.typography");
       const transform = ctx.data(node, "core.transform");
 
-      const xPercent = (transform.position.x / 1920) * 100;
-      const yPercent = (transform.position.y / 1080) * 100;
-
       const textDecorations: string[] = [];
       let fontStyle = "normal";
 
@@ -35,6 +32,7 @@ export default {
       return {
         content: typography.content,
         style: {
+          ...boxStyle(transform, ctx.scale),
           color: typography.colour,
           fontFamily: typography.font,
           fontSize: `${typography.size}px`,
@@ -42,16 +40,12 @@ export default {
           fontStyle,
           textDecoration:
             textDecorations.length > 0 ? textDecorations.join(" ") : "none",
-          left: `${xPercent}%`,
-          top: `${yPercent}%`,
           textAlign: typography.alignment,
           width: autoWidth ? "max-content" : `${transform.size.width}px`,
           height:
             transform.size.height === "auto"
               ? "auto"
               : `${transform.size.height}px`,
-          transform: transformStyle(transform, ctx.scale),
-          zIndex: transform.position.z,
           whiteSpace: "pre-wrap",
           lineHeight: typography.lineHeight,
           letterSpacing: `${typography.letterSpacing}px`,

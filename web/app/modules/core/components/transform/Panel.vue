@@ -24,12 +24,12 @@
           { value: 'fixed', icon: 'i-carbon-ruler' },
         ]"
         :value="widthMode"
-        :disabled="anyGroup"
+        :disabled="autoUnavailable"
         @update:value="(mode) => setAxis('width', mode)"
       />
       <NodeComponentRowFieldNumber
         v-if="widthMode === 'fixed'"
-        :disabled="anyGroup"
+        :disabled="sizeLocked"
         :value="field(['size', 'width'])"
         @update:value="(v) => set(['size', 'width'], v)"
       />
@@ -41,12 +41,12 @@
           { value: 'fixed', icon: 'i-carbon-ruler' },
         ]"
         :value="heightMode"
-        :disabled="anyGroup"
+        :disabled="autoUnavailable"
         @update:value="(mode) => setAxis('height', mode)"
       />
       <NodeComponentRowFieldNumber
         v-if="heightMode === 'fixed'"
-        :disabled="anyGroup"
+        :disabled="sizeLocked"
         :value="field(['size', 'height'])"
         @update:value="(v) => set(['size', 'height'], v)"
       />
@@ -67,6 +67,8 @@
 </template>
 
 <script setup lang="ts">
+import { getNodeType } from "~/modules/registry";
+
 const props = defineProps<{
   components: ComponentModel[];
   nodes: Tree[];
@@ -77,14 +79,17 @@ const { isGridChild } = useNodeComponents();
 const { updateComponent } = useDeckStore();
 const { field, set } = useMergedFields(() => props.components);
 
-// Position is layout-driven for grid children; groups hug their contents.
 const anyGridChild = computed(() => props.nodes.some((n) => isGridChild(n)));
-const anyGroup = computed(() =>
-  props.nodes.some((n) => n.type === "core.group"),
+
+const sizingOf = (n: Tree) => getNodeType(n.type)?.sizing ?? "free";
+
+const sizeLocked = computed(() =>
+  props.nodes.some((n) => sizingOf(n) === "derived"),
+);
+const autoUnavailable = computed(() =>
+  props.nodes.some((n) => sizingOf(n) !== "free"),
 );
 
-// Shared width/height mode across the selection: "auto", "fixed", or undefined
-// (radio shows nothing selected) when the nodes disagree.
 function axisMode(axis: "width" | "height") {
   const modes = props.components.map((c) =>
     c.data.size?.[axis] === "auto" ? "auto" : "fixed",
@@ -94,20 +99,20 @@ function axisMode(axis: "width" | "height") {
 const widthMode = computed(() => axisMode("width"));
 const heightMode = computed(() => axisMode("height"));
 
-// Switch an axis for every selected transform. On auto→fixed, seed each node's
-// own rendered size; nodes already fixed keep their number.
 function setAxis(axis: "width" | "height", mode: string | string[]) {
   const next = Array.isArray(mode) ? mode[0] : mode;
-  // Auto is the same value for every node → the shared fan-out write.
+
   if (next === "auto") {
     set(["size", axis], "auto");
     return;
   }
-  // Fixed seeds each node's own rendered size, so write per component.
+
   for (const c of props.components) {
     if (c.data.size?.[axis] !== "auto") continue;
+
     const el = document.getElementById(c.node);
     const rendered = axis === "width" ? el?.offsetWidth : el?.offsetHeight;
+
     updateComponent({
       ...c,
       data: setNested(c.data, ["size", axis], rendered || 100),

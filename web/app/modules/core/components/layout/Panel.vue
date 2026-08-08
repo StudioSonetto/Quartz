@@ -87,20 +87,14 @@ const props = defineProps<{
 
 const DEFAULT_COLOUR = "#FAFAFA";
 
-// Radio emits an array only in toggle mode; these rows are single-select.
 const one = (value: string | string[]) =>
   Array.isArray(value) ? value[0]! : value;
 
 const { getNodeComponent } = useNodeComponents();
 const { updateComponent } = useDeckStore();
 const { field, set } = useMergedFields(() => props.components);
-const { images } = storeToRefs(useAssetsStore());
+const { imageNames: imageOptions } = storeToRefs(useAssetsStore());
 
-const imageOptions = computed(() => images.value.map((a) => a.name));
-
-// The slide box must stay opaque — a see-through slide would show the app chrome
-// behind it — so root cannot opt out of a background. Any selection including
-// root loses the `none` option.
 const hasRoot = computed(() => props.nodes.some((n) => n.path === ROOT_PATH));
 
 const backgroundOptions = computed(() => [
@@ -111,29 +105,18 @@ const backgroundOptions = computed(() => [
 
 const rawBackground = computed(() => field(["background"]));
 
-// `field` returns undefined when the selected nodes disagree. With defaults
-// filled by normaliseComponents, that can only mean "mixed" once more than one
-// node is selected — so the type radio shows nothing chosen, matching how every
-// other merged field renders a disagreement.
 const mixed = computed(
   () => props.components.length > 1 && rawBackground.value === undefined,
 );
 
 const background = computed(() => coerceBackground(rawBackground.value));
 
-// Switching type would otherwise discard the other type's settings, because the
-// persisted object has a single `value` field that cannot hold both a hex and an
-// asset name. Remembering them here keeps a round trip lossless within a session.
 const lastColour = ref(DEFAULT_COLOUR);
 const lastImage = ref<{ value: string; fit: BackgroundFit }>({
   value: "",
   fit: "cover",
 });
 
-// Properties keys panels by component type, so this instance survives a change
-// of selection. Without a reset the remembered values would carry over from the
-// previously selected node. Declared before the watch below so that one re-seeds
-// from the new selection in the same flush.
 watch(
   () => props.nodes.map((n) => n.id).join(),
   () => {
@@ -177,20 +160,26 @@ function setFit(next: string | string[]) {
 function anchorGroupToChildren(group: Tree) {
   const transform = getNodeComponent(group.id, "core.transform");
   if (!transform) return;
+
   let minX = Infinity;
   let minY = Infinity;
+
   for (const child of group.children) {
     const ct = getNodeComponent(child.id, "core.transform");
+
     if (!ct) continue;
+
     minX = Math.min(minX, ct.data.position.x);
     minY = Math.min(minY, ct.data.position.y);
   }
   if (minX === Infinity) return;
+
   const data = setNested(
     setNested(transform.data, ["position", "x"], Math.round(minX)),
     ["position", "y"],
     Math.round(minY),
   );
+
   updateComponent({ ...transform, data });
 }
 
