@@ -14,7 +14,7 @@
 
 <style scoped lang="postcss">
 section {
-  @apply px-80 py-30;
+  @apply px-20 xl:px-40 2xl:px-60 3xl:px-80 py-30;
 
   .info {
     .title {

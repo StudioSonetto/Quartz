@@ -23,10 +23,14 @@ export const useDeckStore = defineStore("deck", () => {
     },
   });
 
-  // Keyed by slide id. `slides` is the only thing that holds order, so moving
-  // a slide never touches these and a slide's tree cannot be the wrong one.
   const trees = ref<Map<string, Tree>>(new Map());
   const components = ref<Map<string, ComponentModel[]>>(new Map());
+
+  function forgetSlide(id: string) {
+    trees.value.delete(id);
+    components.value.delete(id);
+    slidesInLoading.value.delete(id);
+  }
 
   const treeAt = (i: number) => {
     const id = slides.value[i]?.id;
@@ -243,7 +247,19 @@ export const useDeckStore = defineStore("deck", () => {
     const data = await apiFetch<SlidesModel[]>("/api/slides", {
       query: { deck },
     });
-    if (data) slides.value = data;
+    if (data) {
+      slides.value = data;
+
+      const live = new Set(data.map((s) => s.id));
+
+      const known = [
+        ...trees.value.keys(),
+        ...components.value.keys(),
+        ...slidesInLoading.value,
+      ];
+
+      for (const id of known) if (!live.has(id)) forgetSlide(id);
+    }
     return data;
   }
 
@@ -269,6 +285,36 @@ export const useDeckStore = defineStore("deck", () => {
       return slide;
     } finally {
       insertingSlides.value = false;
+    }
+  }
+
+  async function deleteSlides(id: string) {
+    const index = slides.value.findIndex((s) => s.id === id);
+
+    if (index === -1 || slides.value.length <= 1) return;
+
+    const deck = slides.value[index]!.deck;
+    const previousSlideId = currentSlideId.value;
+
+    sync.dropSlide(id);
+    forgetSlide(id);
+
+    slides.value = slides.value
+      .filter((s) => s.id !== id)
+      .map((s, i) => ({ ...s, index: i }));
+
+    if (currentSlideId.value === id)
+      currentSlideId.value =
+        slides.value[Math.min(index, slides.value.length - 1)]!.id;
+
+    try {
+      await apiFetch(`/api/slides/${id}`, { method: "DELETE" });
+    } catch {
+      // Nothing was deleted, so the user must not be left on a different slide.
+      currentSlideId.value = previousSlideId;
+
+      await fetchAllSlides(deck).catch(() => {});
+      await parallelLoad().catch(() => {});
     }
   }
 
@@ -436,6 +482,8 @@ export const useDeckStore = defineStore("deck", () => {
 
     selectedNodeIds.value = [id];
     anchorId.value = id;
+
+    getNodeType(type)?.onCreate?.(id);
   }
 
   function getNodeAsTree(id: string): Tree | null {
@@ -575,6 +623,8 @@ export const useDeckStore = defineStore("deck", () => {
     }
     selectedNodeIds.value = [id];
     anchorId.value = id;
+
+    getNodeType("core.group")?.onCreate?.(id);
   }
 
   function ungroupSelection() {
@@ -865,6 +915,7 @@ export const useDeckStore = defineStore("deck", () => {
     fetchSlides,
     insertNewSlides,
     insertingSlides,
+    deleteSlides,
     reorderSlides,
     fetchAllNodes,
     fetchNodeComponents,

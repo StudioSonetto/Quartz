@@ -84,17 +84,10 @@ export interface NodeTypeDef {
   defaultComponents: DefaultComponent[];
   renderer: NodeRenderer;
   creatable?: boolean;
-  /**
-   * Parent types that accept this node, declared from the child's side.
-   * Lets a module add itself to a parent owned by another module without
-   * that module naming it.
-   */
   parents?: NodeType[];
-  /**
-   * Called after the node's element mounts, on the next tick. Lets a node
-   * type run its own post-mount setup without core naming the module.
-   */
   onMount?: (nodeId: string) => void;
+  onCreate?: (nodeId: string) => void;
+  sizing?: "free" | "fixed" | "derived";
 }
 
 export interface Command {
@@ -114,11 +107,6 @@ export type AtelierFocus =
   | null;
 
 export interface CommandContext {
-  // `deck`/`atelier` are the Pinia stores at runtime. They are typed loosely
-  // here on purpose: this file lives in `shared/` (auto-imported into both the
-  // app AND the server/client-build graphs), so it must not reference app-only
-  // composables like `useDeckStore` — doing so pulls the store module into a
-  // build context without Nuxt's auto-import globals and breaks `nuxt build`.
   deck: any;
   atelier: any;
   soleSelected: Tree | null;

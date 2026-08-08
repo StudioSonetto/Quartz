@@ -3,7 +3,7 @@
 // keeps this unit-testable and usable from both a node renderer and the slide
 // container.
 
-export type BackgroundFit = "cover" | "contain" | "tile";
+export type BackgroundFit = "cover" | "contain" | "tile" | "fill";
 
 export type Background =
   | { type: "none" }
@@ -61,7 +61,7 @@ export function backgroundStyle(
 
   return {
     backgroundImage: `url("${imageUrl}")`,
-    backgroundSize: bg.fit,
+    backgroundSize: bg.fit === "fill" ? "100% 100%" : bg.fit,
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
   };

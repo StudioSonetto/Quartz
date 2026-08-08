@@ -1,3 +1,5 @@
+import type { FetchError } from "ofetch";
+
 export const useDeckSync = defineStore("deck-sync", () => {
   const apiFetch = useRequestFetch();
 
@@ -35,6 +37,10 @@ export const useDeckSync = defineStore("deck-sync", () => {
     for (const key of [...dirtyComponents.value]) {
       if (key.startsWith(`${id}:`)) dirtyComponents.value.delete(key);
     }
+  }
+
+  function dropSlide(slideId: string) {
+    deletedNodes.value = deletedNodes.value.filter((d) => d.slides !== slideId);
   }
 
   function enqueueDelete(del: DeleteNode, nodeId: string) {
@@ -85,6 +91,10 @@ export const useDeckSync = defineStore("deck-sync", () => {
     ) {
       clearFlushed(snapshot);
 
+      // Everything in the batch resolved to nothing — a deleted slide's
+      // leftovers. Without this the chip stays on "saving" forever.
+      status.value = hasPending.value ? "saving" : "saved";
+
       return;
     }
 
@@ -102,6 +112,22 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
       if (hasPending.value) scheduleFlush();
     } catch (err) {
+      const code =
+        (err as FetchError)?.statusCode ??
+        (err as FetchError)?.response?.status;
+
+      // 401 is a session blip and a network error has no code; the rest of 4xx
+      // can never succeed, and requeueing one wedges every later save behind it.
+      const retryable = !code || code >= 500 || [401, 408, 429].includes(code);
+
+      if (!retryable) {
+        status.value = "error";
+
+        if (hasPending.value) scheduleFlush();
+
+        return;
+      }
+
       restoreSnapshot(snapshot);
 
       status.value =
@@ -162,6 +188,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     enqueueComponent,
     enqueueDelete,
     dropNode,
+    dropSlide,
     flush,
     flushBeacon,
     scheduleFlush,

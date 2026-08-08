@@ -1,6 +1,7 @@
 <template>
   <div
     @click="!isSelected && (currentSlidesIndex = props.index)"
+    @contextmenu.prevent="openMenu"
     :class="{
       'opacity-60 cursor-pointer': !isSelected,
     }"
@@ -10,7 +11,7 @@
     <div class="overlay">
       <div
         v-if="isSelected"
-        @click="console.log('menu clicked')"
+        @click.stop="openMenu"
         class="i-carbon-overflow-menu-horizontal menu"
       ></div>
       <p class="indicator">
@@ -49,6 +50,7 @@
 </style>
 
 <script setup lang="ts">
+const { deleteSlides } = useDeckStore();
 const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
 
 const props = defineProps<{
@@ -58,4 +60,19 @@ const props = defineProps<{
 const slide = computed(() => slides.value[props.index]);
 
 const isSelected = computed(() => currentSlidesIndex.value === props.index);
+
+function openMenu(event: MouseEvent) {
+  const target = slide.value;
+
+  if (!target || slides.value.length <= 1) return;
+
+  useContextMenu().open(event, [
+    {
+      label: "Delete",
+      icon: "i-carbon-trash-can",
+      danger: true,
+      action: () => deleteSlides(target.id),
+    },
+  ]);
+}
 </script>

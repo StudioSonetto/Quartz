@@ -98,7 +98,13 @@ onMounted(async () => {
         schema: "public",
         table: "slides",
       },
-      () => refreshSlides(),
+      (payload) => {
+        const id = (payload.old as { id?: string })?.id;
+
+        if (id && !slides.value.some((s) => s.id === id)) return;
+
+        refreshSlides();
+      },
     )
     .subscribe();
 
