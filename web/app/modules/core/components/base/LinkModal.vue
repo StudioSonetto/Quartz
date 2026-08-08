@@ -6,11 +6,11 @@
       {{ props.peerCount === 1 ? "node" : "nodes" }} with different settings.
       Shared nodes must match.
     </p>
-    <template #footer>
+    <div>
       <UIButton variant="ghost" @click="choose('cancel')">Cancel</UIButton>
       <UIButton variant="ghost" @click="choose('adopt')">Adopt</UIButton>
       <UIButton @click="choose('push')">Push</UIButton>
-    </template>
+    </div>
   </Modal>
 </template>
 

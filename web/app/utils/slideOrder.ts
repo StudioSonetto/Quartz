@@ -1,6 +1,4 @@
-// Ordering arithmetic shared by the Timeline drag and the deck store.
-// Pure and DOM-free so the index maths can be tested directly — the
-// forward/backward asymmetry below is not obvious by inspection.
+// Ordering helpers for the Timeline drag and the deck store.
 
 /** A copy of `arr` with the item at `from` reinserted at `to`. */
 export function movePosition<T>(arr: T[], from: number, to: number): T[] {
@@ -8,13 +6,6 @@ export function movePosition<T>(arr: T[], from: number, to: number): T[] {
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item as T);
   return next;
-}
-
-/** Where the item currently at `i` lands after `movePosition(_, from, to)`. */
-export function remapIndex(i: number, from: number, to: number): number {
-  if (i === from) return to;
-  if (from < to) return i > from && i <= to ? i - 1 : i;
-  return i >= to && i < from ? i + 1 : i;
 }
 
 /**

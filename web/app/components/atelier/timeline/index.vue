@@ -75,15 +75,11 @@
       transform: rotate(360deg);
     }
   }
-
-  .swap {
-    @apply opacity-100;
-  }
 }
 </style>
 
 <script setup lang="ts">
-import Sortable, { Swap } from "sortablejs";
+import Sortable from "sortablejs";
 
 const deckStore = useDeckStore();
 const { slides, insertingSlides } = storeToRefs(useDeckStore());
@@ -121,16 +117,28 @@ function insertNewSlides() {
 onMounted(() => {
   if (!timeline.value) return;
 
-  try {
-    Sortable.mount(new Swap());
-  } catch (error) {}
-
   Sortable.create(timeline.value, {
     draggable: ".frame",
-    swap: true,
-    swapClass: "swap",
-    onEnd: function (event) {
-      console.log(event.oldIndex, event.newIndex);
+    onEnd: async (event) => {
+      const { oldIndex, newIndex, item, from } = event;
+      if (oldIndex === undefined || newIndex === undefined) return;
+      if (oldIndex === newIndex) return;
+
+      // SortableJS mutates the real DOM directly, but these frames are
+      // rendered by a v-for and Vue's vdom still describes the old order.
+      // Undo the library's move and let the reactive array drive the
+      // re-render, or the next patch corrupts the strip.
+      from.insertBefore(
+        item,
+        revertReference([...from.children], item, oldIndex),
+      );
+
+      try {
+        await deckStore.reorderSlides(oldIndex, newIndex);
+      } catch {
+        // reorderSlides restores the store itself; the revert above means
+        // the DOM is already consistent with it either way.
+      }
     },
   });
 });
