@@ -44,7 +44,7 @@ const props = defineProps<{
   title: string;
 }>();
 
-const modal = ref<HTMLDialogElement>();
+const modal = useTemplateRef<HTMLDialogElement>("modal");
 
 const emit = defineEmits<{
   close: [];
