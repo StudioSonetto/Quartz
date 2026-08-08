@@ -1,6 +1,6 @@
 <template>
   <dialog ref="modal" @close="emit('close')">
-    <div v-if="!props.isMinimal" class="modal-header">
+    <div class="modal-header">
       <h4>{{ props.title }}</h4>
       <UIButton variant="ghost" size="sm" @click="close" aria-label="Close">
         <div class="i-carbon-close"></div>
@@ -30,7 +30,7 @@ dialog {
   }
 
   .modal-body {
-    @apply px-6 py-12;
+    @apply p-6;
   }
 
   &::backdrop {
@@ -42,7 +42,6 @@ dialog {
 <script setup lang="ts">
 const props = defineProps<{
   title: string;
-  isMinimal?: boolean;
 }>();
 
 const modal = ref<HTMLDialogElement>();
