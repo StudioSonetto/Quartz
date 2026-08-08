@@ -49,7 +49,7 @@
   @apply flex items-start pt-[25vh] justify-center;
 
   .palette {
-    @apply w-[560px] max-w-[90vw] bg-dark-900 overflow-hidden;
+    @apply w-xl bg-dark-900 overflow-hidden;
     @apply border-solid border-2 border-dark-200 border-rd;
 
     .palette-searchbar {
