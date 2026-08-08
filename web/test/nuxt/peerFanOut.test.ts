@@ -70,21 +70,27 @@ function seed() {
   const store = useDeckStore();
   store.slides = [{ id: SLIDE_A }, { id: SLIDE_B }] as any;
   store.currentSlidesIndex = 0;
-  store.trees = [
-    buildTree([
-      mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
-      mk(A, SLIDE_A, childPath(ROOT_PATH, A), 0, "core.text", "footer"),
-      mk(LONE, SLIDE_A, childPath(ROOT_PATH, LONE), 1, "core.text", null),
-    ] as any),
-    buildTree([
-      mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group"),
-      mk(B, SLIDE_B, childPath(ROOT_PATH, B), 0, "core.text", "footer"),
-    ] as any),
-  ];
-  store.components = [
-    [transform(A, 10, 20), transform(LONE, 0, 0)],
-    [transform(B, 10, 20)],
-  ] as any;
+  store.trees = new Map([
+    [
+      SLIDE_A,
+      buildTree([
+        mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
+        mk(A, SLIDE_A, childPath(ROOT_PATH, A), 0, "core.text", "footer"),
+        mk(LONE, SLIDE_A, childPath(ROOT_PATH, LONE), 1, "core.text", null),
+      ] as any),
+    ],
+    [
+      SLIDE_B,
+      buildTree([
+        mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group"),
+        mk(B, SLIDE_B, childPath(ROOT_PATH, B), 0, "core.text", "footer"),
+      ] as any),
+    ],
+  ]);
+  store.components = new Map([
+    [SLIDE_A, [transform(A, 10, 20), transform(LONE, 0, 0)]],
+    [SLIDE_B, [transform(B, 10, 20)]],
+  ]) as any;
   return store;
 }
 
@@ -118,12 +124,15 @@ describe("peer fan-out", () => {
   // the old reference field wrote one key across a whole multi-selection.
   it("ignores a node sharing the key on the source's own slide", () => {
     const store = seed();
-    store.trees[0] = buildTree([
-      mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
-      mk(A, SLIDE_A, childPath(ROOT_PATH, A), 0, "core.text", "footer"),
-      mk(A2, SLIDE_A, childPath(ROOT_PATH, A2), 1, "core.text", "footer"),
-    ] as any);
-    store.components[0]!.push(transform(A2, 0, 0) as any);
+    store.trees.set(
+      SLIDE_A,
+      buildTree([
+        mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
+        mk(A, SLIDE_A, childPath(ROOT_PATH, A), 0, "core.text", "footer"),
+        mk(A2, SLIDE_A, childPath(ROOT_PATH, A2), 1, "core.text", "footer"),
+      ] as any),
+    );
+    store.components.get(SLIDE_A)!.push(transform(A2, 0, 0) as any);
 
     expect(store.peersOf(A).map((p) => p.node.id)).toEqual([B]);
 
@@ -170,8 +179,12 @@ describe("peer fan-out", () => {
     // B is on slide 1 while slide 0 is current, as the adopt path does.
     store.updateComponent(transform(B, 7, 7) as any);
 
-    expect(store.components[1]!.filter((c: any) => c.node === B)).toHaveLength(1);
-    expect(store.components[0]!.some((c: any) => c.node === B)).toBe(false);
+    expect(
+      store.components.get(SLIDE_B)!.filter((c: any) => c.node === B),
+    ).toHaveLength(1);
+    expect(
+      store.components.get(SLIDE_A)!.some((c: any) => c.node === B),
+    ).toBe(false);
   });
 
   it("mirrors name but never mirrors the key itself", () => {

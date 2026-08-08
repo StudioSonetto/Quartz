@@ -58,14 +58,20 @@ function seed() {
   const store = useDeckStore();
   store.slides = [{ id: SLIDE_A }, { id: SLIDE_B }] as any;
   store.currentSlidesIndex = 0;
-  store.trees = [
-    buildTree([
-      mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
-      mk(N, SLIDE_A, childPath(ROOT_PATH, N), 0, "core.text", "footer"),
-    ] as any),
-    buildTree([mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group")] as any),
-  ];
-  store.components = [[transform(N, 10, 20)], []] as any;
+  store.trees = new Map([
+    [
+      SLIDE_A,
+      buildTree([
+        mk(ROOT_A, SLIDE_A, ROOT_PATH, 0, "core.group"),
+        mk(N, SLIDE_A, childPath(ROOT_PATH, N), 0, "core.text", "footer"),
+      ] as any),
+    ],
+    [SLIDE_B, buildTree([mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group")] as any)],
+  ]);
+  store.components = new Map([
+    [SLIDE_A, [transform(N, 10, 20)]],
+    [SLIDE_B, []],
+  ]) as any;
   return store;
 }
 

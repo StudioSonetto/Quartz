@@ -95,16 +95,19 @@ describe("group / ungroup sort_order recanonicalisation", () => {
     const p2 = childPath(ROOT_PATH, P2);
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [
-      buildTree([
-        root(),
-        mk(P1, p1, 0, "core.group"),
-        mk(A, childPath(p1, A), 0),
-        mk(P2, p2, 1, "core.group"),
-        mk(B, childPath(p2, B), 0), // same rank as A, but under a different parent
-      ] as any),
-    ];
-    store.components = [[]] as any;
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([
+          root(),
+          mk(P1, p1, 0, "core.group"),
+          mk(A, childPath(p1, A), 0),
+          mk(P2, p2, 1, "core.group"),
+          mk(B, childPath(p2, B), 0), // same rank as A, but under a different parent
+        ] as any),
+      ],
+    ]);
+    store.components = new Map([[SLIDE, []]]);
     store.selectedNodeIds = [A, B];
 
     store.groupSelection();
@@ -128,17 +131,20 @@ describe("group / ungroup sort_order recanonicalisation", () => {
     const gPath = childPath(ROOT_PATH, G);
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [
-      buildTree([
-        root(),
-        mk(X, childPath(ROOT_PATH, X), 0),
-        mk(G, gPath, 1, "core.group"),
-        mk(C0, childPath(gPath, C0), 0),
-        mk(C1, childPath(gPath, C1), 1),
-        mk(Y, childPath(ROOT_PATH, Y), 2),
-      ] as any),
-    ];
-    store.components = [[]] as any;
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([
+          root(),
+          mk(X, childPath(ROOT_PATH, X), 0),
+          mk(G, gPath, 1, "core.group"),
+          mk(C0, childPath(gPath, C0), 0),
+          mk(C1, childPath(gPath, C1), 1),
+          mk(Y, childPath(ROOT_PATH, Y), 2),
+        ] as any),
+      ],
+    ]);
+    store.components = new Map([[SLIDE, []]]);
     store.selectedNodeIds = [G];
 
     store.ungroupSelection();
@@ -161,14 +167,17 @@ describe("group / ungroup sort_order recanonicalisation", () => {
     const sync = useDeckSync();
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [
-      buildTree([
-        root(),
-        mk(X, childPath(ROOT_PATH, X), 0),
-        mk(Y, childPath(ROOT_PATH, Y), 1),
-      ] as any),
-    ];
-    store.components = [[]] as any;
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([
+          root(),
+          mk(X, childPath(ROOT_PATH, X), 0),
+          mk(Y, childPath(ROOT_PATH, Y), 1),
+        ] as any),
+      ],
+    ]);
+    store.components = new Map([[SLIDE, []]]);
     store.selectedNodeIds = [ROOT_ID];
 
     store.ungroupSelection();

@@ -66,8 +66,8 @@ describe("BUG #2 — a same-key re-edit landing mid-flight survives the flush", 
 
     store.slides = [{ id: slidesId }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [tree];
-    store.components = [[]] as any;
+    store.trees = new Map([[slidesId, tree]]);
+    store.components = new Map([[slidesId, []]]);
 
     // Enqueue node A (currently resolves to v1) and start a flush.
     sync.enqueueNode(aId);

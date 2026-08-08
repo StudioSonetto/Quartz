@@ -36,7 +36,7 @@ export function useSnapshot() {
     const slides = currentSlides.value;
     if (!slides) return;
 
-    const tree = trees.value[slides.index];
+    const tree = trees.value.get(slides.id);
     if (!tree || isEmptyTree(tree)) return;
 
     const render = findRenderEl();
@@ -90,7 +90,7 @@ export function useSnapshot() {
   ) => {
     const current = currentSlides.value;
     if (current?.id === slides) {
-      const tree = trees.value[current.index];
+      const tree = trees.value.get(current.id);
       if (!tree || isEmptyTree(tree)) return;
     }
 

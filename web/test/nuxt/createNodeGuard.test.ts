@@ -50,12 +50,15 @@ describe("createNode containment guard", () => {
   function seedRootOnly(store: ReturnType<typeof useDeckStore>) {
     store.slides = [{ id: SLIDE }] as any;
     store.currentSlidesIndex = 0;
-    store.trees = [
-      buildTree([
-        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
-      ] as any),
-    ];
-    store.components = [[]] as any;
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([
+          { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
+        ] as any),
+      ],
+    ]);
+    store.components = new Map([[SLIDE, []]]);
   }
 
   // A guard that stops throwing looks identical to one that works, and the
@@ -65,13 +68,16 @@ describe("createNode containment guard", () => {
     seedRootOnly(store);
     // Add a text node and select it as the (invalid) parent.
     const textPath = childPath(ROOT_PATH, TEXT_ID);
-    store.trees = [
-      buildTree([
-        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
-        { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "core.text", reference: null, sort_order: 0 },
-      ] as any),
-    ];
-    store.selectedNodeIds = [store.trees[0]!.children[0]!.id]; // the text node
+    store.trees = new Map([
+      [
+        SLIDE,
+        buildTree([
+          { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
+          { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "core.text", reference: null, sort_order: 0 },
+        ] as any),
+      ],
+    ]);
+    store.selectedNodeIds = [store.trees.get(SLIDE)!.children[0]!.id]; // the text node
     // Pin the message so an unrelated exception can't masquerade as a pass.
     expect(() => store.createNode("nope", "core.group")).toThrow(
       /cannot be placed inside/,

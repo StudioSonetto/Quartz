@@ -6,12 +6,23 @@ export const useDeckStore = defineStore("deck", () => {
   const currentSlidesIndex = ref<number>(0);
   const currentSlides = computed(() => slides.value[currentSlidesIndex.value]);
 
-  const trees = ref<Tree[]>([EMPTY_TREE]);
-  const currentTree = computed(() => trees.value[currentSlidesIndex.value]);
+  // Keyed by slide id. `slides` is the only thing that holds order, so moving
+  // a slide never touches these and a slide's tree cannot be the wrong one.
+  const trees = ref<Map<string, Tree>>(new Map());
+  const components = ref<Map<string, ComponentModel[]>>(new Map());
 
-  const components = ref<ComponentModel[][]>([]);
-  const currentComponents = computed(
-    () => components.value[currentSlidesIndex.value],
+  const treeAt = (i: number) => {
+    const id = slides.value[i]?.id;
+    return id ? trees.value.get(id) : undefined;
+  };
+  const componentsAt = (i: number) => {
+    const id = slides.value[i]?.id;
+    return id ? components.value.get(id) : undefined;
+  };
+
+  const currentTree = computed(() => treeAt(currentSlidesIndex.value));
+  const currentComponents = computed(() =>
+    componentsAt(currentSlidesIndex.value),
   );
 
   const selectedNodeIds = ref<string[]>([]);
@@ -34,7 +45,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   const selectedNodes = computed<Tree[]>(() => {
-    const tree = trees.value[currentSlidesIndex.value];
+    const tree = currentTree.value;
 
     if (!tree) return [];
 
@@ -48,7 +59,7 @@ export const useDeckStore = defineStore("deck", () => {
   const soleSelected = computed<Tree | null>(() => {
     if (selectedNodeIds.value.length !== 1) return null;
 
-    const tree = trees.value[currentSlidesIndex.value];
+    const tree = currentTree.value;
 
     return tree
       ? (flattenTree(tree).find((n) => n.id === selectedNodeIds.value[0]) ??
@@ -59,14 +70,8 @@ export const useDeckStore = defineStore("deck", () => {
   const slidesInLoading = ref<Set<string>>(new Set());
 
   const allSlidesLoaded = computed(() =>
-    slides.value.every((_, i) => !!trees.value[i]?.id),
+    slides.value.every((s) => !!trees.value.get(s.id)?.id),
   );
-
-  watch(slides, (newSlides) => {
-    while (trees.value.length < newSlides.length) trees.value.push(EMPTY_TREE);
-    while (components.value.length < newSlides.length)
-      components.value.push([]);
-  });
 
   watch(
     () => currentSlides.value?.id,
@@ -94,16 +99,16 @@ export const useDeckStore = defineStore("deck", () => {
   );
 
   function currentFlat(): Tree[] {
-    const tree = trees.value[currentSlidesIndex.value];
+    const tree = currentTree.value;
     return tree ? flattenTree(tree) : [];
   }
 
   // ---- Selectors used by the sync layer ----
 
-  // `parallelLoad` resolves out of order, so mid-load these arrays hold gaps.
+  // `parallelLoad` resolves out of order, so mid-load these maps hold gaps.
 
   function getNodeById(id: string): NodeModel | undefined {
-    for (const tree of trees.value) {
+    for (const tree of trees.value.values()) {
       if (!tree?.id) continue;
       const found = flattenTree(tree).find((n) => n.id === id);
       if (found) {
@@ -118,7 +123,7 @@ export const useDeckStore = defineStore("deck", () => {
     node: string,
     type: string,
   ): ComponentModel | undefined {
-    for (const slideComponents of components.value) {
+    for (const slideComponents of components.value.values()) {
       if (!slideComponents) continue;
       const found = slideComponents.find(
         (c) => c.node === node && c.type === type,
@@ -130,7 +135,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   function locateNode(id: string): { node: Tree; slideIndex: number } | null {
     const findIn = (i: number) => {
-      const tree = trees.value[i];
+      const tree = treeAt(i);
       if (!tree?.id) return null;
 
       const found = flattenTree(tree).find((n) => n.id === id);
@@ -140,7 +145,7 @@ export const useDeckStore = defineStore("deck", () => {
     const current = findIn(currentSlidesIndex.value);
     if (current) return current;
 
-    for (let i = 0; i < trees.value.length; i++) {
+    for (let i = 0; i < slides.value.length; i++) {
       if (i === currentSlidesIndex.value) continue;
 
       const found = findIn(i);
@@ -154,7 +159,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function componentsOf(nodeId: string): ComponentModel[] {
-    for (const slideComponents of components.value) {
+    for (const slideComponents of components.value.values()) {
       if (!slideComponents) continue;
       const found = slideComponents.filter((c) => c.node === nodeId);
       if (found.length) return found;
@@ -172,8 +177,11 @@ export const useDeckStore = defineStore("deck", () => {
     if (!key) return [];
 
     const out: { node: Tree; slideIndex: number }[] = [];
-    trees.value.forEach((tree, slideIndex) => {
-      if (!tree?.id || slideIndex === located.slideIndex) return;
+    slides.value.forEach((_, slideIndex) => {
+      if (slideIndex === located.slideIndex) return;
+
+      const tree = treeAt(slideIndex);
+      if (!tree?.id) return;
 
       for (const n of flattenTree(tree)) {
         if (n.reference === key && n.type === type)
@@ -249,8 +257,8 @@ export const useDeckStore = defineStore("deck", () => {
 
   const reorderingSlides = ref(false);
 
-  // Moving one of slides/trees/components without the others desyncs a slide
-  // from its own content.
+  // `trees`/`components` are keyed by slide id, so moving `slides` alone
+  // cannot desync a slide from its own content.
   async function reorderSlides(from: number, to: number) {
     // Two overlapping drags would each snapshot the other's half-applied
     // state, and a failure would undo the wrong one.
@@ -271,8 +279,6 @@ export const useDeckStore = defineStore("deck", () => {
         ...s,
         index: i,
       }));
-      trees.value = movePosition(trees.value, a, b);
-      components.value = movePosition(components.value, a, b);
 
       const next = slides.value.findIndex((s) => s.id === currentId);
       if (next !== -1) currentSlidesIndex.value = next;
@@ -310,21 +316,21 @@ export const useDeckStore = defineStore("deck", () => {
     ]);
 
     if (data) {
-      // Resolve by id, not `index` — a reorder may have moved this slide
-      // since the fetch started.
-      const slot = slides.value.findIndex((s) => s.id === id);
+      // Write by id — a slide can be deleted while this fetch is in flight.
+      if (!slides.value.some((s) => s.id === id)) return [];
 
-      if (slot === -1) return [];
-
-      components.value[slot] = normaliseComponents(
+      const slideComponents = normaliseComponents(
         data,
         fetchedComponents ?? [],
       );
-      trees.value[slot] = buildTree(data);
+      const tree = buildTree(data);
 
-      ensureFonts(fontsInComponents(components.value[slot]));
+      components.value.set(id, slideComponents);
+      trees.value.set(id, tree);
 
-      return trees.value[slot]!.children;
+      ensureFonts(fontsInComponents(slideComponents));
+
+      return tree.children;
     }
     return [];
   }
@@ -340,7 +346,7 @@ export const useDeckStore = defineStore("deck", () => {
       .filter(
         (index) =>
           index !== currentSlidesIndex.value &&
-          !trees.value[index]?.id &&
+          !trees.value.get(slides.value[index]!.id)?.id &&
           !slidesInLoading.value.has(slides.value[index]!.id),
       );
     await Promise.all(
@@ -409,9 +415,12 @@ export const useDeckStore = defineStore("deck", () => {
     };
 
     const defaultComponents = buildDefaultComponents(id, type);
+    const slideId = currentSlides.value.id;
 
-    trees.value[currentSlidesIndex.value] = buildTree([...flatModels(), node]);
-    components.value[currentSlidesIndex.value]!.push(...defaultComponents);
+    trees.value.set(slideId, buildTree([...flatModels(), node]));
+    const slideComponents = components.value.get(slideId) ?? [];
+    slideComponents.push(...defaultComponents);
+    components.value.set(slideId, slideComponents);
 
     sync.enqueueNode(id);
     for (const c of defaultComponents) sync.enqueueComponent(c.node, c.type);
@@ -451,7 +460,10 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!roots.length) return;
 
-    const slideComponents = components.value[currentSlidesIndex.value] ?? [];
+    const slideId = currentSlides.value?.id;
+    if (!slideId) return;
+
+    const slideComponents = components.value.get(slideId) ?? [];
     const flat = currentFlat();
     const removed = flat.filter((n) =>
       roots.some((r) => isSelfOrDescendantPath(n.path, r.path)),
@@ -459,14 +471,18 @@ export const useDeckStore = defineStore("deck", () => {
     const removedIds = new Set(removed.map((n) => n.id));
 
     // Remove the nodes and their subtrees from local state.
-    trees.value[currentSlidesIndex.value] = buildTree(
-      flat
-        .filter((n) => !removedIds.has(n.id))
-        .map(({ children, parent, ...n }) => n),
+    trees.value.set(
+      slideId,
+      buildTree(
+        flat
+          .filter((n) => !removedIds.has(n.id))
+          .map(({ children, parent, ...n }) => n),
+      ),
     );
     // Purge the removed subtrees' components so they can't resolve in flush().
-    components.value[currentSlidesIndex.value] = slideComponents.filter(
-      (c) => !removedIds.has(c.node),
+    components.value.set(
+      slideId,
+      slideComponents.filter((c) => !removedIds.has(c.node)),
     );
 
     // Drop every removed id from the outbox before enqueuing the deletes.
@@ -532,11 +548,14 @@ export const useDeckStore = defineStore("deck", () => {
         group,
       ),
     );
-    trees.value[currentSlidesIndex.value] = buildTree(nextFlat);
+    const slideId = currentSlides.value.id;
+    trees.value.set(slideId, buildTree(nextFlat));
 
     // Group's default components (core.group ships transform + layout).
     const groupDefaults = buildDefaultComponents(id, "core.group");
-    components.value[currentSlidesIndex.value]!.push(...groupDefaults);
+    const slideComponents = components.value.get(slideId) ?? [];
+    slideComponents.push(...groupDefaults);
+    components.value.set(slideId, slideComponents);
 
     sync.enqueueNode(id);
     for (const c of groupDefaults) sync.enqueueComponent(c.node, c.type);
@@ -556,6 +575,9 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!groups.length) return;
 
+    const slideId = currentSlides.value?.id;
+    if (!slideId) return;
+
     let flat = flatModels();
 
     for (const g of groups) {
@@ -564,13 +586,16 @@ export const useDeckStore = defineStore("deck", () => {
 
     flat = canonicaliseSortOrder(flat);
 
-    trees.value[currentSlidesIndex.value] = buildTree(flat);
+    trees.value.set(slideId, buildTree(flat));
 
     const groupIds = new Set(groups.map((g) => g.id));
 
-    components.value[currentSlidesIndex.value] = (
-      components.value[currentSlidesIndex.value] ?? []
-    ).filter((c) => !groupIds.has(c.node));
+    components.value.set(
+      slideId,
+      (components.value.get(slideId) ?? []).filter(
+        (c) => !groupIds.has(c.node),
+      ),
+    );
 
     for (const g of groups) {
       sync.dropNode(g.id);
@@ -612,11 +637,10 @@ export const useDeckStore = defineStore("deck", () => {
       };
     });
 
-    trees.value[currentSlidesIndex.value] = buildTree([
-      ...flatModels(),
-      ...rebased,
-    ]);
-    components.value[currentSlidesIndex.value]!.push(...clone.components);
+    trees.value.set(slidesId, buildTree([...flatModels(), ...rebased]));
+    const slideComponents = components.value.get(slidesId) ?? [];
+    slideComponents.push(...clone.components);
+    components.value.set(slidesId, slideComponents);
 
     for (const n of rebased) sync.enqueueNode(n.id);
     for (const c of clone.components) sync.enqueueComponent(c.node, c.type);
@@ -628,8 +652,10 @@ export const useDeckStore = defineStore("deck", () => {
   function duplicateSelection() {
     const roots = selectionRoots();
     if (!roots.length) return;
+    const slideId = currentSlides.value?.id;
+    if (!slideId) return;
     const flat = flatModels();
-    const slideComps = components.value[currentSlidesIndex.value] ?? [];
+    const slideComps = components.value.get(slideId) ?? [];
     const newIds: string[] = [];
     for (const r of roots) {
       const clone = cloneSubtree(flat, slideComps, r.id, {
@@ -645,8 +671,10 @@ export const useDeckStore = defineStore("deck", () => {
   function copySelection() {
     const roots = selectionRoots();
     if (!roots.length) return;
+    const slideId = currentSlides.value?.id;
+    if (!slideId) return;
     const flat = flatModels();
-    const slideComps = components.value[currentSlidesIndex.value] ?? [];
+    const slideComps = components.value.get(slideId) ?? [];
     pasteSlots.clear();
     clipboard.value = roots.map((r) => {
       const sub = flat.filter((n) => isSelfOrDescendantPath(n.path, r.path));
@@ -710,7 +738,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function selectAll() {
-    const tree = trees.value[currentSlidesIndex.value];
+    const tree = currentTree.value;
 
     if (!tree) return;
 
@@ -721,9 +749,10 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function reorderNodes() {
-    const root = trees.value[currentSlidesIndex.value];
+    const slideId = currentSlides.value?.id;
+    const root = currentTree.value;
 
-    if (!root) return;
+    if (!root || !slideId) return;
 
     const changed: string[] = [];
 
@@ -746,15 +775,16 @@ export const useDeckStore = defineStore("deck", () => {
     walk(root, "", 0, true);
 
     // Rebuild to restore parent refs and canonical sort_order-sorted children.
-    trees.value[currentSlidesIndex.value] = buildTree(
-      flattenTree(root).map(({ children, parent, ...n }) => n),
+    trees.value.set(
+      slideId,
+      buildTree(flattenTree(root).map(({ children, parent, ...n }) => n)),
     );
 
     for (const id of changed) sync.enqueueNode(id);
   }
 
   function writeComponentAt(slideIndex: number, component: ComponentModel) {
-    const slideComponents = components.value[slideIndex];
+    const slideComponents = componentsAt(slideIndex);
     if (!slideComponents) return;
 
     const index = slideComponents.findIndex(
