@@ -1,6 +1,6 @@
 import html2canvas from "html2canvas";
 
-/** Crops the painted area out of the capture and rescales it to a thumbnail. */
+// Crops the painted area out of the capture and rescales it to a thumbnail.
 function toPng(captured: HTMLCanvasElement, source: Size) {
   const output = document.createElement("canvas");
   output.width = SNAPSHOT_WIDTH;
@@ -47,8 +47,6 @@ export function useSnapshot() {
     const scale = snapshotScale(rect);
     if (!scale) return;
 
-    // The clone re-resolves its viewport-relative width, so it is the only
-    // reliable measure of what actually got painted.
     let painted: Size = rect;
 
     const captured = await html2canvas(render, {
@@ -57,7 +55,6 @@ export function useSnapshot() {
       onclone: (cloned, clone) => {
         clone.style.borderRadius = "0px";
 
-        // The accent outline marks the selection on screen; it is not content.
         cloned
           .querySelectorAll<HTMLElement>(".element")
           .forEach((element) => (element.style.outline = "none"));
@@ -72,21 +69,17 @@ export function useSnapshot() {
 
     const { error } = await client.storage
       .from("snapshots")
-      .upload(
-        `${slides.deck}/${slides.id}.png`,
-        blob,
-        {
-          upsert: true,
-          contentType: "image/png",
-        }
-      );
+      .upload(`${slides.deck}/${slides.id}.png`, blob, {
+        upsert: true,
+        contentType: "image/png",
+      });
 
     if (error) throw error;
   };
 
   const fetch = async (
     deck: string = currentSlides.value?.deck ?? "",
-    slides: string = currentSlides.value?.id ?? ""
+    slides: string = currentSlides.value?.id ?? "",
   ) => {
     const current = currentSlides.value;
     if (current?.id === slides) {
@@ -98,9 +91,18 @@ export function useSnapshot() {
       search: `${slides}.png`,
     });
 
-    if (!data?.length || error) return;
+    if (error) return;
 
-    const { url } = await getStorageObject("snapshots", deck, `${slides}.png`);
+    const file = data?.find((object) => object.name === `${slides}.png`);
+
+    if (!file) return;
+
+    const { url } = await getStorageObject(
+      "snapshots",
+      deck,
+      file.name,
+      file.updated_at ?? file.id,
+    );
 
     return url.toString();
   };

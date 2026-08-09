@@ -1,12 +1,17 @@
-export default async (bucket: string, deck: string, name: string) => {
+export default async (
+  bucket: string,
+  deck: string,
+  name: string,
+  version?: string | null,
+) => {
   const config = useRuntimeConfig();
   const client = useSupabaseClient();
 
   const url = new URL(
-    `${config.public.supabaseUrl}/storage/v1/object/authenticated/${bucket}/${deck}/${name}`
+    `${config.public.supabaseUrl}/storage/v1/object/authenticated/${bucket}/${deck}/${name}`,
   );
 
-  url.searchParams.append("timestamp", Date.now().toString());
+  if (version) url.searchParams.append("v", version);
 
   const {
     data: { session },

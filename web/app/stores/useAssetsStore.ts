@@ -66,6 +66,7 @@ export const useAssetsStore = defineStore("assets", () => {
           "assets",
           deck,
           asset.name,
+          asset.updated_at ?? asset.id,
         );
 
         if (response.ok) {
