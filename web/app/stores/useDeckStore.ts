@@ -448,12 +448,27 @@ export const useDeckStore = defineStore("deck", () => {
     });
   }
 
-  function createNode(name: string, type: NodeType) {
+  function createNode(
+    name: string,
+    type: NodeType,
+    opts: {
+      parentId?: string;
+      position?: { x: number; y: number };
+      seed?: boolean;
+    } = {},
+  ) {
     if (!currentSlides.value) return;
 
     const id = crypto.randomUUID();
-    const parentPath = soleSelected.value?.path ?? ROOT_PATH;
-    const parentType: NodeType = soleSelected.value?.type ?? "core.group";
+    const explicitParent = opts.parentId
+      ? getNodeAsTree(opts.parentId)
+      : undefined;
+    if (opts.parentId && !explicitParent) return;
+
+    const parent = explicitParent ?? soleSelected.value;
+    const parentPath = parent?.path ?? ROOT_PATH;
+    const parentType: NodeType = parent?.type ?? "core.group";
+
     if (!canContain(parentType, type)) {
       throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
@@ -470,6 +485,20 @@ export const useDeckStore = defineStore("deck", () => {
     };
 
     const defaultComponents = buildDefaultComponents(id, type);
+
+    if (opts.position) {
+      const transform = defaultComponents.find(
+        (c) => c.type === "core.transform",
+      );
+
+      if (transform)
+        transform.data.position = {
+          ...transform.data.position,
+          x: opts.position.x,
+          y: opts.position.y,
+        };
+    }
+
     const slideId = currentSlides.value.id;
 
     trees.value.set(slideId, buildTree([...flatModels(), node]));
@@ -483,7 +512,9 @@ export const useDeckStore = defineStore("deck", () => {
     selectedNodeIds.value = [id];
     anchorId.value = id;
 
-    getNodeType(type)?.onCreate?.(id);
+    if (!opts.seed) getNodeType(type)?.onCreate?.(id);
+
+    return id;
   }
 
   function getNodeAsTree(id: string): Tree | null {

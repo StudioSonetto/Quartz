@@ -27,29 +27,9 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isModel(asset.name));
   });
 
-  const isImage = (name: string) => {
-    return (
-      name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
-    );
-  };
-
-  const isFont = (name: string) => {
-    return (
-      name.endsWith(".ttf") ||
-      name.endsWith(".otf") ||
-      name.endsWith(".woff") ||
-      name.endsWith(".woff2")
-    );
-  };
-
-  const isModel = (name: string) => {
-    return (
-      name.endsWith(".fbx") ||
-      name.endsWith(".glb") ||
-      name.endsWith(".gltf") ||
-      name.endsWith(".obj")
-    );
-  };
+  const isImage = (name: string) => assetKind(name) === "image";
+  const isFont = (name: string) => assetKind(name) === "font";
+  const isModel = (name: string) => assetKind(name) === "model";
 
   async function fetchAssets(deck: string) {
     const { data, error } = await client.storage.from("assets").list(deck);

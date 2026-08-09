@@ -13,6 +13,9 @@
       <div
         v-for="asset in assets"
         class="item"
+        draggable="true"
+        @dragstart="onDragStart($event, asset.name)"
+        @dragend="assetDrag.end()"
         @contextmenu.prevent="
           useContextMenu().open($event, [
             {
@@ -41,7 +44,7 @@
             <Suspense>
               <UseLoader
                 v-slot="{ data }"
-                :loader="(GLTFLoader as any)"
+                :loader="GLTFLoader as any"
                 :url="asset.url.toString()"
               >
                 <primitive :object="(data as any).scene" />
@@ -91,7 +94,7 @@
           <Suspense>
             <UseLoader
               v-slot="{ data }"
-              :loader="(GLTFLoader as any)"
+              :loader="GLTFLoader as any"
               :url="selectedAsset?.url.toString()"
             >
               <primitive :object="(data as any).scene" />
@@ -137,6 +140,15 @@ const client = useSupabaseClient();
 const { currentSlides } = storeToRefs(useDeckStore());
 
 const store = useAssetsStore();
+
+const assetDrag = useAssetDrag();
+
+function onDragStart(event: DragEvent, name: string) {
+  event.dataTransfer?.setData(ASSET_MIME, name);
+  event.dataTransfer!.effectAllowed = "copy";
+
+  assetDrag.start(name);
+}
 
 const { fetchAssets, deleteSelectedAsset } = store;
 const { assets } = storeToRefs(store);
