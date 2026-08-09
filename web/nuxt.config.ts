@@ -72,6 +72,7 @@ export default defineNuxtConfig({
       login: "/auth",
       callback: "/auth/callback",
       exclude: ["/", "/docs"],
+      saveRedirectToCookie: true,
     },
   },
   tres: {

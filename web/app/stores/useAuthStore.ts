@@ -2,6 +2,8 @@ import type { User } from "@supabase/supabase-js";
 
 export const useAuthStore = defineStore("auth", () => {
   const client = useSupabaseClient();
+  const route = useRoute();
+  const redirect = useSupabaseCookieRedirect();
 
   const user = ref<User | null>(useSupabaseUser().value);
   const isSignedIn = computed(() => !!user.value);
@@ -9,8 +11,8 @@ export const useAuthStore = defineStore("auth", () => {
   client.auth.onAuthStateChange((event, session) => {
     user.value = session?.user || null;
 
-    if (event === "SIGNED_IN" && useRoute().path.startsWith("/auth")) {
-      navigateTo("/atelier", { replace: true });
+    if (event === "SIGNED_IN" && route.path.startsWith("/auth")) {
+      navigateTo(redirect.pluck() || "/atelier", { replace: true });
     } else if (event === "SIGNED_OUT") {
       navigateTo("/auth", { replace: true });
     }
@@ -19,7 +21,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function register(
     email: string,
     password: string,
-    options: { username: string }
+    options: { username: string },
   ) {
     const { data, error } = await client.auth.signUp({
       email,
