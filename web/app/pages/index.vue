@@ -23,8 +23,22 @@
 useSeoMeta({
   title: "Quartz",
   ogTitle: "Quartz",
-  description: "Open source slides engine; built for ambitious presenters.",
-  ogDescription: "Open source slides engine; built for ambitious presenters.",
+  ogImage: "/images/og-image.png",
+  description: "Open core slides engine; built for ambitious presenters.",
+  ogDescription: "Open core slides engine; built for ambitious presenters.",
   ogUrl: "https://quartz.graphics/",
+});
+
+useHead({
+  htmlAttrs: {
+    lang: "en",
+  },
+  link: [
+    {
+      rel: "icon",
+      type: "image/svg",
+      href: "/favicon.svg",
+    },
+  ],
 });
 </script>
