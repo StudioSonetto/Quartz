@@ -1,8 +1,8 @@
 <template>
   <header class="atelier-header">
-    <NuxtLink class="header-btn border-r" to="/atelier">
+    <UIButton variant="nav" class="border-r" to="/atelier">
       <div class="i-carbon-switcher"></div>
-    </NuxtLink>
+    </UIButton>
     <input
       type="text"
       maxlength="30"
@@ -11,9 +11,9 @@
       @blur="editing = false"
       @change="commit"
     />
-    <button class="header-btn" @click="modal?.open()">
+    <UIButton variant="nav" @click="modal?.open()">
       <div class="i-carbon-run"></div>
-    </button>
+    </UIButton>
     <Modal ref="modal" title="Presentation mode">
       <form @submit.prevent="onSubmit">
         <div class="side">
@@ -45,17 +45,6 @@
   @apply flex justify-between items-center;
   @apply bg-dark-500 h-20;
   @apply border-solid border-0 border-b-2 border-dark-200;
-
-  .header-btn {
-    @apply w-20 h-full;
-    @apply flex items-center justify-center;
-    @apply hover:bg-light-200 hover:text-dark-500;
-    @apply rounded-none transition-colors;
-
-    [class*="i-"] {
-      @apply ui-text-5;
-    }
-  }
 
   form {
     @apply flex flex-row gap-4;

@@ -1,15 +1,16 @@
 <template>
   <div class="actions" @contextmenu.prevent>
     <div class="buttons">
-      <button
+      <UIButton
         v-for="a in buttons"
         :key="a.id"
+        variant="chip"
         :title="a.title"
         :disabled="!a.enabled"
         @click="run(a.id)"
       >
-        <span :class="a.icon"></span>
-      </button>
+        <div :class="a.icon"></div>
+      </UIButton>
     </div>
   </div>
 </template>
@@ -17,24 +18,9 @@
 <style scoped lang="postcss">
 .actions {
   @apply flex items-center gap-3;
-}
 
-.buttons {
-  @apply flex flex-wrap gap-1;
-
-  button {
-    @apply flex items-center justify-center;
-    @apply w-7 h-7 border-rd;
-    @apply ui-text-4;
-    @apply bg-dark-800 text-light-200;
-
-    &:hover:not(:disabled) {
-      @apply bg-light-200 text-dark-800;
-    }
-
-    &:disabled {
-      @apply opacity-40 cursor-not-allowed;
-    }
+  .buttons {
+    @apply flex flex-wrap gap-1;
   }
 }
 </style>

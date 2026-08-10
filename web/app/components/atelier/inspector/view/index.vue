@@ -8,9 +8,13 @@
       {{ props.name }}
       <div class="actions">
         <Tooltip v-for="action in props.actions" :description="action.tooltip">
-          <button :disabled="action.disabled" @click="action.onClick">
+          <UIButton
+            variant="icon"
+            :disabled="action.disabled"
+            @click="action.onClick"
+          >
             <div :class="action.icon"></div>
-          </button>
+          </UIButton>
         </Tooltip>
       </div>
     </h3>
@@ -32,14 +36,6 @@
 
       .tooltip {
         @apply flex mx-2;
-
-        button {
-          @apply ui-text-5;
-
-          &:disabled {
-            @apply opacity-60 cursor-not-allowed;
-          }
-        }
       }
 
       .tooltip:first-of-type {

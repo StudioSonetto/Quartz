@@ -38,12 +38,12 @@
           <tr class="actions">
             <td class="feature"></td>
             <td>
-              <NuxtLink class="btn" to="/auth">Start free</NuxtLink>
+              <UIButton to="/auth">Start free</UIButton>
             </td>
             <td>
-              <NuxtLink class="btn btn-solid" to="#modules">
+              <UIButton variant="solid" to="#modules">
                 Browse all modules
-              </NuxtLink>
+              </UIButton>
             </td>
           </tr>
         </tbody>
@@ -110,17 +110,6 @@
 
   .actions td {
     @apply py-8;
-  }
-
-  .btn {
-    @apply border-solid border-1.5 border-light-200/60 border-rd;
-    @apply px-6 py-3 ui-text-3 transition-colors;
-    @apply hover:bg-light-200 hover:text-dark-900;
-  }
-
-  .btn-solid {
-    @apply bg-light-200/90 text-dark-900 border-light-200/90;
-    @apply hover:bg-light-200;
   }
 
   .footnote {

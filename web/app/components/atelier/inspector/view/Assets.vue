@@ -20,6 +20,8 @@
           useContextMenu().open($event, [
             {
               label: 'Delete',
+              icon: 'i-carbon-trash-can',
+              danger: true,
               action: () =>
                 currentSlides && deleteSelectedAsset(currentSlides.deck, asset),
             },
