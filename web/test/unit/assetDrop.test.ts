@@ -19,6 +19,29 @@ describe("assetKind", () => {
   });
 });
 
+describe("uniqueAssetName", () => {
+  it("keeps the name when nothing clashes", () => {
+    expect(uniqueAssetName("logo.png", new Set())).toBe("logo.png");
+  });
+
+  it("suffixes before the extension, so the asset kind survives", () => {
+    expect(uniqueAssetName("logo.png", new Set(["logo.png"]))).toBe(
+      "logo-1.png",
+    );
+  });
+
+  it("counts past every taken suffix", () => {
+    expect(
+      uniqueAssetName("logo.png", new Set(["logo.png", "logo-1.png"])),
+    ).toBe("logo-2.png");
+  });
+
+  it("appends when there is no extension to split on", () => {
+    expect(uniqueAssetName("logo", new Set(["logo"]))).toBe("logo-1");
+    expect(uniqueAssetName(".env", new Set([".env"]))).toBe(".env-1");
+  });
+});
+
 // Stand-ins for the real types. The webgl ones cannot be imported — that layer
 // is a separate private repo — so the boundary is modelled, not borrowed.
 const nodeType = (type: string, extra: Record<string, any> = {}) =>

@@ -1,20 +1,31 @@
 export const ASSET_MIME = "application/x-quartz-asset";
 
+const CASCADE = 24;
+
 const dragging = ref<{ name: string; kind: AssetKind } | null>(null);
-const preview = ref<{
-  label: string;
-  icon: string;
-  left: number;
-  top: number;
-  width: number | null;
-  height: number | null;
-} | null>(null);
+
+const FILE_PREVIEW = { mode: "file" } as const;
+
+const preview = shallowRef<
+  | {
+      mode: "node";
+      label: string;
+      icon: string;
+      left: number;
+      top: number;
+      width: number | null;
+      height: number | null;
+    }
+  | { mode: "file" }
+  | null
+>(null);
 
 export function useAssetDrag() {
   const deck = useDeckStore();
   const { currentTree } = storeToRefs(deck);
   const { canvasSize } = storeToRefs(useAtelierStore());
   const { findRenderEl } = useCanvasScale();
+  const assets = useAssetsStore();
   const { getNodeComponent } = useNodeComponents();
 
   function start(name: string) {
@@ -69,20 +80,33 @@ export function useAssetDrag() {
   }
 
   function over(event: DragEvent) {
-    if (!event.dataTransfer?.types.includes(ASSET_MIME)) return;
+    const transfer = event.dataTransfer;
+
+    if (!transfer) return;
+
+    if (hasFiles(event)) {
+      event.preventDefault();
+
+      transfer.dropEffect = "copy";
+      preview.value = FILE_PREVIEW;
+
+      return;
+    }
+
+    if (!transfer.types.includes(ASSET_MIME)) return;
 
     event.preventDefault();
 
     const p = plan(event);
 
     if (!p) {
-      event.dataTransfer.dropEffect = "none";
+      transfer.dropEffect = "none";
       preview.value = null;
 
       return;
     }
 
-    event.dataTransfer.dropEffect = "copy";
+    transfer.dropEffect = "copy";
 
     const toPx = {
       x: p.rect.width / canvasSize.value.width,
@@ -90,6 +114,7 @@ export function useAssetDrag() {
     };
 
     preview.value = {
+      mode: "node",
       label: p.hit.def.label,
       icon: p.hit.def.icon,
       left: p.position.x * toPx.x,
@@ -107,8 +132,95 @@ export function useAssetDrag() {
     preview.value = null;
   }
 
+  async function dropFiles(event: DragEvent) {
+    event.preventDefault();
+
+    const files = Array.from(event.dataTransfer?.files ?? []);
+    const rect = findRenderEl()?.getBoundingClientRect();
+    const point = { x: event.clientX, y: event.clientY };
+    const deckId = deck.currentSlides?.deck;
+    const target = nodeUnderPoint(point.x, point.y);
+
+    end();
+
+    if (!rect || !deckId) return;
+
+    const planned = files.flatMap((file) => {
+      const kind = assetKind(file.name);
+
+      return kind ? [{ file, kind }] : [];
+    });
+
+    if (!planned.length) return;
+
+    const drops: {
+      file: File;
+      id: string;
+      def: NodeTypeDef;
+      at: { x: number; y: number };
+    }[] = [];
+    let from = target;
+
+    planned.forEach(({ file, kind }, i) => {
+      const hit = resolveDropTarget(from, kind);
+
+      if (!hit) return;
+
+      const at = { x: point.x + i * CASCADE, y: point.y + i * CASCADE };
+      const position = dropPosition(
+        at,
+        rect,
+        canvasSize.value,
+        defaultNodeSize(hit.def.type),
+      );
+
+      const id = deck.createNode(hit.def.label, hit.def.type, {
+        parentId: hit.parent.id,
+        position,
+        seed: true,
+      });
+
+      if (!id) return;
+
+      from = deck.getNodeAsTree(id) ?? from;
+
+      drops.push({ file, id, def: hit.def, at });
+    });
+
+    const uploaded = await assets
+      .uploadAssets(
+        deckId,
+        planned.map((p) => p.file),
+      )
+      .catch((error) => {
+        console.error(error);
+
+        return new Map<File, string | null>();
+      });
+
+    const failed = drops.filter((d) => !uploaded.get(d.file));
+    const created = drops.filter((d) => uploaded.get(d.file));
+
+    deck.deleteNodes(failed.flatMap((d) => deck.getNodeAsTree(d.id) ?? []));
+
+    await Promise.all(
+      created.map(async (d) => {
+        await d.def.asset!.apply(d.id, uploaded.get(d.file)!);
+
+        recentre(d.id, d.at, rect);
+      }),
+    );
+
+    deck.selectNodes(created.map((d) => d.id));
+  }
+
   async function drop(event: DragEvent) {
-    if (!event.dataTransfer?.types.includes(ASSET_MIME)) return;
+    const types = event.dataTransfer?.types;
+
+    if (!types) return;
+
+    if (hasFiles(event)) return dropFiles(event);
+    if (!types.includes(ASSET_MIME)) return;
 
     event.preventDefault();
 

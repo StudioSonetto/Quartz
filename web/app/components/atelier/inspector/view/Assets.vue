@@ -1,3 +1,5 @@
+<!-- Kinda ugly, might refactor in future. -->
+
 <template>
   <AtelierInspectorView
     name="Assets"
@@ -9,55 +11,62 @@
       },
     ]"
   >
-    <div v-if="assets.length" class="list">
-      <div
-        v-for="asset in assets"
-        class="item"
-        draggable="true"
-        @dragstart="onDragStart($event, asset.name)"
-        @dragend="assetDrag.end()"
-        @contextmenu.prevent="
-          useContextMenu().open($event, [
-            {
-              label: 'Delete',
-              icon: 'i-carbon-trash-can',
-              danger: true,
-              action: () =>
-                currentSlides && deleteSelectedAsset(currentSlides.deck, asset),
-            },
-          ])
-        "
-      >
-        <button v-if="store.isImage(asset.name)" @click="openImageModal(asset)">
-          <NuxtImg :src="asset.url.toString()" :alt="asset.name" />
-        </button>
-        <button
-          v-else-if="store.isFont(asset.name)"
-          @click="openFontModal(asset)"
+    <div ref="dropZone" class="asset-drop" :class="{ over: isOverDropZone }">
+      <div v-if="assets.length" class="list">
+        <div
+          v-for="asset in assets"
+          class="item"
+          draggable="true"
+          @dragstart="onDragStart($event, asset.name)"
+          @dragend="assetDrag.end()"
+          @contextmenu.prevent="
+            useContextMenu().open($event, [
+              {
+                label: 'Delete',
+                icon: 'i-carbon-trash-can',
+                danger: true,
+                action: () =>
+                  currentSlides &&
+                  deleteSelectedAsset(currentSlides.deck, asset),
+              },
+            ])
+          "
         >
-          <p>{{ asset.name }}</p>
-        </button>
-        <button
-          v-else-if="store.isModel(asset.name)"
-          @click="openModelModal(asset)"
-        >
-          <TresCanvas>
-            <TresPerspectiveCamera :position="[0, 0, 2]" />
-            <Suspense>
-              <UseLoader
-                v-slot="{ data }"
-                :loader="GLTFLoader as any"
-                :url="asset.url.toString()"
-              >
-                <primitive :object="(data as any).scene" />
-              </UseLoader>
-            </Suspense>
-          </TresCanvas>
-        </button>
-        <button v-else>
-          <p>Unsupported asset: {{ asset.name }}</p>
-        </button>
+          <button
+            v-if="store.isImage(asset.name)"
+            @click="openImageModal(asset)"
+          >
+            <NuxtImg :src="asset.url.toString()" :alt="asset.name" />
+          </button>
+          <button
+            v-else-if="store.isFont(asset.name)"
+            @click="openFontModal(asset)"
+          >
+            <p>{{ asset.name }}</p>
+          </button>
+          <button
+            v-else-if="store.isModel(asset.name)"
+            @click="openModelModal(asset)"
+          >
+            <TresCanvas>
+              <TresPerspectiveCamera :position="[0, 0, 2]" />
+              <Suspense>
+                <UseLoader
+                  v-slot="{ data }"
+                  :loader="GLTFLoader as any"
+                  :url="asset.url.toString()"
+                >
+                  <primitive :object="(data as any).scene" />
+                </UseLoader>
+              </Suspense>
+            </TresCanvas>
+          </button>
+          <button v-else>
+            <p>Unsupported asset: {{ asset.name }}</p>
+          </button>
+        </div>
       </div>
+      <p v-else class="empty">Drop files here to upload</p>
     </div>
     <Modal
       ref="imagePreviewModal"
@@ -110,6 +119,20 @@
 </template>
 
 <style scoped lang="postcss">
+.asset-drop {
+  @apply border-2 border-dashed border-transparent border-rd;
+  @apply transition-colors;
+
+  &.over {
+    @apply border-accent bg-accent/10;
+  }
+
+  .empty {
+    @apply h-24 flex items-center justify-center;
+    @apply ui-text-3 text-light-200/40;
+  }
+}
+
 .list {
   @apply grid grid-cols-4 gap-6;
 
@@ -137,13 +160,26 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import type Modal from "@/components/Modal.vue";
 
-const client = useSupabaseClient();
-
 const { currentSlides } = storeToRefs(useDeckStore());
 
 const store = useAssetsStore();
 
 const assetDrag = useAssetDrag();
+
+const dropZone = useTemplateRef<HTMLElement>("dropZone");
+
+// Model files carry no usable MIME type, so the zone matches on "this drag
+// contains files at all" — which also excludes asset tiles dragged internally.
+const { isOverDropZone } = useDropZone(dropZone, {
+  dataTypes: (types) => types.length > 0,
+  onDrop: async (files) => {
+    const deck = currentSlides.value?.deck;
+
+    if (!files?.length || !deck) return;
+
+    await uploadAssets(deck, files);
+  },
+});
 
 function onDragStart(event: DragEvent, name: string) {
   event.dataTransfer?.setData(ASSET_MIME, name);
@@ -152,16 +188,14 @@ function onDragStart(event: DragEvent, name: string) {
   assetDrag.start(name);
 }
 
-const { fetchAssets, deleteSelectedAsset } = store;
+const { deleteSelectedAsset, uploadAssets } = store;
 const { assets } = storeToRefs(store);
 
-const { open, onChange } = useFileDialog({
-  accept: "image/*, .ttf, .otf, .woff, .woff2, .fbx, .glb, .gltf, .obj",
-});
+const { open, onChange } = useFileDialog({ accept: ASSET_ACCEPT });
 
-const imagePreviewModal = ref<typeof Modal>();
-const fontPreviewModal = ref<typeof Modal>();
-const modelPreviewModal = ref<typeof Modal>();
+const imagePreviewModal = useTemplateRef<typeof Modal>("imagePreviewModal");
+const fontPreviewModal = useTemplateRef<typeof Modal>("fontPreviewModal");
+const modelPreviewModal = useTemplateRef<typeof Modal>("modelPreviewModal");
 
 onChange(async (files) => {
   if (!files?.length) return;
@@ -169,17 +203,7 @@ onChange(async (files) => {
   const deck = currentSlides.value?.deck;
   if (!deck) return;
 
-  for (const file of files) {
-    const { error } = await client.storage
-      .from("assets")
-      .upload(`${deck}/${file.name}`, file);
-
-    if (error) {
-      console.error(error);
-    }
-  }
-
-  await fetchAssets(deck);
+  await uploadAssets(deck, Array.from(files));
 });
 
 const selectedAsset = ref<{ name: string; url: URL }>();
