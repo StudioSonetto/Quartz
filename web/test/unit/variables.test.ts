@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyBindings, buildScope, resolveBinding } from "~/utils/variables";
+import {
+  applyBindings,
+  buildScope,
+  kindProblem,
+  resolveBinding,
+  variableProblems,
+} from "~/utils/variables";
 import type { VariableDef } from "~/utils/expression";
 
 const v = (name: string, expression: string): VariableDef => ({
@@ -91,5 +97,80 @@ describe("applyBindings", () => {
     const data = { colour: "#FFF" };
     applyBindings(data, { colour: "brand.primary" }, scope);
     expect(data.colour).toBe("#FFF");
+  });
+});
+
+const num = (name: string, expression: string): VariableDef => ({
+  name,
+  kind: "number",
+  expression,
+});
+
+describe("variableProblems", () => {
+  it("flags a duplicate name on the later entry", () => {
+    const problems = variableProblems([num("a", "1"), num("a", "2")]);
+    expect(problems.get(1)).toContain("Duplicate");
+    expect(problems.has(0)).toBe(false);
+  });
+
+  it("flags a self-referential expression", () => {
+    expect(variableProblems([num("a", "a + 1")]).get(0)).toContain("Cycle");
+  });
+
+  it("flags a two-step cycle", () => {
+    const problems = variableProblems([num("a", "b"), num("b", "a")]);
+    expect(problems.get(0)).toContain("Cycle");
+  });
+
+  it("flags a parse error", () => {
+    expect(variableProblems([num("a", "1 +")]).get(0)).toBeTruthy();
+  });
+
+  it("flags a name that a built-in already owns, which silently wins", () => {
+    expect(variableProblems([num("slides.index", "1")]).get(0)).toContain(
+      "built-in",
+    );
+  });
+
+  it("flags a reference to a name nothing declares", () => {
+    expect(variableProblems([num("a", "nope * 2")]).get(0)).toContain("nope");
+  });
+
+  it("accepts a reference to a built-in", () => {
+    expect(variableProblems([num("a", "slides.count - 1")]).size).toBe(0);
+  });
+
+  it("passes a valid derived variable", () => {
+    const problems = variableProblems([
+      num("type.h1", "48"),
+      num("type.h2", "type.h1 * 0.75"),
+    ]);
+    expect(problems.size).toBe(0);
+  });
+
+  it("ignores a blank row so a freshly added variable is not an error", () => {
+    expect(variableProblems([num("", "")]).size).toBe(0);
+  });
+});
+
+describe("kindProblem", () => {
+  it("accepts a hex string for a colour", () => {
+    expect(kindProblem("#151515", "colour")).toBeNull();
+  });
+
+  it("rejects a number bound to a colour row", () => {
+    expect(kindProblem(24, "colour")).toBeTruthy();
+  });
+
+  it("rejects a colour bound to a number row", () => {
+    expect(kindProblem("#151515", "number")).toBeTruthy();
+  });
+
+  it("accepts any text for a string row", () => {
+    expect(kindProblem("Slide 3", "string")).toBeNull();
+  });
+
+  it("accepts anything when the row declares no kind", () => {
+    expect(kindProblem(24, undefined)).toBeNull();
   });
 });

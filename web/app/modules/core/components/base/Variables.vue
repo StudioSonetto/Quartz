@@ -1,24 +1,29 @@
 <template>
   <div v-if="component" class="variables-editor">
-    <div v-for="(entry, index) in list" :key="index" class="variable-row">
-      <NodeComponentRowFieldText
-        lazy
-        :value="entry.name"
-        @update:value="(v) => patch(index, { name: v.trim() })"
-      />
-      <NodeComponentRowFieldSelect
-        :options="KINDS"
-        :value="entry.kind"
-        @update:value="(v) => patch(index, { kind: v as VariableKind })"
-      />
-      <NodeComponentRowFieldText
-        lazy
-        :value="entry.expression"
-        @update:value="(v) => patch(index, { expression: v })"
-      />
-      <button type="button" class="variable-remove" @click="remove(index)">
-        <div class="i-carbon-trash-can"></div>
-      </button>
+    <div v-for="(entry, index) in list" :key="index" class="variable-entry">
+      <div class="variable-row">
+        <NodeComponentRowFieldText
+          lazy
+          :value="entry.name"
+          @update:value="(v) => patch(index, { name: v.trim() })"
+        />
+        <NodeComponentRowFieldSelect
+          :options="KINDS"
+          :value="entry.kind"
+          @update:value="(v) => patch(index, { kind: v as VariableKind })"
+        />
+        <NodeComponentRowFieldText
+          lazy
+          :value="entry.expression"
+          @update:value="(v) => patch(index, { expression: v })"
+        />
+        <button type="button" class="variable-remove" @click="remove(index)">
+          <div class="i-carbon-trash-can"></div>
+        </button>
+      </div>
+      <p v-if="problems.get(index)" class="variable-problem">
+        {{ problems.get(index) }}
+      </p>
     </div>
     <button type="button" class="variable-add" @click="add">
       add variable
@@ -30,8 +35,16 @@
 .variables-editor {
   @apply flex flex-col gap-2 w-full;
 
+  .variable-entry {
+    @apply flex flex-col gap-1;
+  }
+
   .variable-row {
     @apply flex gap-2 items-center;
+  }
+
+  .variable-problem {
+    @apply ui-text-3 text-red-400;
   }
 
   .variable-remove,
@@ -60,6 +73,8 @@ const list = computed<VariableDef[]>(() => {
 
   return Array.isArray(value) ? value : [];
 });
+
+const problems = computed(() => variableProblems(list.value));
 
 function write(next: VariableDef[]) {
   const target = component.value;

@@ -9,7 +9,9 @@ export function useVariableScope() {
   // The renderer only ever draws `currentTree`, so the slide being rendered is
   // always the current one — resolving each node's own slide would mean walking
   // every tree per render.
-  const builtins = computed(() => ({
+  // Typed against `BUILTIN_NAMES` so the editor's shadowing warning cannot drift
+  // out of step with what actually resolves.
+  const builtins = computed<Record<BuiltinName, Value>>(() => ({
     "slides.index": currentSlidesIndex.value,
     "slides.count": slides.value.length,
     "deck.title": deckTitle.value,

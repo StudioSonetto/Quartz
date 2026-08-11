@@ -68,13 +68,31 @@ export function useBinding(
     return result.ok ? null : result.error;
   });
 
-  function bind(expression: string) {
+  // Refused rather than written: the spec's promise is that a mismatch never
+  // reaches storage, where it would render as a broken property with no clue.
+  function bind(
+    expression: string,
+  ): { ok: true } | { ok: false; error: string } {
+    const node = scopeNode.value;
+
+    if (expression && node) {
+      const result = resolveBinding(expression, scopeFor(node));
+
+      if (!result.ok) return result;
+
+      const problem = kindProblem(result.value, kind());
+
+      if (problem) return { ok: false, error: problem };
+    }
+
     for (const component of components.value) {
       updateComponent({
         ...component,
         data: writeBind(component.data, path(), expression),
       });
     }
+
+    return { ok: true };
   }
 
   return { source, candidates, error, bind };

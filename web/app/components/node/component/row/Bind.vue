@@ -26,7 +26,7 @@
         placeholder="expression"
         @change="commit(($event.target as HTMLInputElement).value)"
       />
-      <p v-if="error" class="bind-error">{{ error }}</p>
+      <p v-if="refused ?? error" class="bind-error">{{ refused ?? error }}</p>
       <button
         v-if="source"
         type="button"
@@ -80,18 +80,25 @@ const props = defineProps<{
 }>();
 
 const open = ref(false);
+const refused = ref<string | null>(null);
 const slot = useTemplateRef<HTMLElement>("slot");
 
-onClickOutside(slot, () => (open.value = false));
+onClickOutside(slot, () => {
+  open.value = false;
+  refused.value = null;
+});
 
 const { source, candidates, error, bind } = useBinding(
   () => props.path,
   () => props.kind,
 );
 
+// A refused bind keeps the popover open, otherwise the reason vanishes with it.
 function commit(expression: string) {
-  bind(expression);
+  const result = bind(expression);
 
-  open.value = false;
+  refused.value = result.ok ? null : result.error;
+
+  if (result.ok) open.value = false;
 }
 </script>
