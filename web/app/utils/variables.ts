@@ -9,6 +9,8 @@ export const BUILTIN_NAMES = [
 
 export type BuiltinName = (typeof BUILTIN_NAMES)[number];
 
+const BUILTINS = new Set<string>(BUILTIN_NAMES);
+
 export function buildScope(
   chain: VariableDef[][],
   builtins: Record<string, Value>,
@@ -105,6 +107,33 @@ export function applyBindings(
   );
 }
 
+// The one place that knows unbound data is returned as-is. `scope` is a thunk so
+// the caller can skip building one for the common case of no bindings at all.
+export function resolveData(
+  data: Record<string, any>,
+  scope: () => Scope,
+): Record<string, any> {
+  const bind = data?.[BIND_KEY];
+
+  return bind ? applyBindings(data, bind, scope()) : data;
+}
+
+export function isBound(
+  data: Record<string, any> | undefined,
+  path: string,
+): boolean {
+  return !!data?.[BIND_KEY]?.[path];
+}
+
+// A bound property is read-only to direct manipulation: the binding would
+// overwrite whatever a gesture wrote, so the gesture is refused instead.
+export function anyBound(
+  data: Record<string, any> | undefined,
+  paths: readonly string[],
+): boolean {
+  return paths.some((path) => isBound(data, path));
+}
+
 // Reachability over the declared names only. A cycle would otherwise be caught
 // per-render by the evaluator's visited set — silently, and invisibly.
 function reaches(
@@ -146,7 +175,7 @@ export function variableProblems(list: VariableDef[]): Map<number, string> {
 
     seenNames.add(entry.name);
 
-    if ((BUILTIN_NAMES as readonly string[]).includes(entry.name)) {
+    if (BUILTINS.has(entry.name)) {
       problems.set(index, `"${entry.name}" is a built-in`);
       return;
     }
@@ -160,9 +189,7 @@ export function variableProblems(list: VariableDef[]): Map<number, string> {
 
     const uses = dependencies(ast);
     const unknown = uses.find(
-      (name) =>
-        !declared.has(name) &&
-        !(BUILTIN_NAMES as readonly string[]).includes(name),
+      (name) => !declared.has(name) && !BUILTINS.has(name),
     );
 
     if (unknown) {
@@ -234,6 +261,14 @@ function overHoles(
   );
 }
 
+// The expressions in a source: each hole's contents, or the whole thing when it
+// is a bare expression.
+function holeSources(source: string): string[] {
+  if (!source.includes("{{")) return [source];
+
+  return [...source.matchAll(HOLE)].map((match) => match[1]!.trim());
+}
+
 export function renameInSource(
   source: string,
   from: string,
@@ -248,16 +283,62 @@ export function renameInSource(
   });
 }
 
-export function usesVariable(source: string, name: string): boolean {
-  let found = false;
+// Every reference a rename would otherwise break: bindings that use the name,
+// and variables that derive from it. Returns only the components it changed.
+export function renameAcross(
+  components: ComponentModel[],
+  from: string,
+  to: string,
+): ComponentModel[] {
+  const changed: ComponentModel[] = [];
 
-  overHoles(source, (inner) => {
+  for (const component of components) {
+    let data = component.data;
+    let dirty = false;
+
+    const bind = data?.[BIND_KEY] as Record<string, string> | undefined;
+
+    if (bind) {
+      const next = { ...bind };
+      let bound = false;
+
+      for (const [path, source] of Object.entries(bind)) {
+        if (!usesVariable(source, from)) continue;
+
+        next[path] = renameInSource(source, from, to);
+        bound = true;
+      }
+
+      if (bound) {
+        data = { ...data, [BIND_KEY]: next };
+        dirty = true;
+      }
+    }
+
+    if (component.type === "core.base" && Array.isArray(data.variables)) {
+      const current = data.variables as VariableDef[];
+      const renamed = current.map((entry) =>
+        entry.name !== to && usesVariable(entry.expression, from)
+          ? { ...entry, expression: renameInSource(entry.expression, from, to) }
+          : entry,
+      );
+
+      if (renamed.some((entry, i) => entry !== current[i])) {
+        data = { ...data, variables: renamed };
+        dirty = true;
+      }
+    }
+
+    if (dirty) changed.push({ ...component, data });
+  }
+
+  return changed;
+}
+
+export function usesVariable(source: string, name: string): boolean {
+  return holeSources(source).some((inner) => {
     const ast = parse(inner);
 
-    if (!isParseError(ast) && dependencies(ast).includes(name)) found = true;
-
-    return inner;
+    return !isParseError(ast) && dependencies(ast).includes(name);
   });
-
-  return found;
 }

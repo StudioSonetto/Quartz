@@ -61,9 +61,8 @@ const rootLayout = computed(() => {
   if (!root || isEmptyTree(root)) return undefined;
 
   const data = getNodeComponent(root.id, "core.layout")?.data;
-  const bind = data?.[BIND_KEY];
 
-  return bind ? applyBindings(data, bind, scopeFor(root)) : data;
+  return data && resolveData(data, () => scopeFor(root));
 });
 
 const rootStyle = computed(() => {

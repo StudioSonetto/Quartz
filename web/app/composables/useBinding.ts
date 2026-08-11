@@ -1,5 +1,5 @@
-// Provided by `useMergedFields`, so a panel cannot opt a row into binding and
-// forget to wire the context.
+// Provided by `NodeComponent` from its `components` prop; a panel that forgets
+// to pass it gets an empty context and rows that silently do nothing.
 export const bindContextKey: InjectionKey<ComputedRef<ComponentModel[]>> =
   Symbol("bindContext");
 

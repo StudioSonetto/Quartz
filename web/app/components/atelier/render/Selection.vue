@@ -32,10 +32,16 @@ const snapping = inject(snappingKey)!;
 const { arm } = useSuppressClickAfterDrag();
 
 const movable = computed(() =>
-  selectedNodes.value.filter(
-    (n) =>
-      comps.getNodeComponent(n.id, "core.transform") && !comps.isGridChild(n),
-  ),
+  selectedNodes.value.filter((n) => {
+    const transform = comps.getNodeComponent(n.id, "core.transform");
+
+    // A bound position would overwrite the drag, so the node does not move.
+    if (!transform || anyBound(transform.data, ["position.x", "position.y"])) {
+      return false;
+    }
+
+    return !comps.isGridChild(n);
+  }),
 );
 
 const box = ref<Rect | null>(null);

@@ -72,11 +72,6 @@
   @apply text-red-500;
   @apply hover:bg-red-500 hover:text-white;
 }
-
-.ui-button--primary.ui-button--danger,
-.ui-button--solid.ui-button--danger {
-  @apply border-red-500;
-}
 </style>
 
 <script setup lang="ts">

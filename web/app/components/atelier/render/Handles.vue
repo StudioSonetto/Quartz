@@ -10,14 +10,17 @@
       height: `${box.height}px`,
     }"
   >
+    <template v-if="canResize">
+      <div
+        v-for="h in resizeHandles"
+        :key="h.pos"
+        class="handle"
+        :class="`h-${h.pos}`"
+        @pointerdown.stop.prevent="startResize(h, $event)"
+      ></div>
+    </template>
     <div
-      v-for="h in resizeHandles"
-      :key="h.pos"
-      class="handle"
-      :class="`h-${h.pos}`"
-      @pointerdown.stop.prevent="startResize(h, $event)"
-    ></div>
-    <div
+      v-if="canRotate"
       class="handle rotate"
       @pointerdown.stop.prevent="startRotate($event)"
     ></div>
@@ -86,9 +89,18 @@ const resizeHandles: { pos: Pos; dx: number; dy: number }[] = [
   { pos: "w", dx: -1, dy: 0 },
 ];
 
+// Resizing rewrites all four, so a binding on any of them makes the gesture a
+// no-op the user cannot see the reason for.
+const RESIZE_WRITES = [
+  "size.width",
+  "size.height",
+  "position.x",
+  "position.y",
+] as const;
+
 const { soleSelected } = storeToRefs(useDeckStore());
 const { updateComponent } = useDeckStore();
-const { getNodeComponent } = useNodeComponents();
+const { getNodeComponent, resolvedData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
 const box = ref<{
@@ -164,6 +176,24 @@ function transformOf(node: Tree) {
   return getNodeComponent(node.id, "core.transform");
 }
 
+const selectedTransform = computed(() => {
+  const node = soleSelected.value;
+
+  return node ? transformOf(node)?.data : undefined;
+});
+
+const canResize = computed(() => {
+  const data = selectedTransform.value;
+
+  return !!data && !anyBound(data, RESIZE_WRITES);
+});
+
+const canRotate = computed(() => {
+  const data = selectedTransform.value;
+
+  return !!data && !isBound(data, "rotation");
+});
+
 let activeDrag: (() => void) | null = null;
 
 function startPointerDrag(onMove: (ev: PointerEvent) => void) {
@@ -226,13 +256,19 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
   if (!transform) return;
 
+  if (anyBound(transform.data, RESIZE_WRITES)) return;
+
   const el = document.getElementById(node.id);
 
   if (!el) return;
 
+  // Scale and rotation feed the anchor maths and may themselves be bound, so
+  // read what the canvas drew rather than the literal underneath.
+  const drawn = resolvedData(node, "core.transform") ?? transform.data;
+
   const s = scale();
-  const u = transform.data.scale || 1;
-  const rad = ((transform.data.rotation ?? 0) * Math.PI) / 180;
+  const u = drawn.scale || 1;
+  const rad = ((drawn.rotation ?? 0) * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
 
@@ -246,8 +282,8 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
   const ax = (-h.dx * wc0) / 2;
   const ay = (-h.dy * hc0) / 2;
-  const anchorX = transform.data.position.x + wc0 / 2 + (ax * cos - ay * sin);
-  const anchorY = transform.data.position.y + hc0 / 2 + (ax * sin + ay * cos);
+  const anchorX = drawn.position.x + wc0 / 2 + (ax * cos - ay * sin);
+  const anchorY = drawn.position.y + hc0 / 2 + (ax * sin + ay * cos);
 
   startPointerDrag((ev) => {
     const dx = ev.clientX - startX;
@@ -291,6 +327,8 @@ function startRotate(e: PointerEvent) {
   const transform = transformOf(node);
 
   if (!transform) return;
+
+  if (isBound(transform.data, "rotation")) return;
 
   const rect = document.getElementById(node.id)!.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;

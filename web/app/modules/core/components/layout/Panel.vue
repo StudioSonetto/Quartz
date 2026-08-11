@@ -24,8 +24,8 @@
     <NodeComponentRow
       v-if="!mixed && background.type === 'colour'"
       name="colour"
-      bind-path="background.value"
-      bind-kind="colour"
+      path="background.value"
+      kind="colour"
     >
       <NodeComponentRowFieldColour
         :value="background.value"

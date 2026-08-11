@@ -28,21 +28,14 @@ const props = defineProps<{
 }>();
 
 const { components, source } = useBoundSource(() => props.path);
-const { updateComponent } = useDeckStore();
+const { field, set } = useMergedFields(components);
 
 const segments = computed(() => props.path?.split(".") ?? []);
 
-// Blank when the selection disagrees, matching `useMergedFields`.
-const value = computed(() =>
-  props.path ? mergedValue(components.value, segments.value) : undefined,
-);
+// Blank when the selection disagrees, which is what `field` already does.
+const value = computed(() => (props.path ? field(segments.value) : undefined));
 
 function update(next: unknown) {
-  for (const component of components.value) {
-    updateComponent({
-      ...component,
-      data: setNested(component.data, segments.value, next),
-    });
-  }
+  set(segments.value, next);
 }
 </script>

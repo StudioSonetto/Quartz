@@ -28,21 +28,22 @@ export function useElementRenderer() {
     let scopeId: string | undefined;
     let scope: Scope;
 
+    function cachedScope(target: Tree) {
+      if (scopeId !== target.id) {
+        scope = scopeFor(target);
+        scopeId = target.id;
+      }
+
+      return scope;
+    }
+
     const ctx: RenderContext = {
       findComponent,
       data: (node: Tree, type: ComponentType) => {
         const raw =
           findComponent(node, type)?.data ?? effectiveDefaults(node.type, type);
 
-        const bind = raw[BIND_KEY];
-        if (!bind) return raw;
-
-        if (scopeId !== node.id) {
-          scope = scopeFor(node);
-          scopeId = node.id;
-        }
-
-        return applyBindings(raw, bind, scope);
+        return resolveData(raw, () => cachedScope(node));
       },
       optional: (node: Tree, type: ComponentType) =>
         findComponent(node, type)?.data,

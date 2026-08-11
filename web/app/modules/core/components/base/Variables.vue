@@ -105,46 +105,25 @@ function renameVariable(index: number, to: string) {
 
   if (!subtree) return;
 
-  for (const node of flattenTree(subtree)) {
-    for (const c of deck.componentsOf(node.id)) {
-      let data = c.data;
-      let changed = false;
+  // Only this subtree: that is where the variable is visible, and going wider
+  // would rewrite another slide's own variable of the same name.
+  // Grouped once: `componentsOf` scans every slide, and the subtree is by
+  // definition on the current one.
+  const byNode = new Map<string, ComponentModel[]>();
 
-      const bind = data?.[BIND_KEY] as Record<string, string> | undefined;
+  for (const c of deck.currentComponents ?? []) {
+    const bucket = byNode.get(c.node);
 
-      if (bind) {
-        const next = { ...bind };
+    if (bucket) bucket.push(c);
+    else byNode.set(c.node, [c]);
+  }
 
-        for (const [path, source] of Object.entries(bind)) {
-          if (!usesVariable(source, from)) continue;
+  const scoped = flattenTree(subtree).flatMap(
+    (node) => byNode.get(node.id) ?? [],
+  );
 
-          next[path] = renameInSource(source, from, to);
-          changed = true;
-        }
-
-        if (changed) data = { ...data, [BIND_KEY]: next };
-      }
-
-      // Variables further down the tree can derive from it too.
-      if (c.type === "core.base" && Array.isArray(data.variables)) {
-        const current = data.variables as VariableDef[];
-        const renamed = current.map((entry) =>
-          entry.name !== to && usesVariable(entry.expression, from)
-            ? {
-                ...entry,
-                expression: renameInSource(entry.expression, from, to),
-              }
-            : entry,
-        );
-
-        if (renamed.some((entry, i) => entry !== current[i])) {
-          data = { ...data, variables: renamed };
-          changed = true;
-        }
-      }
-
-      if (changed) updateComponent({ ...c, data });
-    }
+  for (const updated of renameAcross(scoped, from, to)) {
+    updateComponent(updated);
   }
 }
 

@@ -1,3 +1,7 @@
+// One value per session. A deck left open across midnight shows the stale date
+// until reload, which is cheaper than re-reading the clock per render.
+const TODAY = new Date().toISOString().slice(0, 10);
+
 export const useDeckStore = defineStore("deck", () => {
   const apiFetch = useRequestFetch();
   const sync = useDeckSync();
@@ -66,6 +70,16 @@ export const useDeckStore = defineStore("deck", () => {
 
     return map;
   });
+
+  // Hoisted for the same reason. `slides.index` is the current slide because the
+  // renderer only ever draws `currentTree`. Typed against `BUILTIN_NAMES` so the
+  // editor's shadowing warning cannot drift from what actually resolves.
+  const builtins = computed<Record<BuiltinName, Value>>(() => ({
+    "slides.index": currentSlidesIndex.value,
+    "slides.count": slides.value.length,
+    "deck.title": deckTitle.value,
+    date: TODAY,
+  }));
 
   const selectedNodeIds = ref<string[]>([]);
 
@@ -952,6 +966,7 @@ export const useDeckStore = defineStore("deck", () => {
     components,
     currentComponents,
     variablesByNode,
+    builtins,
     selectedNodeIds,
     anchorId,
     clipboard,
