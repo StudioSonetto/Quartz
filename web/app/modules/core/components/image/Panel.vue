@@ -1,34 +1,38 @@
 <template>
-  <NodeComponent name="image" :icon="props.icon">
-    <NodeComponentRow name="asset">
+  <NodeComponent name="image" :icon="props.icon" :components="props.components">
+    <NodeComponentRow name="asset" path="src" v-slot="{ value }">
       <NodeComponentRowFieldSelect
         :options="['', ...imageNames]"
-        :value="field(['src'])"
+        :value="value"
         @update:value="setAsset"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="fit">
+    <NodeComponentRow name="fit" path="fit" v-slot="{ value, update }">
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'cover', icon: 'i-carbon-fit-to-screen' },
           { value: 'contain', icon: 'i-carbon-center-square' },
           { value: 'fill', icon: 'i-carbon-maximize' },
         ]"
-        :value="field(['fit'])"
-        @update:value="(v) => set(['fit'], v)"
+        :value="value"
+        @update:value="update"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="border radius">
-      <NodeComponentRowFieldNumber
-        :value="field(['borderRadius'])"
-        @update:value="(v) => set(['borderRadius'], v)"
-      />
+    <NodeComponentRow
+      name="border radius"
+      path="borderRadius"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="opacity">
-      <NodeComponentRowFieldNumber
-        :value="field(['opacity'])"
-        @update:value="(v) => set(['opacity'], v)"
-      />
+    <NodeComponentRow
+      name="opacity"
+      path="opacity"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
   </NodeComponent>
 </template>
@@ -42,7 +46,6 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { field, set } = useMergedFields(() => props.components);
 const { imageNames } = storeToRefs(useAssetsStore());
 
 const setAsset = (name: string) =>

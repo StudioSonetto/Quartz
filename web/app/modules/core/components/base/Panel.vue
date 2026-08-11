@@ -1,5 +1,5 @@
 <template>
-  <NodeComponent name="base" :icon="props.icon">
+  <NodeComponent name="base" :icon="props.icon" :components="props.components">
     <NodeComponentRow name="reference">
       <NodeComponentRowFieldText
         lazy
@@ -29,6 +29,10 @@
 </style>
 
 <script setup lang="ts">
+// Not auto-imported: Nuxt only scans `app/components/`, not `app/modules/`.
+import LinkModal from "./LinkModal.vue";
+import Variables from "./Variables.vue";
+
 const props = defineProps<{
   components: ComponentModel[];
   nodes: Tree[];

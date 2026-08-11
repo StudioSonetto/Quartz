@@ -95,9 +95,15 @@
 const props = withDefaults(
   defineProps<{
     name: string;
+    components: ComponentModel[];
     icon?: string;
   }>(),
   { icon: "i-carbon-help" },
+);
+
+provide(
+  bindContextKey,
+  computed(() => props.components),
 );
 
 const atelier = useAtelierStore();

@@ -5,9 +5,9 @@
       <!-- Showing the raw value under a binding reads as the property being
            wrong; it stays in the data as the fallback. -->
       <span v-if="source" class="row-bound-source">{{ source }}</span>
-      <slot v-else />
+      <slot v-else :value="value" :update="update" />
     </div>
-    <NodeComponentRowBind v-if="bindPath" :path="bindPath" :kind="bindKind" />
+    <NodeComponentRowBind v-if="path && kind" :path="path" :kind="kind" />
   </div>
 </template>
 
@@ -18,11 +18,31 @@
 </style>
 
 <script setup lang="ts">
+// `path` makes the row own its data: it reads and writes that key across the
+// selection, so a panel states the path once instead of in the field, the
+// setter and the binding. `kind` additionally makes the row bindable.
 const props = defineProps<{
   name: string;
-  bindPath?: string;
-  bindKind?: VariableKind;
+  path?: string;
+  kind?: VariableKind;
 }>();
 
-const { source } = useBoundSource(() => props.bindPath);
+const { components, source } = useBoundSource(() => props.path);
+const { updateComponent } = useDeckStore();
+
+const segments = computed(() => props.path?.split(".") ?? []);
+
+// Blank when the selection disagrees, matching `useMergedFields`.
+const value = computed(() =>
+  props.path ? mergedValue(components.value, segments.value) : undefined,
+);
+
+function update(next: unknown) {
+  for (const component of components.value) {
+    updateComponent({
+      ...component,
+      data: setNested(component.data, segments.value, next),
+    });
+  }
+}
 </script>

@@ -1,5 +1,9 @@
 <template>
-  <NodeComponent name="layout" :icon="props.icon">
+  <NodeComponent
+    name="layout"
+    :icon="props.icon"
+    :components="props.components"
+  >
     <NodeComponentRow name="mode">
       <NodeComponentRowFieldRadio
         :options="[

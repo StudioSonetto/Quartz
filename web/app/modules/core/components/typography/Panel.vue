@@ -1,52 +1,65 @@
 <template>
-  <NodeComponent name="typography" :icon="props.icon">
-    <NodeComponentRow name="content" bind-path="content" bind-kind="string">
+  <NodeComponent
+    name="typography"
+    :icon="props.icon"
+    :components="props.components"
+  >
+    <NodeComponentRow
+      name="content"
+      path="content"
+      kind="string"
+      v-slot="{ value, update }"
+    >
       <NodeComponentRowFieldText
         isParagraph
-        :value="field(['content'])"
-        @update:value="(v) => set(['content'], v)"
+        :value="value"
+        @update:value="update"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="font" bind-path="font" bind-kind="font">
+    <NodeComponentRow name="font" path="font" kind="font" v-slot="{ value }">
       <NodeComponentRowFieldDropdown
         :options="[...fonts, ...fontAssets].sort()"
-        :value="field(['font'])"
+        :value="value"
         @update:value="setFont"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="size" bind-path="size" bind-kind="number">
-      <NodeComponentRowFieldNumber
-        :value="field(['size'])"
-        @update:value="(v) => set(['size'], v)"
-      />
+    <NodeComponentRow
+      name="size"
+      path="size"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="weight" bind-path="weight" bind-kind="number">
-      <NodeComponentRowFieldNumber
-        :value="field(['weight'])"
-        @update:value="(v) => set(['weight'], v)"
-      />
+    <NodeComponentRow
+      name="weight"
+      path="weight"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
     <NodeComponentRow
       name="line height"
-      bind-path="lineHeight"
-      bind-kind="number"
+      path="lineHeight"
+      kind="number"
+      v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber
-        :value="field(['lineHeight'])"
-        @update:value="(v) => set(['lineHeight'], v)"
-      />
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
     <NodeComponentRow
       name="letter spacing"
-      bind-path="letterSpacing"
-      bind-kind="number"
+      path="letterSpacing"
+      kind="number"
+      v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber
-        :value="field(['letterSpacing'])"
-        @update:value="(v) => set(['letterSpacing'], v)"
-      />
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="transform">
+    <NodeComponentRow
+      name="transform"
+      path="textTransform"
+      v-slot="{ value, update }"
+    >
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'none', icon: 'i-carbon-text-font' },
@@ -54,23 +67,27 @@
           { value: 'lowercase', icon: 'i-carbon-text-small-caps' },
           { value: 'capitalize', icon: 'i-carbon-text-selection' },
         ]"
-        :value="field(['textTransform'])"
-        @update:value="(v) => set(['textTransform'], v)"
+        :value="value"
+        @update:value="update"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="opacity" bind-path="opacity" bind-kind="number">
-      <NodeComponentRowFieldNumber
-        :value="field(['opacity'])"
-        @update:value="(v) => set(['opacity'], v)"
-      />
+    <NodeComponentRow
+      name="opacity"
+      path="opacity"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="colour" bind-path="colour" bind-kind="colour">
-      <NodeComponentRowFieldColour
-        :value="field(['colour'])"
-        @update:value="(v) => set(['colour'], v)"
-      />
+    <NodeComponentRow
+      name="colour"
+      path="colour"
+      kind="colour"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldColour :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="style">
+    <NodeComponentRow name="style" path="style" v-slot="{ value, update }">
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'italic', icon: 'i-carbon-text-italic' },
@@ -78,11 +95,15 @@
           { value: 'strikethrough', icon: 'i-carbon-text-strikethrough' },
         ]"
         toggleMode
-        :value="field(['style'])"
-        @update:value="(v) => set(['style'], v)"
+        :value="value"
+        @update:value="update"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="alignment">
+    <NodeComponentRow
+      name="alignment"
+      path="alignment"
+      v-slot="{ value, update }"
+    >
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'left', icon: 'i-carbon-text-align-left' },
@@ -90,8 +111,8 @@
           { value: 'right', icon: 'i-carbon-text-align-right' },
           { value: 'justify', icon: 'i-carbon-text-align-justify' },
         ]"
-        :value="field(['alignment'])"
-        @update:value="(v) => set(['alignment'], v)"
+        :value="value"
+        @update:value="update"
       />
     </NodeComponentRow>
   </NodeComponent>
@@ -104,7 +125,7 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { field, set } = useMergedFields(() => props.components);
+const { set } = useMergedFields(() => props.components);
 
 const fontAssets = computed(() =>
   useAssetsStore()

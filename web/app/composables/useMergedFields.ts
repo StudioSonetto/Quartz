@@ -6,11 +6,6 @@ export function useMergedFields(
   const { updateComponent } = useDeckStore();
   const comps = computed(() => toValue(components));
 
-  // Bindable rows read `$bind` from here. Providing it alongside the fields a
-  // panel already merges means a panel cannot opt a row into binding and forget
-  // to pass the components separately.
-  provide(bindContextKey, comps);
-
   function field(path: string[]) {
     return mergedValue(comps.value, path);
   }
