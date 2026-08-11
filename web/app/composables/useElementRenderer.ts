@@ -16,15 +16,34 @@ export function useElementRenderer() {
     computed(() => 1),
   );
 
+  const { scopeFor } = useVariableScope();
+
   function resolveRender(node: Tree) {
     const def = getNodeType(node.type);
 
     if (!def) return undefined;
 
+    // Renderers read several components per node, and the scope cannot change
+    // within one pass — build it at most once per node.
+    let scopeId: string | undefined;
+    let scope: Scope;
+
     const ctx: RenderContext = {
       findComponent,
-      data: (node: Tree, type: ComponentType) =>
-        findComponent(node, type)?.data ?? effectiveDefaults(node.type, type),
+      data: (node: Tree, type: ComponentType) => {
+        const raw =
+          findComponent(node, type)?.data ?? effectiveDefaults(node.type, type);
+
+        const bind = raw[BIND_KEY];
+        if (!bind) return raw;
+
+        if (scopeId !== node.id) {
+          scope = scopeFor(node);
+          scopeId = node.id;
+        }
+
+        return applyBindings(raw, bind, scope);
+      },
       optional: (node: Tree, type: ComponentType) =>
         findComponent(node, type)?.data,
       scale: scale.value,

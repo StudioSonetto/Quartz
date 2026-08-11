@@ -1,38 +1,46 @@
 <template>
   <NodeComponent name="typography" :icon="props.icon">
-    <NodeComponentRow name="content">
+    <NodeComponentRow name="content" bind-path="content" bind-kind="string">
       <NodeComponentRowFieldText
         isParagraph
         :value="field(['content'])"
         @update:value="(v) => set(['content'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="font">
+    <NodeComponentRow name="font" bind-path="font" bind-kind="font">
       <NodeComponentRowFieldDropdown
         :options="[...fonts, ...fontAssets].sort()"
         :value="field(['font'])"
         @update:value="setFont"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="size">
+    <NodeComponentRow name="size" bind-path="size" bind-kind="number">
       <NodeComponentRowFieldNumber
         :value="field(['size'])"
         @update:value="(v) => set(['size'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="weight">
+    <NodeComponentRow name="weight" bind-path="weight" bind-kind="number">
       <NodeComponentRowFieldNumber
         :value="field(['weight'])"
         @update:value="(v) => set(['weight'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="line height">
+    <NodeComponentRow
+      name="line height"
+      bind-path="lineHeight"
+      bind-kind="number"
+    >
       <NodeComponentRowFieldNumber
         :value="field(['lineHeight'])"
         @update:value="(v) => set(['lineHeight'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="letter spacing">
+    <NodeComponentRow
+      name="letter spacing"
+      bind-path="letterSpacing"
+      bind-kind="number"
+    >
       <NodeComponentRowFieldNumber
         :value="field(['letterSpacing'])"
         @update:value="(v) => set(['letterSpacing'], v)"
@@ -50,13 +58,13 @@
         @update:value="(v) => set(['textTransform'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="opacity">
+    <NodeComponentRow name="opacity" bind-path="opacity" bind-kind="number">
       <NodeComponentRowFieldNumber
         :value="field(['opacity'])"
         @update:value="(v) => set(['opacity'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="colour">
+    <NodeComponentRow name="colour" bind-path="colour" bind-kind="colour">
       <NodeComponentRowFieldColour
         :value="field(['colour'])"
         @update:value="(v) => set(['colour'], v)"

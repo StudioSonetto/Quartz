@@ -9,6 +9,9 @@
       />
     </NodeComponentRow>
     <p v-if="rejection" class="rejection">{{ rejection }}</p>
+    <NodeComponentRow name="variables">
+      <Variables :components="props.components" />
+    </NodeComponentRow>
   </NodeComponent>
   <LinkModal
     v-if="pending"
@@ -26,9 +29,6 @@
 </style>
 
 <script setup lang="ts">
-// Not auto-imported: Nuxt only scans `app/components/`, not `app/modules/`.
-import LinkModal from "./LinkModal.vue";
-
 const props = defineProps<{
   components: ComponentModel[];
   nodes: Tree[];
@@ -46,6 +46,8 @@ const mergedReference = computed(() =>
   ),
 );
 
+// Root stays unlinkable until per-component sync selection exists: linking it
+// today would converge slide backgrounds along with the variables.
 const allRoot = computed(() => props.nodes.every((n) => n.path === ROOT_PATH));
 
 const targets = computed(() => props.nodes.filter((n) => n.path !== ROOT_PATH));

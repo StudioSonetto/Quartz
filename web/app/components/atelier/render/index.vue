@@ -53,12 +53,17 @@ const { getNodeComponent } = useNodeComponents();
 const { imageUrl } = useAssetsStore();
 const assetDrag = useAssetDrag();
 
+const { scopeFor } = useVariableScope();
+
 const rootLayout = computed(() => {
   const root = currentTree.value;
 
   if (!root || isEmptyTree(root)) return undefined;
 
-  return getNodeComponent(root.id, "core.layout")?.data;
+  const data = getNodeComponent(root.id, "core.layout")?.data;
+  const bind = data?.[BIND_KEY];
+
+  return bind ? applyBindings(data, bind, scopeFor(root)) : data;
 });
 
 const rootStyle = computed(() => {
@@ -73,6 +78,8 @@ const rootStyle = computed(() => {
 });
 
 function onCanvasClick() {
+  if (!pressedCanvas) return;
+
   const root = currentTree.value;
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
@@ -84,6 +91,20 @@ const props = defineProps<{
 }>();
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
+
+let pressedCanvas = false;
+
+useEventListener(
+  window,
+  "pointerdown",
+  (event: PointerEvent) => {
+    const el = event.target as Element | null;
+
+    pressedCanvas =
+      el === renderEl.value || !!el?.classList.contains("marquee-detector");
+  },
+  { capture: true },
+);
 
 provide(renderRootKey, renderEl);
 

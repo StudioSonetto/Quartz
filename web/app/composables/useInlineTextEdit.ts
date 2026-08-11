@@ -24,8 +24,12 @@ export function useInlineTextEdit(
 
   const editable = () => !!typography();
 
+  // A bound `content` is re-resolved every render, so an inline edit would be
+  // invisible — and would quietly overwrite the literal kept as the fallback.
+  const bound = () => !!typography()?.data?.[BIND_KEY]?.content;
+
   function start(event?: MouseEvent) {
-    if (!typography()) return;
+    if (!typography() || bound()) return;
 
     editing.value = true;
 

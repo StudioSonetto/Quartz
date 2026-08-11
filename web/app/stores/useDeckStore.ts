@@ -4,6 +4,10 @@ export const useDeckStore = defineStore("deck", () => {
 
   const slides = ref<SlidesModel[]>([]);
 
+  // The page fetches the deck row for its own use; the `deck.title` built-in
+  // needs a copy the renderer can reach.
+  const deckTitle = ref("");
+
   const currentSlideId = ref<string | null>(null);
 
   const currentSlides = computed(
@@ -45,6 +49,23 @@ export const useDeckStore = defineStore("deck", () => {
   const currentComponents = computed(() =>
     componentsAt(currentSlidesIndex.value),
   );
+
+  // Lives here, not in `useVariableScope`: that composable is instantiated once
+  // per rendered element, so a computed inside it would rescan the whole slide
+  // for every node on any component change.
+  const variablesByNode = computed(() => {
+    const map = new Map<string, VariableDef[]>();
+
+    for (const component of currentComponents.value ?? []) {
+      if (component.type !== "core.base") continue;
+
+      const list = component.data?.variables;
+
+      if (Array.isArray(list) && list.length) map.set(component.node, list);
+    }
+
+    return map;
+  });
 
   const selectedNodeIds = ref<string[]>([]);
 
@@ -219,7 +240,11 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function fetchDeck(id: string) {
-    return apiFetch(`/api/decks/${id}`);
+    const deck = await apiFetch<DeckModel>(`/api/decks/${id}`);
+
+    deckTitle.value = deck?.title ?? "";
+
+    return deck;
   }
 
   async function insertNewDeck() {
@@ -237,6 +262,8 @@ export const useDeckStore = defineStore("deck", () => {
       method: "PATCH",
       body: { title },
     });
+
+    deckTitle.value = title;
   }
 
   async function deleteDeck(id: string) {
@@ -917,12 +944,14 @@ export const useDeckStore = defineStore("deck", () => {
 
   return {
     slides,
+    deckTitle,
     currentSlides,
     currentSlidesIndex,
     trees,
     currentTree,
     components,
     currentComponents,
+    variablesByNode,
     selectedNodeIds,
     anchorId,
     clipboard,

@@ -20,6 +20,8 @@
     <NodeComponentRow
       v-if="!mixed && background.type === 'colour'"
       name="colour"
+      bind-path="background.value"
+      bind-kind="colour"
     >
       <NodeComponentRowFieldColour
         :value="background.value"
@@ -134,8 +136,23 @@ watch(
   { immediate: true },
 );
 
+// `background.value` holds the colour and the image name, so a colour binding
+// left behind after a switch would overwrite the image name on the canvas.
+function clearColourBinding() {
+  for (const c of props.components) {
+    if (!c.data?.[BIND_KEY]?.["background.value"]) continue;
+
+    updateComponent({
+      ...c,
+      data: writeBind(c.data, "background.value", ""),
+    });
+  }
+}
+
 function setBackgroundType(next: string | string[]) {
   const type = one(next);
+
+  if (type !== "colour") clearColourBinding();
 
   if (type === "colour") {
     set(["background"], { type: "colour", value: lastColour.value });
