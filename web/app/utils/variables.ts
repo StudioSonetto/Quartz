@@ -202,3 +202,62 @@ export function kindProblem(
 
   return typeof value === "string" ? null : "Expected text";
 }
+
+function printAst(ast: Ast, rename: (name: string) => string): string {
+  switch (ast.kind) {
+    case "number":
+      return String(ast.value);
+    case "string":
+      return `'${ast.value}'`;
+    case "colour":
+      return ast.value;
+    case "name":
+      return rename(ast.value);
+    case "unary":
+      return `-${printAst(ast.operand, rename)}`;
+    case "binary":
+      return `(${printAst(ast.left, rename)} ${ast.op} ${printAst(ast.right, rename)})`;
+    case "ternary":
+      return `(${printAst(ast.test, rename)} ? ${printAst(ast.then, rename)} : ${printAst(ast.otherwise, rename)})`;
+  }
+}
+
+function overHoles(
+  source: string,
+  transform: (inner: string) => string,
+): string {
+  if (!source.includes("{{")) return transform(source);
+
+  return source.replace(
+    HOLE,
+    (_match, inner: string) => `{{ ${transform(inner.trim())} }}`,
+  );
+}
+
+export function renameInSource(
+  source: string,
+  from: string,
+  to: string,
+): string {
+  return overHoles(source, (inner) => {
+    const ast = parse(inner);
+
+    if (isParseError(ast)) return inner;
+
+    return printAst(ast, (name) => (name === from ? to : name));
+  });
+}
+
+export function usesVariable(source: string, name: string): boolean {
+  let found = false;
+
+  overHoles(source, (inner) => {
+    const ast = parse(inner);
+
+    if (!isParseError(ast) && dependencies(ast).includes(name)) found = true;
+
+    return inner;
+  });
+
+  return found;
+}

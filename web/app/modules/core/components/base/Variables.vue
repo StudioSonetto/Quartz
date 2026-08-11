@@ -5,7 +5,7 @@
         <NodeComponentRowFieldText
           lazy
           :value="entry.name"
-          @update:value="(v) => patch(index, { name: v.trim() })"
+          @update:value="(v) => renameVariable(index, v.trim())"
         />
         <NodeComponentRowFieldSelect
           :options="KINDS"
@@ -61,7 +61,8 @@ const props = defineProps<{
   components: ComponentModel[];
 }>();
 
-const { updateComponent } = useDeckStore();
+const deck = useDeckStore();
+const { updateComponent } = deck;
 
 // Variables are per-node; merging lists across a multi-selection is meaningless.
 const component = computed(() =>
@@ -90,6 +91,61 @@ function patch(index: number, changes: Partial<VariableDef>) {
       i === index ? { ...entry, ...changes } : entry,
     ),
   );
+}
+
+function renameVariable(index: number, to: string) {
+  const from = list.value[index]?.name;
+  const owner = component.value;
+
+  patch(index, { name: to });
+
+  if (!from || !to || from === to || !owner) return;
+
+  const subtree = deck.getNodeAsTree(owner.node);
+
+  if (!subtree) return;
+
+  for (const node of flattenTree(subtree)) {
+    for (const c of deck.componentsOf(node.id)) {
+      let data = c.data;
+      let changed = false;
+
+      const bind = data?.[BIND_KEY] as Record<string, string> | undefined;
+
+      if (bind) {
+        const next = { ...bind };
+
+        for (const [path, source] of Object.entries(bind)) {
+          if (!usesVariable(source, from)) continue;
+
+          next[path] = renameInSource(source, from, to);
+          changed = true;
+        }
+
+        if (changed) data = { ...data, [BIND_KEY]: next };
+      }
+
+      // Variables further down the tree can derive from it too.
+      if (c.type === "core.base" && Array.isArray(data.variables)) {
+        const current = data.variables as VariableDef[];
+        const renamed = current.map((entry) =>
+          entry.name !== to && usesVariable(entry.expression, from)
+            ? {
+                ...entry,
+                expression: renameInSource(entry.expression, from, to),
+              }
+            : entry,
+        );
+
+        if (renamed.some((entry, i) => entry !== current[i])) {
+          data = { ...data, variables: renamed };
+          changed = true;
+        }
+      }
+
+      if (changed) updateComponent({ ...c, data });
+    }
+  }
 }
 
 function remove(index: number) {

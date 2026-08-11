@@ -3,7 +3,9 @@ import {
   applyBindings,
   buildScope,
   kindProblem,
+  renameInSource,
   resolveBinding,
+  usesVariable,
   variableProblems,
 } from "~/utils/variables";
 import type { VariableDef } from "~/utils/expression";
@@ -172,5 +174,51 @@ describe("kindProblem", () => {
 
   it("accepts anything when the row declares no kind", () => {
     expect(kindProblem(24, undefined)).toBeNull();
+  });
+});
+
+describe("renameInSource", () => {
+  it("renames a bare reference", () => {
+    expect(
+      renameInSource("brand.primary", "brand.primary", "brand.accent"),
+    ).toBe("brand.accent");
+  });
+
+  it("leaves a longer name that merely starts the same alone", () => {
+    expect(
+      renameInSource("brand.primaryDark + brand.primary", "brand.primary", "x"),
+    ).toBe("(brand.primaryDark + x)");
+  });
+
+  it("renames inside every hole of a template", () => {
+    expect(renameInSource("{{ a }} of {{ a }}", "a", "b")).toBe(
+      "{{ b }} of {{ b }}",
+    );
+  });
+
+  it("leaves a matching string literal alone", () => {
+    expect(renameInSource("'a' + a", "a", "b")).toBe("('a' + b)");
+  });
+
+  it("returns the source unchanged when it does not parse", () => {
+    expect(renameInSource("1 +", "a", "b")).toBe("1 +");
+  });
+
+  it("preserves precedence when reprinting", () => {
+    expect(renameInSource("1 + 2 * 3", "a", "b")).toBe("(1 + (2 * 3))");
+  });
+});
+
+describe("usesVariable", () => {
+  it("is true for a name inside a template hole", () => {
+    expect(usesVariable("Slide {{ a + 1 }}", "a")).toBe(true);
+  });
+
+  it("is false for a name that only appears as literal text", () => {
+    expect(usesVariable("'a'", "a")).toBe(false);
+  });
+
+  it("is false for a longer name that merely starts the same", () => {
+    expect(usesVariable("brand.primaryDark", "brand.primary")).toBe(false);
   });
 });
