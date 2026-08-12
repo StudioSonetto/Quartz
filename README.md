@@ -6,10 +6,10 @@
   <br />
 
   <div>
-    <img src="https://img.shields.io/github/contributors/QuartzGraphics/Quartz?style=for-the-badge" alt="Contributors" />
-    <img src="https://img.shields.io/github/forks/QuartzGraphics/Quartz?style=for-the-badge" alt="Forks" />
-    <img src="https://img.shields.io/github/stars/QuartzGraphics/Quartz?style=for-the-badge" alt="Stars" />
-    <img src="https://img.shields.io/github/license/QuartzGraphics/Quartz?style=for-the-badge" alt="License" />
+    <img src="https://img.shields.io/github/contributors/StudioSonetto/Quartz?style=for-the-badge" alt="Contributors" />
+    <img src="https://img.shields.io/github/forks/StudioSonetto/Quartz?style=for-the-badge" alt="Forks" />
+    <img src="https://img.shields.io/github/stars/StudioSonetto/Quartz?style=for-the-badge" alt="Stars" />
+    <img src="https://img.shields.io/github/license/StudioSonetto/Quartz?style=for-the-badge" alt="License" />
   </div>
 </div>
 
@@ -27,9 +27,8 @@
 
 ### Screenshots
 
-![Landing](https://github.com/user-attachments/assets/ba40a6fb-c76d-437a-ba4e-291f46c084fe)
-![Auth](https://github.com/user-attachments/assets/a771243b-58e1-4faf-a1fc-071e3a1d0f31)
-![Atelier](https://github.com/user-attachments/assets/0501f732-e923-4aaf-9db8-b5332de20530)
+![Landing](https://github.com/user-attachments/assets/d3caa9ea-4b18-4101-a749-67c95be8ec46)
+![Atelier](https://github.com/user-attachments/assets/dd3a378a-bf63-446f-844c-17bc443656f1)
 
 <br />
 
