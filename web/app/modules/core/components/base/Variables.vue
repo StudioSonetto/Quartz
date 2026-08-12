@@ -17,17 +17,16 @@
       <p v-if="!list.length" class="variables-empty">none</p>
     </div>
     <div class="variables-footer">
-      <button type="button" class="variables-button" @click="add">
+      <UIButton variant="icon" @click="add">
         <div class="i-carbon-add"></div>
-      </button>
-      <button
-        type="button"
-        class="variables-button"
+      </UIButton>
+      <UIButton
+        variant="icon"
         :disabled="selected === null"
         @click="removeSelected"
       >
         <div class="i-carbon-subtract"></div>
-      </button>
+      </UIButton>
     </div>
   </div>
 </template>
@@ -46,15 +45,6 @@
 
   .variables-footer {
     @apply flex justify-end gap-1 mt-6;
-
-    .variables-button {
-      @apply bg-transparent border-none text-light-200 cursor-pointer;
-      @apply flex items-center p-1 ui-text-4;
-
-      &:disabled {
-        @apply opacity-40 cursor-not-allowed;
-      }
-    }
   }
 }
 </style>
@@ -71,7 +61,6 @@ const deck = useDeckStore();
 const { updateComponent } = deck;
 const { scopeFor } = useVariableScope();
 
-// Variables are per-node; merging lists across a multi-selection is meaningless.
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
 );
@@ -94,8 +83,6 @@ const scope = computed(() => {
 const selected = ref<number | null>(null);
 const open = ref(new Set<number>());
 
-// Keyed by index, so both reset when the panel starts describing another node.
-// Watching the id, not the component: every edit replaces the object.
 watch(
   () => component.value?.node,
   () => {
@@ -143,10 +130,6 @@ function renameVariable(index: number, to: string) {
 
   if (!subtree) return;
 
-  // Only this subtree: that is where the variable is visible, and going wider
-  // would rewrite another slide's own variable of the same name.
-  // Grouped once: `componentsOf` scans every slide, and the subtree is by
-  // definition on the current one.
   const byNode = new Map<string, ComponentModel[]>();
 
   for (const c of deck.currentComponents ?? []) {
@@ -165,8 +148,6 @@ function renameVariable(index: number, to: string) {
   }
 }
 
-// Indices above the removed row shift down, or the open set points at the
-// wrong variables.
 function removeSelected() {
   const index = selected.value;
 
