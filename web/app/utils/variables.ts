@@ -44,46 +44,6 @@ export function writeBind(
     : Object.fromEntries(Object.entries(data).filter(([k]) => k !== BIND_KEY));
 }
 
-function evaluateSource(
-  source: string,
-  scope: Scope,
-): { ok: true; value: Value } | { ok: false; error: string } {
-  const ast = parse(source);
-  if (isParseError(ast)) return { ok: false, error: ast.error };
-
-  const value = evaluate(ast, scope);
-  if (isEvalError(value)) return { ok: false, error: value.error };
-
-  return { ok: true, value };
-}
-
-const HOLE = /\{\{([^}]*)\}\}/g;
-
-export function resolveBinding(
-  source: string,
-  scope: Scope,
-): { ok: true; value: Value } | { ok: false; error: string } {
-  if (!source.includes("{{")) return evaluateSource(source, scope);
-
-  let out = "";
-  let cursor = 0;
-
-  for (const match of source.matchAll(HOLE)) {
-    const result = evaluateSource(match[1]!.trim(), scope);
-    if (!result.ok) return result;
-
-    out += source.slice(cursor, match.index) + String(result.value);
-    cursor = match.index + match[0].length;
-  }
-
-  const tail = source.slice(cursor);
-
-  // An unclosed hole would otherwise render its own braces onto the slide.
-  if (tail.includes("{{")) return { ok: false, error: "Unclosed {{" };
-
-  return { ok: true, value: out + tail };
-}
-
 export function applyBindings(
   data: Record<string, any>,
   bind: Record<string, string>,
@@ -92,7 +52,7 @@ export function applyBindings(
   let out = data;
 
   for (const [path, source] of Object.entries(bind)) {
-    const result = resolveBinding(source, scope);
+    const result = resolveSource(source, scope);
 
     // A failed binding leaves the stored literal, so the canvas keeps rendering.
     if (!result.ok) continue;
@@ -180,14 +140,38 @@ export function variableProblems(list: VariableDef[]): Map<number, string> {
       return;
     }
 
-    const ast = parse(entry.expression);
+    const sources = holeSources(entry.expression);
 
-    if (isParseError(ast)) {
-      problems.set(index, ast.error);
+    // Checked on what the holes leave behind, so a stray `{{` after a complete
+    // one is caught too.
+    if (entry.expression.replace(HOLE, "").includes("{{")) {
+      problems.set(index, "Unclosed {{");
       return;
     }
 
-    const uses = dependencies(ast);
+    if (!sources.length) {
+      // Braced values need a scope to resolve, which this function does not
+      // take; only a literal can be checked here.
+      const mismatch = kindProblem(literalValue(entry.expression), entry.kind);
+
+      if (mismatch) problems.set(index, mismatch);
+
+      return;
+    }
+
+    const uses: string[] = [];
+
+    for (const source of sources) {
+      const ast = parse(source);
+
+      if (isParseError(ast)) {
+        problems.set(index, ast.error);
+        return;
+      }
+
+      uses.push(...dependencies(ast));
+    }
+
     const unknown = uses.find(
       (name) => !declared.has(name) && !BUILTINS.has(name),
     );
@@ -249,11 +233,12 @@ function printAst(ast: Ast, rename: (name: string) => string): string {
   }
 }
 
+// A source with no holes is literal text, so a rename must not rewrite it.
 function overHoles(
   source: string,
   transform: (inner: string) => string,
 ): string {
-  if (!source.includes("{{")) return transform(source);
+  if (isLiteral(source)) return source;
 
   return source.replace(
     HOLE,
@@ -261,10 +246,9 @@ function overHoles(
   );
 }
 
-// The expressions in a source: each hole's contents, or the whole thing when it
-// is a bare expression.
+// The expressions in a source: each hole's contents. Literal text has none.
 function holeSources(source: string): string[] {
-  if (!source.includes("{{")) return [source];
+  if (isLiteral(source)) return [];
 
   return [...source.matchAll(HOLE)].map((match) => match[1]!.trim());
 }

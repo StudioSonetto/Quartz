@@ -1,14 +1,4 @@
 import { describe, expect, it } from "vitest";
-import {
-  applyBindings,
-  buildScope,
-  kindProblem,
-  renameInSource,
-  resolveBinding,
-  usesVariable,
-  variableProblems,
-} from "~/utils/variables";
-import type { VariableDef } from "~/utils/expression";
 
 const v = (name: string, expression: string): VariableDef => ({
   name,
@@ -37,53 +27,13 @@ describe("buildScope", () => {
   });
 });
 
-describe("resolveBinding", () => {
-  const scope = buildScope([[v("brand.primary", "#151515")]], {
-    "slides.index": 2,
-    "slides.count": 12,
-  });
-
-  it("evaluates a bare expression", () => {
-    expect(resolveBinding("brand.primary", scope)).toEqual({
-      ok: true,
-      value: "#151515",
-    });
-  });
-
-  it("treats a source containing {{ as a template", () => {
-    expect(
-      resolveBinding(
-        "Slide {{ slides.index + 1 }} of {{ slides.count }}",
-        scope,
-      ),
-    ).toEqual({ ok: true, value: "Slide 3 of 12" });
-  });
-
-  it("keeps literal text outside the holes", () => {
-    expect(resolveBinding("v{{ slides.count }}", scope)).toEqual({
-      ok: true,
-      value: "v12",
-    });
-  });
-
-  it("fails on an unclosed hole rather than rendering the braces", () => {
-    expect(resolveBinding("Slide {{ slides.index", scope)).toMatchObject({
-      ok: false,
-    });
-  });
-
-  it("reports a parse error", () => {
-    expect(resolveBinding("1 +", scope)).toMatchObject({ ok: false });
-  });
-});
-
 describe("applyBindings", () => {
   const scope = buildScope([[v("brand.primary", "#151515")]], {});
 
   it("overwrites the raw value at a dotted path", () => {
     const out = applyBindings(
       { background: { type: "colour", value: "#FFF" } },
-      { "background.value": "brand.primary" },
+      { "background.value": "{{ brand.primary }}" },
       scope,
     );
     expect(out.background.value).toBe("#151515");
@@ -91,13 +41,17 @@ describe("applyBindings", () => {
   });
 
   it("leaves the raw value in place when the binding fails", () => {
-    const out = applyBindings({ colour: "#FFF" }, { colour: "missing" }, scope);
+    const out = applyBindings(
+      { colour: "#FFF" },
+      { colour: "{{ missing }}" },
+      scope,
+    );
     expect(out.colour).toBe("#FFF");
   });
 
   it("does not mutate the stored data", () => {
     const data = { colour: "#FFF" };
-    applyBindings(data, { colour: "brand.primary" }, scope);
+    applyBindings(data, { colour: "{{ brand.primary }}" }, scope);
     expect(data.colour).toBe("#FFF");
   });
 });
@@ -116,16 +70,21 @@ describe("variableProblems", () => {
   });
 
   it("flags a self-referential expression", () => {
-    expect(variableProblems([num("a", "a + 1")]).get(0)).toContain("Cycle");
+    expect(variableProblems([num("a", "{{ a + 1 }}")]).get(0)).toContain(
+      "Cycle",
+    );
   });
 
   it("flags a two-step cycle", () => {
-    const problems = variableProblems([num("a", "b"), num("b", "a")]);
+    const problems = variableProblems([
+      num("a", "{{ b }}"),
+      num("b", "{{ a }}"),
+    ]);
     expect(problems.get(0)).toContain("Cycle");
   });
 
   it("flags a parse error", () => {
-    expect(variableProblems([num("a", "1 +")]).get(0)).toBeTruthy();
+    expect(variableProblems([num("a", "{{ 1 + }}")]).get(0)).toBeTruthy();
   });
 
   it("flags a name that a built-in already owns, which silently wins", () => {
@@ -135,23 +94,47 @@ describe("variableProblems", () => {
   });
 
   it("flags a reference to a name nothing declares", () => {
-    expect(variableProblems([num("a", "nope * 2")]).get(0)).toContain("nope");
+    expect(variableProblems([num("a", "{{ nope * 2 }}")]).get(0)).toContain(
+      "nope",
+    );
   });
 
   it("accepts a reference to a built-in", () => {
-    expect(variableProblems([num("a", "slides.count - 1")]).size).toBe(0);
+    expect(variableProblems([num("a", "{{ slides.count - 1 }}")]).size).toBe(0);
   });
 
   it("passes a valid derived variable", () => {
     const problems = variableProblems([
       num("type.h1", "48"),
-      num("type.h2", "type.h1 * 0.75"),
+      num("type.h2", "{{ type.h1 * 0.75 }}"),
     ]);
     expect(problems.size).toBe(0);
   });
 
   it("ignores a blank row so a freshly added variable is not an error", () => {
     expect(variableProblems([num("", "")]).size).toBe(0);
+  });
+
+  it("flags a literal that does not match its kind", () => {
+    expect(variableProblems([num("a", "Satoshi")]).get(0)).toContain(
+      "Expected a number",
+    );
+  });
+
+  it("flags an old bare reference, which now reads as text", () => {
+    expect(variableProblems([v("a", "theme.primary")]).get(0)).toContain(
+      "Expected a colour",
+    );
+  });
+
+  it("accepts a literal that matches its kind", () => {
+    expect(variableProblems([v("a", "#f5f5f5"), num("b", "24")]).size).toBe(0);
+  });
+
+  it("does not kind-check a value it cannot resolve without a scope", () => {
+    expect(variableProblems([v("a", "{{ b }}"), v("b", "#f5f5f5")]).size).toBe(
+      0,
+    );
   });
 });
 
@@ -180,14 +163,18 @@ describe("kindProblem", () => {
 describe("renameInSource", () => {
   it("renames a bare reference", () => {
     expect(
-      renameInSource("brand.primary", "brand.primary", "brand.accent"),
-    ).toBe("brand.accent");
+      renameInSource("{{ brand.primary }}", "brand.primary", "brand.accent"),
+    ).toBe("{{ brand.accent }}");
   });
 
   it("leaves a longer name that merely starts the same alone", () => {
     expect(
-      renameInSource("brand.primaryDark + brand.primary", "brand.primary", "x"),
-    ).toBe("(brand.primaryDark + x)");
+      renameInSource(
+        "{{ brand.primaryDark + brand.primary }}",
+        "brand.primary",
+        "x",
+      ),
+    ).toBe("{{ (brand.primaryDark + x) }}");
   });
 
   it("renames inside every hole of a template", () => {
@@ -197,15 +184,23 @@ describe("renameInSource", () => {
   });
 
   it("leaves a matching string literal alone", () => {
-    expect(renameInSource("'a' + a", "a", "b")).toBe("('a' + b)");
+    expect(renameInSource("{{ 'a' + a }}", "a", "b")).toBe("{{ ('a' + b) }}");
   });
 
   it("returns the source unchanged when it does not parse", () => {
-    expect(renameInSource("1 +", "a", "b")).toBe("1 +");
+    expect(renameInSource("{{ 1 + }}", "a", "b")).toBe("{{ 1 + }}");
   });
 
   it("preserves precedence when reprinting", () => {
-    expect(renameInSource("1 + 2 * 3", "a", "b")).toBe("(1 + (2 * 3))");
+    expect(renameInSource("{{ 1 + 2 * 3 }}", "a", "b")).toBe(
+      "{{ (1 + (2 * 3)) }}",
+    );
+  });
+
+  it("leaves a literal alone even when it reads like a reference", () => {
+    expect(renameInSource("brand.primary", "brand.primary", "x")).toBe(
+      "brand.primary",
+    );
   });
 });
 
@@ -215,10 +210,12 @@ describe("usesVariable", () => {
   });
 
   it("is false for a name that only appears as literal text", () => {
-    expect(usesVariable("'a'", "a")).toBe(false);
+    expect(usesVariable("a", "a")).toBe(false);
   });
 
   it("is false for a longer name that merely starts the same", () => {
-    expect(usesVariable("brand.primaryDark", "brand.primary")).toBe(false);
+    expect(usesVariable("{{ brand.primaryDark }}", "brand.primary")).toBe(
+      false,
+    );
   });
 });

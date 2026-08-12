@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { dependencies, evaluate, parse } from "~/utils/expression";
-import type { Scope, VariableDef } from "~/utils/expression";
 
 describe("parse", () => {
   it("reads a hex colour as a literal, not a comment or an error", () => {
@@ -79,7 +77,10 @@ describe("evaluate", () => {
 
   it("resolves a variable defined in terms of another", () => {
     expect(
-      run("type.h2", scopeOf({ "type.h1": "48", "type.h2": "type.h1 * 0.75" })),
+      run(
+        "type.h2",
+        scopeOf({ "type.h1": "48", "type.h2": "{{ type.h1 * 0.75 }}" }),
+      ),
     ).toBe(36);
   });
 
@@ -93,7 +94,7 @@ describe("evaluate", () => {
   });
 
   it("errors on a cycle instead of hanging the editor", () => {
-    const scope = scopeOf({ a: "b", b: "a" });
+    const scope = scopeOf({ a: "{{ b }}", b: "{{ a }}" });
     expect(run("a", scope)).toMatchObject({
       error: expect.stringContaining("Cycle"),
     });
@@ -128,5 +129,103 @@ describe("dependencies", () => {
       "a",
       "b",
     ]);
+  });
+});
+
+const colour = (name: string, expression: string): VariableDef => ({
+  name,
+  kind: "colour",
+  expression,
+});
+
+const number = (name: string, expression: string): VariableDef => ({
+  name,
+  kind: "number",
+  expression,
+});
+
+describe("literalValue", () => {
+  it("reads text that is a number as a number", () => {
+    expect(literalValue("24")).toBe(24);
+    expect(literalValue(" 0.75 ")).toBe(0.75);
+  });
+
+  it("reads anything else as the text it is", () => {
+    expect(literalValue("#f5f5f5")).toBe("#f5f5f5");
+    expect(literalValue("Satoshi")).toBe("Satoshi");
+    expect(literalValue("theme.primary")).toBe("theme.primary");
+    expect(literalValue("")).toBe("");
+  });
+});
+
+describe("resolveSource", () => {
+  const scope = buildScope(
+    [[colour("brand.primary", "#151515"), number("spacing", "24")]],
+    { "slides.index": 2, "slides.count": 12 },
+  );
+
+  it("does not evaluate a source with no holes", () => {
+    expect(resolveSource("brand.primary", scope)).toEqual({
+      ok: true,
+      value: "brand.primary",
+    });
+  });
+
+  it("resolves a source that is exactly one hole", () => {
+    expect(resolveSource("{{ brand.primary }}", scope)).toEqual({
+      ok: true,
+      value: "#151515",
+    });
+  });
+
+  it("keeps the type of a lone hole", () => {
+    expect(resolveSource("{{ spacing * 2 }}", scope)).toEqual({
+      ok: true,
+      value: 48,
+    });
+  });
+
+  it("concatenates when a hole is mixed with text", () => {
+    expect(
+      resolveSource(
+        "Slide {{ slides.index + 1 }} of {{ slides.count }}",
+        scope,
+      ),
+    ).toEqual({ ok: true, value: "Slide 3 of 12" });
+  });
+
+  it("concatenates two adjacent holes rather than passing a value through", () => {
+    expect(resolveSource("{{ spacing }}{{ spacing }}", scope)).toEqual({
+      ok: true,
+      value: "2424",
+    });
+  });
+
+  it("resolves a variable whose own value is a hole", () => {
+    const derived = buildScope(
+      [[number("a", "2"), number("b", "{{ a * 3 }}")]],
+      {},
+    );
+
+    expect(resolveSource("{{ b }}", derived)).toEqual({ ok: true, value: 6 });
+  });
+
+  it("stops on a cycle instead of recursing forever", () => {
+    const cyclic = buildScope(
+      [[number("a", "{{ b }}"), number("b", "{{ a }}")]],
+      {},
+    );
+
+    expect(resolveSource("{{ a }}", cyclic)).toMatchObject({ ok: false });
+  });
+
+  it("fails on an unclosed hole rather than rendering the braces", () => {
+    expect(resolveSource("Slide {{ slides.index", scope)).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it("reports a parse error from inside a hole", () => {
+    expect(resolveSource("{{ 1 + }}", scope)).toMatchObject({ ok: false });
   });
 });

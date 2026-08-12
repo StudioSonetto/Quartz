@@ -16,14 +16,14 @@
         :key="entry.name"
         type="button"
         class="bind-option"
-        @click="commit(entry.name)"
+        @click="commit(hole(entry.name))"
       >
         {{ entry.name }}
       </button>
       <input
         class="bind-expression"
         :value="source ?? ''"
-        placeholder="expression"
+        :placeholder="hole('expression')"
         @change="commit(($event.target as HTMLInputElement).value)"
       />
       <p v-if="refused ?? error" class="bind-error">{{ refused ?? error }}</p>

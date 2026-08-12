@@ -8,7 +8,7 @@
       @keydown.enter.exact.prevent="handleEnter"
       @keydown.escape="handleEscape"
       :rows="props.isParagraph ? 5 : 1"
-      :maxlength="props.isParagraph ? 300 : 30"
+      :maxlength="props.maxlength ?? (props.isParagraph ? 300 : 30)"
       :value="draft"
       :placeholder="props.value === undefined ? 'Mixed' : undefined"
       @input="onInput"
@@ -22,7 +22,7 @@ const props = defineProps<{
   isParagraph?: boolean;
   value?: string;
   disabled?: boolean;
-  // Commit on blur/Enter instead of on every keystroke.
+  maxlength?: number;
   lazy?: boolean;
 }>();
 
@@ -30,8 +30,6 @@ const emit = defineEmits<{
   "update:value": [value: string];
 }>();
 
-// Renders from `draft`, not the prop: Vue only patches `:value` when the bound
-// value changes, so a declined commit would leave the typed text stranded.
 const draft = ref(props.value ?? "");
 
 watch(
@@ -41,7 +39,6 @@ watch(
   },
 );
 
-// Lazy only. Stops Escape committing twice: it blurs, then unmounts.
 let dirty = false;
 
 function flush(): boolean {
@@ -67,18 +64,11 @@ function onInput(event: Event) {
 async function onChange() {
   if (!props.lazy || !flush()) return;
 
-  // Taken: the watch already reset the draft. Refused: this clears it.
   await nextTick();
 
   draft.value = props.value ?? "";
 }
 
-// Escape abandons an unsaved edit, the way it does in every other editor, and
-// claims the key so the panel doesn't clear the selection out from under it. A
-// clean field has nothing to abandon and lets the press through.
-//
-// This also keeps a half-typed value away from the unmount flush below. Some
-// commits need a follow-up prompt, and a panel on its way out can't show one.
 function handleEscape(event: KeyboardEvent) {
   if (!props.lazy || !dirty) return;
 
@@ -87,8 +77,6 @@ function handleEscape(event: KeyboardEvent) {
   draft.value = props.value ?? "";
 }
 
-// Selecting a node of another type unmounts the field while it holds focus.
-// Removal fires no `change`, so the typed value would be dropped.
 onBeforeUnmount(() => {
   if (props.lazy) flush();
 });

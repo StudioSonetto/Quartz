@@ -1,5 +1,3 @@
-// Provided by `NodeComponent` from its `components` prop; a panel that forgets
-// to pass it gets an empty context and rows that silently do nothing.
 export const bindContextKey: InjectionKey<ComputedRef<ComponentModel[]>> =
   Symbol("bindContext");
 
@@ -10,8 +8,6 @@ function bindContext() {
   );
 }
 
-// The expression driving `path`, or undefined when unbound — or when the
-// selection disagrees, matching how the fields themselves merge.
 export function useBoundSource(path: () => string | undefined) {
   const components = bindContext();
 
@@ -33,9 +29,6 @@ export function useBinding(
   const { selectedNodes } = storeToRefs(useDeckStore());
   const { chainFor, scopeFor } = useVariableScope();
 
-  // Panels merge 1…N nodes, so binding must work on a multi-selection too. The
-  // chain is read from the first node: with a selection spanning groups the
-  // others may see different variables, but an empty list would be worse.
   const scopeNode = computed(() => selectedNodes.value[0] ?? null);
 
   const candidates = computed<VariableDef[]>(() => {
@@ -63,20 +56,22 @@ export function useBinding(
 
     if (!source.value || !node) return null;
 
-    const result = resolveBinding(source.value, scopeFor(node));
+    const result = resolveSource(source.value, scopeFor(node));
 
-    return result.ok ? null : result.error;
+    if (!result.ok) return result.error;
+
+    // Stored sources predate the current kind, and nothing re-checks them: a
+    // mismatch reaches the property as text and renders as a broken value.
+    return kindProblem(result.value, kind());
   });
 
-  // Refused rather than written: the spec's promise is that a mismatch never
-  // reaches storage, where it would render as a broken property with no clue.
   function bind(
     expression: string,
   ): { ok: true } | { ok: false; error: string } {
     const node = scopeNode.value;
 
     if (expression && node) {
-      const result = resolveBinding(expression, scopeFor(node));
+      const result = resolveSource(expression, scopeFor(node));
 
       if (!result.ok) return result;
 

@@ -369,10 +369,13 @@ export function evaluate(
         return { error: `Cycle through "${ast.value}"` };
       }
 
-      const inner = parse(variable.expression);
-      if (isParseError(inner)) return { error: inner.error };
+      const inner = resolveSource(
+        variable.expression,
+        scope,
+        new Set(seen).add(ast.value),
+      );
 
-      return evaluate(inner, scope, new Set(seen).add(ast.value));
+      return inner.ok ? inner.value : { error: inner.error };
     }
 
     case "unary": {
@@ -425,4 +428,78 @@ export function dependencies(ast: Ast): string[] {
   walk(ast);
 
   return [...names];
+}
+
+export const HOLE = /\{\{([^}]*)\}\}/g;
+
+const SOLO_HOLE = /^\{\{([^}]*)\}\}$/;
+
+export type Resolved =
+  | { ok: true; value: Value }
+  | { ok: false; error: string };
+
+// The one place that decides what a hole looks like. Everything downstream —
+// the resolver, rename, the panel's colour picker — asks rather than re-tests.
+export function isLiteral(source: string): boolean {
+  return !source.includes("{{");
+}
+
+export function hole(expression: string): string {
+  return `{{ ${expression} }}`;
+}
+
+// Text with no holes is a value, not a formula: `Satoshi` is a font name and
+// `theme.primary` is eleven characters until someone braces it.
+export function literalValue(source: string): Value {
+  const trimmed = source.trim();
+
+  return trimmed !== "" && Number.isFinite(Number(trimmed))
+    ? Number(trimmed)
+    : source;
+}
+
+function evaluateHole(
+  source: string,
+  scope: Scope,
+  seen: Set<string>,
+): Resolved {
+  const ast = parse(source);
+  if (isParseError(ast)) return { ok: false, error: ast.error };
+
+  const value = evaluate(ast, scope, seen);
+  if (isEvalError(value)) return { ok: false, error: value.error };
+
+  return { ok: true, value };
+}
+
+export function resolveSource(
+  source: string,
+  scope: Scope,
+  seen: Set<string> = new Set(),
+): Resolved {
+  if (isLiteral(source)) return { ok: true, value: literalValue(source) };
+
+  const solo = SOLO_HOLE.exec(source.trim());
+
+  // A source that is nothing but one hole keeps the value's type; without this
+  // every number-kind binding resolves to a string.
+  if (solo) return evaluateHole(solo[1]!.trim(), scope, seen);
+
+  let out = "";
+  let cursor = 0;
+
+  for (const match of source.matchAll(HOLE)) {
+    const result = evaluateHole(match[1]!.trim(), scope, seen);
+    if (!result.ok) return result;
+
+    out += source.slice(cursor, match.index) + String(result.value);
+    cursor = match.index + match[0].length;
+  }
+
+  const tail = source.slice(cursor);
+
+  // An unclosed hole would otherwise render its own braces onto the slide.
+  if (tail.includes("{{")) return { ok: false, error: "Unclosed {{" };
+
+  return { ok: true, value: out + tail };
 }
