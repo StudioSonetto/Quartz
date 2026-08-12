@@ -211,7 +211,11 @@ export function kindProblem(
       : "Expected a colour";
   }
 
-  return typeof value === "string" ? null : "Expected text";
+  // A lone hole keeps its value's type, so `{{ slides.index }}` arrives as a
+  // number. Text renders it either way; only a boolean is a real mistake.
+  return typeof value === "string" || typeof value === "number"
+    ? null
+    : "Expected text";
 }
 
 function printAst(ast: Ast, rename: (name: string) => string): string {
@@ -246,7 +250,6 @@ function overHoles(
   );
 }
 
-// The expressions in a source: each hole's contents. Literal text has none.
 function holeSources(source: string): string[] {
   if (isLiteral(source)) return [];
 
@@ -267,8 +270,6 @@ export function renameInSource(
   });
 }
 
-// Every reference a rename would otherwise break: bindings that use the name,
-// and variables that derive from it. Returns only the components it changed.
 export function renameAcross(
   components: ComponentModel[],
   from: string,
