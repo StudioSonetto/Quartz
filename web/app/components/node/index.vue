@@ -16,7 +16,9 @@
         ></div>
         <input
           maxlength="30"
-          @keydown.enter.esc.prevent="($event.target as HTMLInputElement).blur()"
+          @keydown.enter.esc.prevent="
+            ($event.target as HTMLInputElement).blur()
+          "
           v-model.lazy="nodeName"
           :style="isSelected ? 'width: 100%' : `width: ${nodeName.length}ch`"
           :class="{ 'text-dark-900': isSelected }"
@@ -201,10 +203,6 @@ function toggleGroup() {
   atelier.toggleCollapsed(props.node.id);
 }
 
-// Route through the command so the delete guard (`core.node.delete`'s `when`)
-// stays single-sourced — the row must not delete on rules the command wouldn't.
-// The Backspace guard stays local: it protects the inline rename input, where
-// Backspace edits text rather than deleting the node.
 function handleDelete(event: KeyboardEvent) {
   if (event.key === "Backspace") return;
 

@@ -1,12 +1,13 @@
 <template>
   <aside class="toolbar border-r">
-    <button
+    <UIButton
       v-for="(tab, index) in tabs"
       :key="tab.name"
+      variant="nav"
       @click="setActiveTab(index)"
     >
       <div :class="[tab.icon, { 'opacity-60': index !== activeTab }]"></div>
-    </button>
+    </UIButton>
   </aside>
 </template>
 
@@ -16,13 +17,8 @@ aside {
   @apply flex flex-col flex-shrink-0;
 
   button {
-    @apply w-full h-20;
-    @apply flex justify-center items-center transition-colors;
-    @apply hover-bg-light-200 hover-text-dark-500;
-    @apply rounded-none;
-
     [class*="i-"] {
-      @apply ui-text-5 transition-opacity;
+      @apply transition-opacity! duration-200;
     }
   }
 }

@@ -5,7 +5,7 @@
         v-if="isVisible"
         ref="menuRef"
         :style="{ top: `${y}px`, left: `${x}px` }"
-        class="contextMenu"
+        class="context-menu"
         @contextmenu.prevent="isVisible = false"
       >
         <template v-for="(item, i) in menuItems" :key="item.label">
@@ -13,8 +13,9 @@
             v-if="item.danger && i > 0 && !menuItems[i - 1]?.danger"
             class="separator"
           />
-          <button
-            :class="{ danger: item.danger }"
+          <UIButton
+            variant="menu"
+            :danger="item.danger"
             @click="handleItemClick(item)"
           >
             <span
@@ -25,7 +26,7 @@
             <span v-if="item.shortcut" class="shortcut">{{
               item.shortcut
             }}</span>
-          </button>
+          </UIButton>
         </template>
       </div>
     </Transition>
@@ -33,7 +34,7 @@
 </template>
 
 <style scoped lang="postcss">
-.contextMenu {
+.context-menu {
   @apply w-52 bg-dark-900 z-99 absolute;
   @apply border-rd border-solid border-1 border-dark-200;
   @apply overflow-hidden;
@@ -42,27 +43,12 @@
     @apply border-0 border-t-1 border-solid border-dark-200 m-0;
   }
 
-  button {
-    @apply w-full h-12 px-4 cursor-pointer transition-colors;
-    @apply flex items-center;
-    @apply border-solid border-0 border-b-1 border-dark-200;
+  button:last-child {
+    @apply border-b-0;
+  }
 
-    &:last-child {
-      @apply border-b-0;
-    }
-
-    &:not(.danger) {
-      @apply hover:bg-light-200 hover:text-dark-900;
-    }
-
-    &.danger {
-      @apply text-red-500;
-      @apply hover:bg-red-500 hover:text-white;
-    }
-
-    .shortcut {
-      @apply opacity-40 ui-text-3 ml-4 flex-shrink-0;
-    }
+  .shortcut {
+    @apply opacity-40 ui-text-3 ml-4 flex-shrink-0;
   }
 }
 </style>

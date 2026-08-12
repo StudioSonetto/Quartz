@@ -22,6 +22,10 @@ export default {
 
     if (first) applyImageAsset([nodeId], first);
   },
+  asset: {
+    kind: "image",
+    apply: (nodeId, name) => applyImageAsset([nodeId], name),
+  },
   renderer: {
     element: "div",
     render: (node, ctx) => {

@@ -1,10 +1,17 @@
 export function useNodeComponents() {
   const { currentComponents } = storeToRefs(useDeckStore());
+  const { scopeFor } = useVariableScope();
 
   function getNodeComponent(node: string, type: ComponentType) {
     return currentComponents.value?.find(
       (component) => component.type === type && component.node === node,
     );
+  }
+
+  function resolvedData(node: Tree, type: ComponentType) {
+    const data = getNodeComponent(node.id, type)?.data;
+
+    return data && resolveData(data, () => scopeFor(node));
   }
 
   function getNodeComponents(node: string): ComponentModel[] {
@@ -26,6 +33,7 @@ export function useNodeComponents() {
   return {
     getNodeComponent,
     getNodeComponents,
+    resolvedData,
     isGridChild,
   };
 }

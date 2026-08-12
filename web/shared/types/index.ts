@@ -12,6 +12,8 @@ export type ComponentModel = typeof components.$inferSelect;
 export type NodeType = NodeModel["type"];
 export type ComponentType = ComponentModel["type"];
 
+export type AssetKind = "image" | "font" | "model";
+
 export interface Tree extends NodeModel {
   type: NodeType;
   children: Tree[];
@@ -76,6 +78,11 @@ export type DefaultComponent =
   | ComponentType
   | { type: ComponentType; data: Record<string, any> };
 
+export interface AssetDropDef {
+  kind: AssetKind;
+  apply: (nodeId: string, name: string) => void | Promise<void>;
+}
+
 export interface NodeTypeDef {
   type: NodeType;
   label: string;
@@ -87,6 +94,7 @@ export interface NodeTypeDef {
   parents?: NodeType[];
   onMount?: (nodeId: string) => void;
   onCreate?: (nodeId: string) => void;
+  asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
 }
 

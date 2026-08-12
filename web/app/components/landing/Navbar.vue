@@ -14,17 +14,17 @@
       <NuxtLink>Blog</NuxtLink>
     </nav>
     <div class="actions">
-      <a
-        href="https://github.com/StudioConcertos/Quartz"
+      <UIButton
+        variant="ghost"
+        to="https://github.com/StudioSonetto/Quartz"
         target="_blank"
-        class="github"
       >
         <div class="i-carbon-logo-github" />
         <span>{{ stargazers }}</span>
-      </a>
-      <NuxtLink v-if="!isSignedIn" class="btn" to="/auth"> Sign In </NuxtLink>
+      </UIButton>
+      <UIButton v-if="!isSignedIn" to="/auth">Sign In</UIButton>
       <div v-else class="user">
-        <NuxtLink class="btn" to="/atelier">Dashboard</NuxtLink>
+        <UIButton to="/atelier">Dashboard</UIButton>
         <div class="avatar">
           <div class="i-carbon-user" />
         </div>
@@ -60,20 +60,6 @@
   .actions {
     @apply flex items-center gap-4 ui-text-3;
 
-    .github {
-      @apply flex items-center gap-2;
-      @apply px-3 py-2 rounded-lg;
-      @apply transition-colors duration-200;
-      @apply text-light-200/80 hover:text-light-200 hover:bg-light-200/10;
-    }
-
-    .btn {
-      @apply inline-flex justify-center items-center gap-2;
-      @apply border-solid border-1 border-light-200 border-rd;
-      @apply px-4 py-2 ui-text-3 transition-all;
-      @apply hover:bg-light-200 hover:text-dark-900 active:opacity-80;
-    }
-
     .user {
       @apply flex items-center gap-4;
 
@@ -108,7 +94,7 @@ const stargazers = ref(0);
 const fetchStargazers = async () => {
   try {
     const response = await $fetch<{ stargazers_count: number }>(
-      "https://api.github.com/repos/StudioConcertos/Quartz",
+      "https://api.github.com/repos/StudioSonetto/Quartz",
     );
 
     stargazers.value = response.stargazers_count;

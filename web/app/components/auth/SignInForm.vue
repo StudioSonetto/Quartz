@@ -7,7 +7,7 @@
       <FormInput name="password" type="password" placeholder="Password" />
     </div>
     <div class="whitespace"></div>
-    <UIButton type="submit" size="lg" :disabled="!meta.valid">
+    <UIButton type="submit" :disabled="!meta.valid">
       Sign In
       <div class="i-carbon-login" />
     </UIButton>

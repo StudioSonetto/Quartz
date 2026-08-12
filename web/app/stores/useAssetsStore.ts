@@ -5,6 +5,8 @@ export const useAssetsStore = defineStore("assets", () => {
 
   const assets = ref<(FileObject & { url: URL })[]>([]);
 
+  const LIST_LIMIT = 1000;
+
   const images = computed(() => {
     return assets.value.filter((asset) => isImage(asset.name));
   });
@@ -27,58 +29,93 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isModel(asset.name));
   });
 
-  const isImage = (name: string) => {
-    return (
-      name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
-    );
-  };
+  const isImage = (name: string) => assetKind(name) === "image";
+  const isFont = (name: string) => assetKind(name) === "font";
+  const isModel = (name: string) => assetKind(name) === "model";
 
-  const isFont = (name: string) => {
-    return (
-      name.endsWith(".ttf") ||
-      name.endsWith(".otf") ||
-      name.endsWith(".woff") ||
-      name.endsWith(".woff2")
+  async function resolveAsset(deck: string, asset: FileObject) {
+    const { url, response } = await getStorageObject(
+      "assets",
+      deck,
+      asset.name,
+      asset.updated_at ?? asset.id,
     );
-  };
 
-  const isModel = (name: string) => {
-    return (
-      name.endsWith(".fbx") ||
-      name.endsWith(".glb") ||
-      name.endsWith(".gltf") ||
-      name.endsWith(".obj")
-    );
-  };
+    return response.ok ? { ...asset, url } : null;
+  }
 
   async function fetchAssets(deck: string) {
-    const { data, error } = await client.storage.from("assets").list(deck);
+    const { data, error } = await client.storage
+      .from("assets")
+      .list(deck, { limit: LIST_LIMIT });
 
     if (error) {
       console.error(error);
     }
 
-    if (data) {
-      assets.value = [];
+    if (!data) return;
 
-      for (const asset of data) {
-        const { url, response } = await getStorageObject(
-          "assets",
-          deck,
-          asset.name,
-          asset.updated_at ?? asset.id,
-        );
+    // One round trip per asset, run together — a deck of twenty used to cost
+    // twenty sequential fetches before anything appeared.
+    const resolved = await Promise.all(
+      data.map((asset) => resolveAsset(deck, asset as FileObject)),
+    );
 
-        if (response.ok) {
-          assets.value.push({
-            ...(asset as FileObject),
-            url,
-          });
-        }
-      }
+    assets.value = resolved.filter((asset) => asset !== null);
 
-      serveAllFonts();
+    await serveFonts();
+  }
+
+  async function uploadAssets(deck: string, files: File[]) {
+    const { data: stored } = await client.storage
+      .from("assets")
+      .list(deck, { limit: LIST_LIMIT });
+
+    const taken = new Set([
+      ...assets.value.map((a) => a.name),
+      ...(stored ?? []).map((a) => a.name),
+    ]);
+
+    const planned = files.flatMap((file) => {
+      if (!assetKind(file.name)) return [];
+
+      const name = uniqueAssetName(file.name, taken);
+
+      taken.add(name);
+
+      return [{ file, name }];
+    });
+
+    const entries = await Promise.all(
+      planned.map(async ({ file, name }) => {
+        const { error } = await client.storage
+          .from("assets")
+          .upload(`${deck}/${name}`, file);
+
+        if (error) console.error(error);
+
+        return [file, error ? null : name] as const;
+      }),
+    );
+
+    const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));
+
+    if (names.size) {
+      const { data } = await client.storage
+        .from("assets")
+        .list(deck, { limit: LIST_LIMIT });
+      const added = await Promise.all(
+        (data ?? [])
+          .filter((asset) => names.has(asset.name))
+          .map((asset) => resolveAsset(deck, asset as FileObject)),
+      );
+
+      assets.value = [...assets.value, ...added.filter((a) => a !== null)];
+
+      await serveFonts();
     }
+
+    return new Map(entries);
   }
 
   async function deleteSelectedAsset(deck: string, asset: FileObject) {
@@ -93,19 +130,26 @@ export const useAssetsStore = defineStore("assets", () => {
     await fetchAssets(deck);
   }
 
-  async function serveAllFonts() {
-    for (const font of fonts.value) {
-      try {
-        const fontName = font.name.split(".")[0] ?? font.name;
-        const fontFace = new FontFace(fontName, `url(${font.url})`);
+  const served = new Set<string>();
 
-        await fontFace.load();
+  async function serveFonts() {
+    const pending = fonts.value.filter((f) => !served.has(f.url.toString()));
 
-        document.fonts.add(fontFace);
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    await Promise.all(
+      pending.map(async (font) => {
+        try {
+          const fontName = font.name.split(".")[0] ?? font.name;
+          const fontFace = new FontFace(fontName, `url(${font.url})`);
+
+          await fontFace.load();
+
+          document.fonts.add(fontFace);
+          served.add(font.url.toString());
+        } catch (error) {
+          console.error(error);
+        }
+      }),
+    );
   }
 
   return {
@@ -119,6 +163,7 @@ export const useAssetsStore = defineStore("assets", () => {
     isFont,
     isModel,
     fetchAssets,
+    uploadAssets,
     deleteSelectedAsset,
   };
 });

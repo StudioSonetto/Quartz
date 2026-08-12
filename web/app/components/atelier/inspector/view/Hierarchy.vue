@@ -54,7 +54,6 @@
         </p>
         <UIButton
           type="submit"
-          size="sm"
           :disabled="!meta.valid || !availableTypes.length"
           class="w-full mt-10"
         >
@@ -93,8 +92,6 @@
 import zod from "zod";
 
 import type Modal from "@/components/Modal.vue";
-
-import { allNodeTypes, creatableTypesFor } from "~/modules/registry";
 
 const { currentTree, currentSlides, soleSelected } =
   storeToRefs(useDeckStore());

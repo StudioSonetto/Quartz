@@ -7,7 +7,11 @@ import {
 } from "~/utils/align";
 
 function isAlignable(node: Tree, comps: ReturnType<typeof useNodeComponents>) {
-  if (!comps.getNodeComponent(node.id, "core.transform")) return false;
+  const transform = comps.getNodeComponent(node.id, "core.transform");
+
+  if (!transform) return false;
+  // A bound position would overwrite the alignment, so the node is not offered.
+  if (anyBound(transform.data, ["position.x", "position.y"])) return false;
   if (comps.isGridChild(node)) return false;
 
   return true;
@@ -24,20 +28,22 @@ export function useAlignment() {
     const s = scale();
 
     return nodes.map((n) => {
-      const t = comps.getNodeComponent(n.id, "core.transform")!;
+      // Geometry, so it reads what the canvas drew rather than a literal a
+      // binding overrides.
+      const data = comps.resolvedData(n, "core.transform")!;
       const el = document.getElementById(n.id);
       const measured = el?.getBoundingClientRect();
       return {
         id: n.id,
-        left: t.data.position.x,
-        top: t.data.position.y,
+        left: data.position.x,
+        top: data.position.y,
         width:
-          typeof t.data.size?.width === "number"
-            ? t.data.size.width
+          typeof data.size?.width === "number"
+            ? data.size.width
             : (measured?.width ?? 0) * s.x,
         height:
-          typeof t.data.size?.height === "number"
-            ? t.data.size.height
+          typeof data.size?.height === "number"
+            ? data.size.height
             : (measured?.height ?? 0) * s.y,
       };
     });

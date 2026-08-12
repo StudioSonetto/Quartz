@@ -1,5 +1,9 @@
 <template>
-  <NodeComponent name="animation" :icon="props.icon"></NodeComponent>
+  <NodeComponent
+    name="animation"
+    :icon="props.icon"
+    :components="props.components"
+  ></NodeComponent>
 </template>
 
 <script setup lang="ts">

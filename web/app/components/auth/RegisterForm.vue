@@ -18,7 +18,7 @@
       />
     </div>
     <div class="whitespace"></div>
-    <UIButton type="submit" size="lg" :disabled="!meta.valid">
+    <UIButton type="submit" :disabled="!meta.valid">
       Register
       <div class="i-carbon-login" />
     </UIButton>

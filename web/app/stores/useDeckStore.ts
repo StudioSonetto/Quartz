@@ -1,8 +1,16 @@
+// One value per session. A deck left open across midnight shows the stale date
+// until reload, which is cheaper than re-reading the clock per render.
+const TODAY = new Date().toISOString().slice(0, 10);
+
 export const useDeckStore = defineStore("deck", () => {
   const apiFetch = useRequestFetch();
   const sync = useDeckSync();
 
   const slides = ref<SlidesModel[]>([]);
+
+  // The page fetches the deck row for its own use; the `deck.title` built-in
+  // needs a copy the renderer can reach.
+  const deckTitle = ref("");
 
   const currentSlideId = ref<string | null>(null);
 
@@ -45,6 +53,33 @@ export const useDeckStore = defineStore("deck", () => {
   const currentComponents = computed(() =>
     componentsAt(currentSlidesIndex.value),
   );
+
+  // Lives here, not in `useVariableScope`: that composable is instantiated once
+  // per rendered element, so a computed inside it would rescan the whole slide
+  // for every node on any component change.
+  const variablesByNode = computed(() => {
+    const map = new Map<string, VariableDef[]>();
+
+    for (const component of currentComponents.value ?? []) {
+      if (component.type !== "core.base") continue;
+
+      const list = component.data?.variables;
+
+      if (Array.isArray(list) && list.length) map.set(component.node, list);
+    }
+
+    return map;
+  });
+
+  // Hoisted for the same reason. `slides.index` is the current slide because the
+  // renderer only ever draws `currentTree`. Typed against `BUILTIN_NAMES` so the
+  // editor's shadowing warning cannot drift from what actually resolves.
+  const builtins = computed<Record<BuiltinName, Value>>(() => ({
+    "slides.index": currentSlidesIndex.value,
+    "slides.count": slides.value.length,
+    "deck.title": deckTitle.value,
+    date: TODAY,
+  }));
 
   const selectedNodeIds = ref<string[]>([]);
 
@@ -219,7 +254,11 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function fetchDeck(id: string) {
-    return apiFetch(`/api/decks/${id}`);
+    const deck = await apiFetch<DeckModel>(`/api/decks/${id}`);
+
+    deckTitle.value = deck?.title ?? "";
+
+    return deck;
   }
 
   async function insertNewDeck() {
@@ -237,6 +276,8 @@ export const useDeckStore = defineStore("deck", () => {
       method: "PATCH",
       body: { title },
     });
+
+    deckTitle.value = title;
   }
 
   async function deleteDeck(id: string) {
@@ -448,12 +489,27 @@ export const useDeckStore = defineStore("deck", () => {
     });
   }
 
-  function createNode(name: string, type: NodeType) {
+  function createNode(
+    name: string,
+    type: NodeType,
+    opts: {
+      parentId?: string;
+      position?: { x: number; y: number };
+      seed?: boolean;
+    } = {},
+  ) {
     if (!currentSlides.value) return;
 
     const id = crypto.randomUUID();
-    const parentPath = soleSelected.value?.path ?? ROOT_PATH;
-    const parentType: NodeType = soleSelected.value?.type ?? "core.group";
+    const explicitParent = opts.parentId
+      ? getNodeAsTree(opts.parentId)
+      : undefined;
+    if (opts.parentId && !explicitParent) return;
+
+    const parent = explicitParent ?? soleSelected.value;
+    const parentPath = parent?.path ?? ROOT_PATH;
+    const parentType: NodeType = parent?.type ?? "core.group";
+
     if (!canContain(parentType, type)) {
       throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
@@ -470,6 +526,20 @@ export const useDeckStore = defineStore("deck", () => {
     };
 
     const defaultComponents = buildDefaultComponents(id, type);
+
+    if (opts.position) {
+      const transform = defaultComponents.find(
+        (c) => c.type === "core.transform",
+      );
+
+      if (transform)
+        transform.data.position = {
+          ...transform.data.position,
+          x: opts.position.x,
+          y: opts.position.y,
+        };
+    }
+
     const slideId = currentSlides.value.id;
 
     trees.value.set(slideId, buildTree([...flatModels(), node]));
@@ -483,7 +553,9 @@ export const useDeckStore = defineStore("deck", () => {
     selectedNodeIds.value = [id];
     anchorId.value = id;
 
-    getNodeType(type)?.onCreate?.(id);
+    if (!opts.seed) getNodeType(type)?.onCreate?.(id);
+
+    return id;
   }
 
   function getNodeAsTree(id: string): Tree | null {
@@ -886,12 +958,15 @@ export const useDeckStore = defineStore("deck", () => {
 
   return {
     slides,
+    deckTitle,
     currentSlides,
     currentSlidesIndex,
     trees,
     currentTree,
     components,
     currentComponents,
+    variablesByNode,
+    builtins,
     selectedNodeIds,
     anchorId,
     clipboard,
@@ -921,7 +996,9 @@ export const useDeckStore = defineStore("deck", () => {
     fetchNodeComponents,
     createNode,
     updateNode,
+    deleteNodes,
     deleteSelectedNodes,
+    selectNodes,
     duplicateSelection,
     copySelection,
     cutSelection,

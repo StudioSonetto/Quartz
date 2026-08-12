@@ -1,5 +1,9 @@
 <template>
-  <NodeComponent name="transform" :icon="props.icon">
+  <NodeComponent
+    name="transform"
+    :icon="props.icon"
+    :components="props.components"
+  >
     <NodeComponentRow name="position">
       <NodeComponentRowFieldNumber
         :disabled="anyGridChild"
@@ -51,17 +55,21 @@
         @update:value="(v) => set(['size', 'height'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="rotation">
-      <NodeComponentRowFieldNumber
-        :value="field(['rotation'])"
-        @update:value="(v) => set(['rotation'], v)"
-      />
+    <NodeComponentRow
+      name="rotation"
+      path="rotation"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
-    <NodeComponentRow name="scale">
-      <NodeComponentRowFieldNumber
-        :value="field(['scale'])"
-        @update:value="(v) => set(['scale'], v)"
-      />
+    <NodeComponentRow
+      name="scale"
+      path="scale"
+      kind="number"
+      v-slot="{ value, update }"
+    >
+      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
   </NodeComponent>
 </template>

@@ -155,12 +155,16 @@ watchThrottled(
       movable.forEach((node) => {
         const transform = getNodeComponent(node.id, "core.transform");
 
-        if (transform) {
-          snapshot.set(node.id, {
-            x: transform.data.position.x,
-            y: transform.data.position.y,
-          });
-        }
+        if (!transform) return;
+
+        // Left out of the snapshot, so the move loop below skips it: a bound
+        // position would overwrite whatever the drag wrote.
+        if (anyBound(transform.data, ["position.x", "position.y"])) return;
+
+        snapshot.set(node.id, {
+          x: transform.data.position.x,
+          y: transform.data.position.y,
+        });
       });
 
       startPositions.value = snapshot;

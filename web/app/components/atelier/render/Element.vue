@@ -115,6 +115,9 @@ watchThrottled(
 
     if (!transform) return;
 
+    // A bound position is read-only to dragging — the binding would win.
+    if (anyBound(transform.data, ["position.x", "position.y"])) return;
+
     if (!dragStart.value) {
       const rect = element.value?.getBoundingClientRect();
       const { x: scaleX, y: scaleY } = scale();
