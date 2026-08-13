@@ -1,7 +1,4 @@
-import { getNodeType, getComponentType } from "~/modules/registry";
-import { ROOT_PATH } from "~/utils/nodePath";
-
-function isPlainObject(v: unknown): v is Record<string, any> {
+export function isPlainObject(v: unknown): v is Record<string, any> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
@@ -103,8 +100,6 @@ export function normaliseComponents(
       }
     }
 
-    // Preserve any remaining present components (e.g. optional `animation`),
-    // merged over their own type defaults when the type is known.
     for (const c of kept) {
       if (guaranteed.includes(c.type)) continue;
 

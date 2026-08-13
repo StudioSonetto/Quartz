@@ -30,7 +30,7 @@ export function useAlignment() {
     return nodes.map((n) => {
       // Geometry, so it reads what the canvas drew rather than a literal a
       // binding overrides.
-      const data = comps.resolvedData(n, "core.transform")!;
+      const data = comps.renderData(n, "core.transform")!;
       const el = document.getElementById(n.id);
       const measured = el?.getBoundingClientRect();
       return {

@@ -89,8 +89,6 @@ const resizeHandles: { pos: Pos; dx: number; dy: number }[] = [
   { pos: "w", dx: -1, dy: 0 },
 ];
 
-// Resizing rewrites all four, so a binding on any of them makes the gesture a
-// no-op the user cannot see the reason for.
 const RESIZE_WRITES = [
   "size.width",
   "size.height",
@@ -100,7 +98,7 @@ const RESIZE_WRITES = [
 
 const { soleSelected } = storeToRefs(useDeckStore());
 const { updateComponent } = useDeckStore();
-const { getNodeComponent, resolvedData } = useNodeComponents();
+const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
 const box = ref<{
@@ -139,9 +137,6 @@ function computeBox() {
   };
 }
 
-// The selected element's box only moves when its own style/size changes (drag,
-// nudge, resize) or the render container resizes; observe those and coalesce
-// bursts into one recompute per frame, rather than polling every frame forever.
 let rafId = 0;
 
 function scheduleBounds() {
@@ -262,9 +257,7 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
   if (!el) return;
 
-  // Scale and rotation feed the anchor maths and may themselves be bound, so
-  // read what the canvas drew rather than the literal underneath.
-  const drawn = resolvedData(node, "core.transform") ?? transform.data;
+  const drawn = renderData(node, "core.transform");
 
   const s = scale();
   const u = drawn.scale || 1;

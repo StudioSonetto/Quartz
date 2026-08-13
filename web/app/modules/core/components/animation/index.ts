@@ -5,5 +5,12 @@ export default {
   icon: "i-carbon-continue-filled",
   optional: true,
   inspector: Panel,
-  defaultData: () => ({}),
+  defaultData: () => ({
+    states: {},
+    duration: 400,
+    easing: "ease-out",
+    delay: 0,
+    repeat: 0,
+    repeatType: "loop",
+  }),
 };

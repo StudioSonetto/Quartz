@@ -1,5 +1,3 @@
-// One value per session. A deck left open across midnight shows the stale date
-// until reload, which is cheaper than re-reading the clock per render.
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export const useDeckStore = defineStore("deck", () => {
@@ -149,6 +147,8 @@ export const useDeckStore = defineStore("deck", () => {
 
       selectedNodeIds.value = [];
       anchorId.value = null;
+
+      useAnimationState().reset();
 
       sync.flush();
     },
@@ -933,6 +933,23 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function updateComponent(component: ComponentModel) {
+    const state = isStateless(component.type)
+      ? BASE_STATE
+      : useAnimationState().activeState(component.node);
+
+    const anim = state ? getComponent(component.node, "core.animation") : null;
+
+    if (anim && overridesFor(anim.data, state, component.type)) {
+      return updateComponent({
+        ...anim,
+        data: setNested(
+          anim.data,
+          ["states", state, "overrides", component.type],
+          component.data,
+        ),
+      });
+    }
+
     const located = locateNode(component.node);
 
     writeComponentAt(
