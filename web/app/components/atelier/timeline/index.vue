@@ -23,7 +23,7 @@
 <style scoped lang="postcss">
 .timeline {
   @apply flex scroll-smooth;
-  @apply bg-dark-800 h-[18vh] 3xl:h-[16vh] w-full p-[2.5ch];
+  @apply bg-dark-800 h-[15vh] w-full p-[2.5ch];
   @apply overflow-x-auto overflow-y-hidden;
   @apply border-solid border-0 border-t-2 border-dark-200;
 
