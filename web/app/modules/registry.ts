@@ -17,6 +17,7 @@ export function registerModule(m: ModuleDefinition) {
 export const getNodeType = (t: NodeType) => nodeTypes.get(t);
 export const getComponentType = (t: ComponentType) => componentTypes.get(t);
 export const allNodeTypes = () => [...nodeTypes.values()];
+export const allComponentTypes = () => [...componentTypes.values()];
 export const canContain = (
   parentType: NodeType,
   childType: NodeType,

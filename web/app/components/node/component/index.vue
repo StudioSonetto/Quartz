@@ -5,6 +5,7 @@
       class="header"
       :tabindex="isOpen ? -1 : undefined"
       @click="toggleComponent"
+      @contextmenu.prevent="openMenu"
     >
       <h4>
         <div class="icon" :class="props.icon"></div>
@@ -32,9 +33,8 @@
     @apply opacity-100;
 
     &::before {
-      content: "";
       @apply absolute left-0 top-0 bottom-0 w-0.5;
-      @apply bg-accent;
+      @apply bg-accent content-[''];
     }
   }
 
@@ -49,7 +49,7 @@
     h4 {
       @apply ui-text-3;
       @apply font-300 opacity-80;
-      @apply flex items-center gap-2;
+      @apply flex items-center gap-3;
 
       .icon {
         @apply ui-text-4 transition-colors;
@@ -107,7 +107,33 @@ provide(
 );
 
 const atelier = useAtelierStore();
-const { soleSelected } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const { soleSelected, selectedNodes } = storeToRefs(deck);
+
+// Guaranteed components are re-synthesised on load, so only optional ones can
+// actually be removed. Properties.vue only renders panels for one node type at
+// a time, so the anchor's type answers for the whole selection.
+const removable = computed(() => {
+  const anchor = props.components[0];
+  const nodeType = selectedNodes.value[0]?.type;
+
+  return !!anchor && !!nodeType && !isGuaranteed(nodeType, anchor.type);
+});
+
+function openMenu(event: MouseEvent) {
+  if (!removable.value) return;
+
+  useContextMenu().open(event, [
+    {
+      label: "Remove",
+      icon: "i-carbon-trash-can",
+      danger: true,
+      action: () => {
+        for (const c of props.components) deck.removeComponent(c.node, c.type);
+      },
+    },
+  ]);
+}
 
 const key = computed(() => `${soleSelected.value?.id ?? ""}:${props.name}`);
 const isOpen = computed(() => atelier.isComponentOpen(key.value));

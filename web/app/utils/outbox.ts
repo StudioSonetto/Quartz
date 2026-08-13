@@ -1,6 +1,5 @@
-import type { NodeModel, ComponentModel } from "#shared/types";
-
 export type DeleteNode = { path: string; slides: string };
+export type DeleteComponent = { node: string; type: ComponentType };
 export type UpsertNode = Pick<
   NodeModel,
   "id" | "slides" | "name" | "path" | "reference" | "type" | "sort_order"
@@ -10,16 +9,33 @@ export type SavePayload = {
   nodesToUpsert: UpsertNode[];
   nodesToDelete: DeleteNode[];
   componentsToUpsert: ComponentModel[];
+  componentsToDelete: DeleteComponent[];
 };
 
 export type OutboxSnapshot = {
   dirtyNodes: string[];
   deletedNodes: DeleteNode[];
   dirtyComponents: string[];
+  deletedComponents: string[];
 };
 
 export function componentKey(node: string, type: string): string {
   return `${node}:${type}`;
+}
+
+export function parseComponentKey(key: string): DeleteComponent {
+  const [node, type] = key.split(":");
+
+  return { node: node!, type: type as ComponentType };
+}
+
+export function isEmptyPayload(payload: SavePayload): boolean {
+  return (
+    !payload.nodesToUpsert.length &&
+    !payload.nodesToDelete.length &&
+    !payload.componentsToUpsert.length &&
+    !payload.componentsToDelete.length
+  );
 }
 
 export function buildSavePayload(
@@ -52,5 +68,6 @@ export function buildSavePayload(
     nodesToUpsert,
     nodesToDelete: snapshot.deletedNodes,
     componentsToUpsert,
+    componentsToDelete: snapshot.deletedComponents.map(parseComponentKey),
   };
 }

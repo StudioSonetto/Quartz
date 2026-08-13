@@ -37,13 +37,25 @@ const bodySchema = z.object({
       }),
     )
     .default([]),
+  componentsToDelete: z
+    .array(
+      z.object({
+        node: z.string().uuid(),
+        type: z.enum(componentType.enumValues),
+      }),
+    )
+    .default([]),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
 
-  const { nodesToUpsert, nodesToDelete, componentsToUpsert } =
-    await validateBody(event, bodySchema);
+  const {
+    nodesToUpsert,
+    nodesToDelete,
+    componentsToUpsert,
+    componentsToDelete,
+  } = await validateBody(event, bodySchema);
 
   // Every node this request touches must live on a slide the user owns.
   const slideIds = [
@@ -67,13 +79,14 @@ export default defineEventHandler(async (event) => {
   // Components may target pre-existing nodes not in nodesToUpsert; those nodes
   // must also belong to the user (upserted nodes are covered by the check above).
   const upsertIds = new Set(nodesToUpsert.map((node) => node.id));
-  const foreignNodeIds = [
+  const componentNodeIds = [
     ...new Set(
-      componentsToUpsert
-        .map((component) => component.node)
-        .filter((id) => !upsertIds.has(id)),
+      [...componentsToUpsert, ...componentsToDelete].map(
+        (component) => component.node,
+      ),
     ),
   ];
+  const foreignNodeIds = componentNodeIds.filter((id) => !upsertIds.has(id));
 
   if (foreignNodeIds.length) {
     const owned = await db
@@ -147,9 +160,9 @@ export default defineEventHandler(async (event) => {
     // A write to a keyed node must land on every node in the deck sharing that
     // key, whether or not the client had those slides loaded. Uses `tx` so it
     // sees nodes this same request just upserted.
-    const componentNodeIds = [
-      ...new Set(componentsToUpsert.map((component) => component.node)),
-    ];
+    // Deletes join the peer lookup too: a component removed from a keyed node
+    // must leave its peers as well, or they keep a component the source lost.
+    //
     // A rename saves the node row alone, so renamed nodes need peers resolved
     // even with nothing in `componentsToUpsert`. One query serves both.
     const peerLookupIds = [
@@ -233,6 +246,28 @@ export default defineEventHandler(async (event) => {
           target: [components.node, components.type],
           set: { data: sql`excluded.data` },
         });
+    }
+
+    const deletesByType = new Map<
+      (typeof componentType.enumValues)[number],
+      Set<string>
+    >();
+
+    for (const target of componentsToDelete) {
+      const ids = deletesByType.get(target.type) ?? new Set<string>();
+
+      for (const id of [target.node, ...(peerIds.get(target.node) ?? [])])
+        ids.add(id);
+
+      deletesByType.set(target.type, ids);
+    }
+
+    for (const [type, ids] of deletesByType) {
+      await tx
+        .delete(components)
+        .where(
+          and(inArray(components.node, [...ids]), eq(components.type, type)),
+        );
     }
   });
 });

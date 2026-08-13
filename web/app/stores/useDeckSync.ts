@@ -6,6 +6,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   const dirtyNodes = ref<Set<string>>(new Set());
   const deletedNodes = ref<DeleteNode[]>([]);
   const dirtyComponents = ref<Set<string>>(new Set());
+  const deletedComponents = ref<Set<string>>(new Set());
 
   const status = ref<SaveStatus>("idle");
   const flushing = ref(false);
@@ -16,7 +17,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
     () =>
       dirtyNodes.value.size > 0 ||
       deletedNodes.value.length > 0 ||
-      dirtyComponents.value.size > 0,
+      dirtyComponents.value.size > 0 ||
+      deletedComponents.value.size > 0,
   );
 
   function enqueueNode(id: string) {
@@ -26,7 +28,19 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueComponent(node: string, type: string) {
-    dirtyComponents.value.add(componentKey(node, type));
+    const key = componentKey(node, type);
+
+    deletedComponents.value.delete(key);
+    dirtyComponents.value.add(key);
+
+    scheduleFlush();
+  }
+
+  function enqueueComponentDelete(node: string, type: string) {
+    const key = componentKey(node, type);
+
+    dirtyComponents.value.delete(key);
+    deletedComponents.value.add(key);
 
     scheduleFlush();
   }
@@ -36,6 +50,10 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
     for (const key of [...dirtyComponents.value]) {
       if (key.startsWith(`${id}:`)) dirtyComponents.value.delete(key);
+    }
+
+    for (const key of [...deletedComponents.value]) {
+      if (key.startsWith(`${id}:`)) deletedComponents.value.delete(key);
     }
   }
 
@@ -62,6 +80,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
       dirtyNodes: [...dirtyNodes.value],
       deletedNodes: [...deletedNodes.value],
       dirtyComponents: [...dirtyComponents.value],
+      deletedComponents: [...deletedComponents.value],
     };
   }
 
@@ -72,8 +91,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
       snapshot,
       (id) => store.getNodeById(id),
       (key) => {
-        const [node, type] = key.split(":");
-        return store.getComponent(node!, type!);
+        const { node, type } = parseComponentKey(key);
+        return store.getComponent(node, type);
       },
     );
   }
@@ -84,11 +103,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     const snapshot = currentSnapshot();
     const payload = buildPayloadFor(snapshot);
 
-    if (
-      !payload.nodesToUpsert.length &&
-      !payload.nodesToDelete.length &&
-      !payload.componentsToUpsert.length
-    ) {
+    if (isEmptyPayload(payload)) {
       clearFlushed(snapshot);
 
       // Everything in the batch resolved to nothing — a deleted slide's
@@ -149,12 +164,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
     const payload = buildPayloadFor(currentSnapshot());
 
-    if (
-      !payload.nodesToUpsert.length &&
-      !payload.nodesToDelete.length &&
-      !payload.componentsToUpsert.length
-    )
-      return;
+    if (isEmptyPayload(payload)) return;
 
     const blob = new Blob([JSON.stringify(payload)], {
       type: "application/json",
@@ -168,6 +178,9 @@ export const useDeckSync = defineStore("deck-sync", () => {
     for (const key of snapshot.dirtyComponents)
       dirtyComponents.value.delete(key);
 
+    for (const key of snapshot.deletedComponents)
+      deletedComponents.value.delete(key);
+
     deletedNodes.value = deletedNodes.value.filter(
       (d) => !snapshot.deletedNodes.includes(d),
     );
@@ -175,7 +188,17 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   function restoreSnapshot(snapshot: OutboxSnapshot) {
     for (const id of snapshot.dirtyNodes) dirtyNodes.value.add(id);
-    for (const key of snapshot.dirtyComponents) dirtyComponents.value.add(key);
+
+    // A key re-queued the other way while the flush was in flight is the newer
+    // intent. Restoring over it would put the same key in both sets, and the
+    // server applies deletes last — so a re-added component would be destroyed.
+    for (const key of snapshot.dirtyComponents) {
+      if (!deletedComponents.value.has(key)) dirtyComponents.value.add(key);
+    }
+    for (const key of snapshot.deletedComponents) {
+      if (!dirtyComponents.value.has(key)) deletedComponents.value.add(key);
+    }
+
     for (const d of snapshot.deletedNodes) {
       if (!deletedNodes.value.includes(d)) deletedNodes.value.push(d);
     }
@@ -186,6 +209,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     hasPending,
     enqueueNode,
     enqueueComponent,
+    enqueueComponentDelete,
     enqueueDelete,
     dropNode,
     dropSlide,

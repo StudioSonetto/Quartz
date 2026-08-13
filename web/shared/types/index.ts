@@ -72,6 +72,7 @@ export interface ComponentTypeDef {
   icon: string;
   inspector: Component;
   defaultData: () => Record<string, any>;
+  optional?: boolean;
 }
 
 export type DefaultComponent =

@@ -1,6 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { componentKey, buildSavePayload } from "~/utils/outbox";
-import type { NodeModel, ComponentModel } from "#shared/types";
 
 const node = (id: string): NodeModel => ({
   id,
@@ -32,13 +30,22 @@ describe("outbox", () => {
         dirtyNodes: ["a"],
         deletedNodes: [{ path: "root.nb", slides: "s" }],
         dirtyComponents: [componentKey("a", "core.transform")],
+        deletedComponents: [],
       },
       (id) => nodes.get(id),
       (key) => comps.get(key),
     );
 
     expect(payload.nodesToUpsert).toEqual([
-      { id: "a", slides: "s", name: "a", path: "root.na", reference: null, type: "core.group", sort_order: 0 },
+      {
+        id: "a",
+        slides: "s",
+        name: "a",
+        path: "root.na",
+        reference: null,
+        type: "core.group",
+        sort_order: 0,
+      },
     ]);
     expect(payload.nodesToDelete).toEqual([{ path: "root.nb", slides: "s" }]);
     expect(payload.componentsToUpsert).toEqual([comp("a")]);
@@ -46,11 +53,35 @@ describe("outbox", () => {
 
   it("skips dirty keys that no longer resolve (deleted locally)", () => {
     const payload = buildSavePayload(
-      { dirtyNodes: ["gone"], deletedNodes: [], dirtyComponents: [componentKey("gone", "core.transform")] },
+      {
+        dirtyNodes: ["gone"],
+        deletedNodes: [],
+        dirtyComponents: [componentKey("gone", "core.transform")],
+        deletedComponents: [],
+      },
       () => undefined,
       () => undefined,
     );
     expect(payload.nodesToUpsert).toEqual([]);
     expect(payload.componentsToUpsert).toEqual([]);
+  });
+
+  describe("component deletes", () => {
+    it("carries deleted components into the payload as node/type pairs", () => {
+      const payload = buildSavePayload(
+        {
+          dirtyNodes: [],
+          deletedNodes: [],
+          dirtyComponents: [],
+          deletedComponents: ["node-1:core.animation"],
+        },
+        () => undefined,
+        () => undefined,
+      );
+
+      expect(payload.componentsToDelete).toEqual([
+        { node: "node-1", type: "core.animation" },
+      ]);
+    });
   });
 });

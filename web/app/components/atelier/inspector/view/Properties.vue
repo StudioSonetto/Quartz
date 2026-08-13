@@ -1,5 +1,5 @@
 <template>
-  <AtelierInspectorView name="Properties" :actions="[]">
+  <AtelierInspectorView name="Properties" :actions="actions">
     <div
       v-if="selectedNodes.length"
       class="view"
@@ -30,6 +30,10 @@
       <div class="i-carbon-error"></div>
       <p>No nodes selected</p>
     </div>
+    <AtelierInspectorOptionalComponentsModal
+      ref="addComponent"
+      :available="addable"
+    />
   </AtelierInspectorView>
 </template>
 
@@ -81,31 +85,51 @@ const sameType = computed(
   () => new Set(selectedNodes.value.map((n) => n.type)).size === 1,
 );
 
-// Homogeneous ⇒ every node has the same component set, so derive the panel list
-// from the anchor (first selected) node.
-const typePanels = computed(() => {
-  const anchor = selectedNodes.value[0];
-  if (!anchor) return [];
-  return getNodeComponents(anchor.id).map((c) => ({
-    type: c.type,
-    def: getComponentType(c.type),
-  }));
-});
-
-// One pass over the selection groups every component by type, so each panel's
-// `:components` is a cached, stable array rather than an O(types × nodes) lookup
-// recomputed per row on every render.
 const componentsByType = computed(() => {
   const map = new Map<ComponentType, ComponentModel[]>();
+
   for (const node of selectedNodes.value) {
     for (const c of getNodeComponents(node.id)) {
       const list = map.get(c.type);
+
       if (list) list.push(c);
       else map.set(c.type, [c]);
     }
   }
   return map;
 });
+
+// Optional components make a same-type selection heterogeneous, so the panel
+// list is the union across the selection — anchor's types first, by insertion.
+const typePanels = computed(() =>
+  [...componentsByType.value.keys()].map((type) => ({
+    type,
+    def: getComponentType(type),
+  })),
+);
+
+const addComponent = useTemplateRef<{ open: () => void }>("addComponent");
+
+// Offer a type while any selected node still lacks it — `add` targets them all.
+const addable = computed(() => {
+  const anchor = selectedNodes.value[0];
+  if (!anchor || !sameType.value) return [];
+
+  return optionalComponentsFor(anchor.type).filter(
+    (def) =>
+      (componentsByType.value.get(def.type)?.length ?? 0) <
+      selectedNodes.value.length,
+  );
+});
+
+const actions = computed(() => [
+  {
+    icon: "i-carbon-add-large",
+    tooltip: "Add component",
+    disabled: !addable.value.length,
+    onClick: () => addComponent.value?.open(),
+  },
+]);
 
 const FOCUSABLE = "button, input, select, textarea, [href], [tabindex]";
 
@@ -114,8 +138,6 @@ function getFocusables(view: HTMLElement): HTMLElement[] {
     (el) =>
       !(el as HTMLButtonElement).disabled &&
       el.offsetParent !== null &&
-      // Open component headers opt out of the tab order, so this keeps the
-      // list in step with what native Tab would visit.
       el.tabIndex >= 0,
   );
 }
@@ -142,12 +164,11 @@ function onKeydown(e: KeyboardEvent) {
     return;
   }
 
-  // Left/Right are globally bound to slide navigation. While this panel holds
-  // focus they belong to it, so claim them — otherwise editing a node's
-  // properties and pressing Left jumps the deck to another slide.
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
     if (isEditableTarget(e.target)) return;
+
     e.preventDefault();
+
     return;
   }
 
@@ -155,8 +176,6 @@ function onKeydown(e: KeyboardEvent) {
 
   if (!isArrow && e.key !== "Tab") return;
 
-  // Editable fields own their arrows — caret movement, and number inputs
-  // stepping their value — so leave those alone.
   if (isArrow && isEditableTarget(e.target)) return;
 
   const els = getFocusables(view);
@@ -165,8 +184,6 @@ function onKeydown(e: KeyboardEvent) {
 
   const dir = isArrow ? (e.key === "ArrowUp" ? -1 : 1) : e.shiftKey ? -1 : 1;
 
-  // Tab already moves natively; we only step in to wrap it around the ends,
-  // matching how the tree re-cycles nodes. Arrows always move.
   if (!isArrow && document.activeElement !== (dir > 0 ? els.at(-1) : els[0])) {
     return;
   }

@@ -337,6 +337,11 @@ export const useDeckStore = defineStore("deck", () => {
     const deck = slides.value[index]!.deck;
     const previousSlideId = currentSlideId.value;
 
+    // Pending component deletes carry raw node ids and can't resolve away like
+    // dirty keys do, so the server would 403 on rows this slide takes with it.
+    const tree = trees.value.get(id);
+    if (tree?.id) for (const n of flattenTree(tree)) sync.dropNode(n.id);
+
     sync.dropSlide(id);
     forgetSlide(id);
 
@@ -946,6 +951,52 @@ export const useDeckStore = defineStore("deck", () => {
     }
   }
 
+  function addComponent(nodeId: string, type: ComponentType) {
+    const located = locateNode(nodeId);
+    if (!located) return;
+
+    const present = componentsAt(located.slideIndex)?.some(
+      (c) => c.node === nodeId && c.type === type,
+    );
+    if (present) return;
+
+    // Routed through updateComponent so a keyed node's peers receive it too.
+    updateComponent({
+      node: nodeId,
+      type,
+      data: effectiveDefaults(located.node.type, type),
+    } as ComponentModel);
+  }
+
+  function removeComponentAt(
+    slideIndex: number,
+    nodeId: string,
+    type: ComponentType,
+  ) {
+    const slideComponents = componentsAt(slideIndex);
+    if (!slideComponents) return;
+
+    const index = slideComponents.findIndex(
+      (c) => c.node === nodeId && c.type === type,
+    );
+    if (index !== -1) slideComponents.splice(index, 1);
+
+    sync.enqueueComponentDelete(nodeId, type);
+  }
+
+  function removeComponent(nodeId: string, type: ComponentType) {
+    const located = locateNode(nodeId);
+    if (!located || isGuaranteed(located.node.type, type)) return;
+
+    removeComponentAt(located.slideIndex, nodeId, type);
+
+    if (!located.node.reference) return;
+
+    for (const { slideIndex, node } of peersOf(nodeId, located)) {
+      removeComponentAt(slideIndex, node.id, type);
+    }
+  }
+
   function nextSlides() {
     if (currentSlidesIndex.value >= slides.value.length - 1) return;
     currentSlidesIndex.value++;
@@ -1008,6 +1059,8 @@ export const useDeckStore = defineStore("deck", () => {
     selectAll,
     reorderNodes,
     updateComponent,
+    addComponent,
+    removeComponent,
     nextSlides,
     prevSlides,
   };
