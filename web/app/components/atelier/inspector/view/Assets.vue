@@ -53,10 +53,10 @@
               <Suspense>
                 <UseLoader
                   v-slot="{ data }"
-                  :loader="GLTFLoader as any"
+                  :loader="loaderFor(asset.name) as any"
                   :url="asset.url.toString()"
                 >
-                  <primitive :object="(data as any).scene" />
+                  <primitive :object="previewObject(data)" />
                 </UseLoader>
               </Suspense>
             </TresCanvas>
@@ -66,7 +66,6 @@
           </button>
         </div>
       </div>
-      <p v-else class="empty">Drop files here to upload</p>
     </div>
     <Modal
       ref="imagePreviewModal"
@@ -105,10 +104,10 @@
           <Suspense>
             <UseLoader
               v-slot="{ data }"
-              :loader="GLTFLoader as any"
+              :loader="loaderFor(selectedAsset.name) as any"
               :url="selectedAsset?.url.toString()"
             >
-              <primitive :object="(data as any).scene" />
+              <primitive :object="previewObject(data)" />
             </UseLoader>
           </Suspense>
           <OrbitControls />
@@ -125,11 +124,6 @@
 
   &.over {
     @apply border-accent bg-accent/10;
-  }
-
-  .empty {
-    @apply h-24 flex items-center justify-center;
-    @apply ui-text-3 text-light-200/40;
   }
 }
 
@@ -156,7 +150,11 @@
 
 <script setup lang="ts">
 import { UseLoader } from "@tresjs/core";
+import { BufferGeometry, Mesh, MeshNormalMaterial } from "three";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 import type Modal from "@/components/Modal.vue";
 
@@ -168,8 +166,6 @@ const assetDrag = useAssetDrag();
 
 const dropZone = useTemplateRef<HTMLElement>("dropZone");
 
-// Model files carry no usable MIME type, so the zone matches on "this drag
-// contains files at all" — which also excludes asset tiles dragged internally.
 const { isOverDropZone } = useDropZone(dropZone, {
   dataTypes: (types) => types.length > 0,
   onDrop: async (files) => {
@@ -205,6 +201,28 @@ onChange(async (files) => {
 
   await uploadAssets(deck, Array.from(files));
 });
+
+const modelLoaders = {
+  fbx: FBXLoader,
+  glb: GLTFLoader,
+  gltf: GLTFLoader,
+  obj: OBJLoader,
+  stl: STLLoader,
+};
+
+function loaderFor(name: string) {
+  const extension = name.split(".").pop()?.toLowerCase() ?? "";
+
+  return modelLoaders[extension as keyof typeof modelLoaders] ?? GLTFLoader;
+}
+
+function previewObject(data: any) {
+  if (data instanceof BufferGeometry) {
+    return new Mesh(data, new MeshNormalMaterial());
+  }
+
+  return data.scene ?? data;
+}
 
 const selectedAsset = ref<{ name: string; url: URL }>();
 

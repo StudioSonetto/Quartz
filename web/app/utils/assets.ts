@@ -3,7 +3,7 @@ import type { AssetKind } from "#shared/types";
 const EXTENSIONS: Record<AssetKind, string[]> = {
   image: [".png", ".jpg", ".jpeg"],
   font: [".ttf", ".otf", ".woff", ".woff2"],
-  model: [".fbx", ".glb", ".gltf", ".obj"],
+  model: [".fbx", ".glb", ".gltf", ".obj", ".stl"],
 };
 
 export const ASSET_ACCEPT = Object.values(EXTENSIONS).flat().join(",");
