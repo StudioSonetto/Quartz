@@ -1,5 +1,7 @@
 export const renderScaleKey: InjectionKey<Ref<number>> = Symbol("renderScale");
 
+export const presentingKey: InjectionKey<Ref<boolean>> = Symbol("presenting");
+
 export function useElementRenderer() {
   const { getStoredComponent, stagedData } = useNodeComponents();
   const { imageUrl } = useAssetsStore();

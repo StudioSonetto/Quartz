@@ -89,6 +89,11 @@ const props = defineProps<{
   canEdit?: boolean;
 }>();
 
+provide(
+  presentingKey,
+  computed(() => !props.canEdit),
+);
+
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
 
 let pressedCanvas = false;

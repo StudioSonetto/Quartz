@@ -1,6 +1,7 @@
 <template>
   <div class="contents" ref="container">
     <div
+      v-if="!presenting"
       ref="border"
       :id="props.node.id"
       class="group-border"
@@ -36,6 +37,8 @@ const { isSelected, updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
+
+const presenting = inject(presentingKey, ref(false));
 
 const { renderRoot, scale } = useCanvasScale();
 
@@ -109,7 +112,9 @@ const borderStyle = computed(() => {
 let rafId = 0;
 
 function scheduleBounds() {
-  if (rafId) return;
+  // No border to size while presenting, and an animating slide would otherwise
+  // re-measure every child on every frame the style observer fires.
+  if (presenting.value || rafId) return;
 
   rafId = requestAnimationFrame(() => {
     rafId = 0;

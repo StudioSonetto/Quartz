@@ -1,6 +1,10 @@
 export const BASE_STATE = "";
 
-const STATELESS: ComponentType[] = ["core.animation", "core.base"];
+const STATELESS: ComponentType[] = [
+  "core.animation",
+  "core.base",
+  "core.event",
+];
 
 export function isStateless(type: ComponentType) {
   return STATELESS.includes(type);

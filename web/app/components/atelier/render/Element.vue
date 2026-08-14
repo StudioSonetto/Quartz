@@ -14,13 +14,15 @@
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
       isSelected(props.node.id) ? 'outline-accent!' : '',
+      { 'element-hoverable': !presenting },
     ]"
     ref="element"
     class="element"
     :tabindex="0"
     :contenteditable="editing ? 'plaintext-only' : 'false'"
-    @click="onSelect"
+    @click="onClick"
     @mousedown="onSelect"
+    @mouseenter="onHover"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
@@ -43,8 +45,14 @@
 <style scoped lang="postcss">
 .element {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-accent/0 hover:outline-accent;
+  @apply outline outline-3 outline-accent/0;
   @apply border-rd;
+}
+
+/* Presenting keeps pointer events for hotspots, so the hover outline is opted
+   into rather than suppressed. */
+.element-hoverable {
+  @apply hover:outline-accent;
 }
 </style>
 
@@ -58,6 +66,9 @@ const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
+
+const presenting = inject(presentingKey, ref(false));
+const { fire } = useEventDispatch();
 
 const { scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
@@ -82,6 +93,8 @@ const {
 );
 
 function onDoubleClick(event: MouseEvent) {
+  if (presenting.value) return;
+
   if (!editing.value && editable()) startEditing(event);
 }
 
@@ -198,6 +211,8 @@ const { selectFromEvent, clear } = useNodeSelection();
 const { soleSelected } = storeToRefs(deck);
 
 function onSelect(event: MouseEvent) {
+  if (presenting.value) return;
+
   if (editing.value) {
     event.stopPropagation();
 
@@ -208,6 +223,17 @@ function onSelect(event: MouseEvent) {
     isGridChild.value && props.node.parent ? props.node.parent : props.node;
 
   selectFromEvent(target, event);
+}
+
+// Stopping propagation only when a handler ran keeps a bare click paging the deck.
+function onClick(event: MouseEvent) {
+  if (!presenting.value) return onSelect(event);
+
+  if (fire(props.node, "click")) event.stopPropagation();
+}
+
+function onHover() {
+  if (presenting.value) fire(props.node, "hover");
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {

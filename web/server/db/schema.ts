@@ -38,6 +38,7 @@ export const componentType = pgEnum("component_type", [
   "core.typography",
   "webgl.transform",
   "core.image",
+  "core.event",
 ]);
 
 export const lapidaries = pgTable.withRLS(
