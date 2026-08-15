@@ -5,26 +5,22 @@
     :components="props.components"
   >
     <NodeComponentRow name="states">
-      <div v-if="component" class="states-editor">
-        <div class="states-list">
-          <UIButton
-            v-for="name in stateNames"
-            :key="name"
-            variant="menu"
-            :class="{ 'states-selected': activeState(component.node) === name }"
-            @click="pick(name)"
-            @contextmenu.prevent="openMenu($event, name)"
-          >
-            {{ name }}
-          </UIButton>
-          <p v-if="!stateNames.length" class="states-empty">none</p>
-        </div>
-        <div class="states-footer">
-          <UIButton variant="icon" title="Add state" @click="addState">
-            <div class="i-carbon-add"></div>
-          </UIButton>
-        </div>
-      </div>
+      <NodeComponentList
+        v-if="component"
+        :key="component.node"
+        :count="stateNames.length"
+        @add="addState"
+        @remove="removeState"
+        @select="pick"
+      >
+        <NodeComponentListEntry
+          v-for="(name, index) in stateNames"
+          :key="name"
+          :index="index"
+          :name="name"
+          :active="activeState(component.node) === name"
+        />
+      </NodeComponentList>
       <p v-else class="states-empty">Select one node to edit states.</p>
     </NodeComponentRow>
     <NodeComponentRow
@@ -79,22 +75,6 @@
 </template>
 
 <style scoped lang="postcss">
-.states-editor {
-  @apply flex flex-col w-full ui-text-3;
-
-  .states-list {
-    @apply flex flex-col gap-1;
-  }
-
-  .states-footer {
-    @apply flex justify-end gap-1 mt-6;
-  }
-}
-
-.states-selected {
-  @apply text-accent;
-}
-
 .states-empty {
   @apply m-0 opacity-60;
 }
@@ -148,21 +128,11 @@ function addState() {
   write({ ...states.value, [`state-${n}`]: { overrides } });
 }
 
-function openMenu(event: MouseEvent, name: string) {
-  useContextMenu().open(event, [
-    {
-      label: "Remove",
-      icon: "i-carbon-trash-can",
-      danger: true,
-      action: () => removeState(name),
-    },
-  ]);
-}
-
-function removeState(name: string) {
+function removeState(index: number) {
   const target = component.value;
+  const name = stateNames.value[index];
 
-  if (!target) return;
+  if (!target || !name) return;
 
   if (activeState(target.node) === name) setState(target.node, "");
 
@@ -171,10 +141,11 @@ function removeState(name: string) {
   write(rest);
 }
 
-function pick(name: string) {
+function pick(index: number) {
   const target = component.value;
+  const name = stateNames.value[index];
 
-  if (!target) return;
+  if (!target || !name) return;
 
   toggleState(target.node, name, target.data);
 }
