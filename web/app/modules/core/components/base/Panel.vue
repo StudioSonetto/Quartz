@@ -9,6 +9,7 @@
       />
     </NodeComponentRow>
     <p v-if="rejection" class="rejection">{{ rejection }}</p>
+    <Sync :nodes="props.nodes" />
     <NodeComponentRow name="variables">
       <Variables :components="props.components" />
     </NodeComponentRow>
@@ -31,6 +32,7 @@
 <script setup lang="ts">
 // Not auto-imported: Nuxt only scans `app/components/`, not `app/modules/`.
 import LinkModal from "./LinkModal.vue";
+import Sync from "./Sync.vue";
 import Variables from "./Variables.vue";
 
 const props = defineProps<{
@@ -42,7 +44,6 @@ const props = defineProps<{
 const deck = useDeckStore();
 const { updateNode, updateComponent } = deck;
 
-// Blank when the nodes disagree.
 const mergedReference = computed(() =>
   allEqual(
     props.nodes.map((n) => n.reference ?? ""),
@@ -50,8 +51,6 @@ const mergedReference = computed(() =>
   ),
 );
 
-// Root stays unlinkable until per-component sync selection exists: linking it
-// today would converge slide backgrounds along with the variables.
 const allRoot = computed(() => props.nodes.every((n) => n.path === ROOT_PATH));
 
 const targets = computed(() => props.nodes.filter((n) => n.path !== ROOT_PATH));
@@ -136,13 +135,14 @@ function commitReference(value: string) {
   const plan = planLink(selection, peers, key);
 
   if (plan.kind === "reject") {
-    // Nothing is written; the field resets itself to `mergedReference`.
     rejection.value = plan.reason;
+
     return;
   }
 
   if (plan.kind === "clear" || plan.kind === "link") {
     applyKey(ids, key);
+
     return;
   }
 
@@ -155,23 +155,22 @@ function resolveLink(choice: "adopt" | "push" | "cancel") {
   pending.value = null;
   if (!request) return;
 
-  // Nothing was written when the modal opened, so cancel has nothing to undo.
   if (choice === "cancel") return;
 
   applyKey(request.ids, request.key);
 
   if (choice === "push") {
-    // Anchor = last-clicked, so a multi-selection pushes from that node.
     const anchor = request.ids.find((id) => id === deck.anchorId);
+
     converge(anchor ?? request.ids[0]!);
+
     return;
   }
 
-  // Adopt from the lowest-index peer. All peers are identical by the invariant,
-  // so this is arbitrary — pinned only to make a violation reproducible.
   const source = [...request.peers].sort(
     (a, b) => (deck.slideIndexOf(a.id) ?? 0) - (deck.slideIndexOf(b.id) ?? 0),
   )[0];
+
   if (source) converge(source.id);
 }
 </script>

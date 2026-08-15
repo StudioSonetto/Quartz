@@ -16,7 +16,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { authenticatedRole } from "drizzle-orm/supabase";
 
-// Drizzle doesn't support ltree, so a custom type is needed.
 const ltree = customType<{ data: string }>({ dataType: () => "ltree" });
 
 export const nodeType = pgEnum("node_type", [
@@ -119,6 +118,7 @@ export const nodes = pgTable.withRLS(
     name: text("name").notNull(),
     path: ltree("path").notNull(),
     reference: text("reference"),
+    unsynced: text("unsynced").array(),
     slides: uuid("slides").notNull(),
     type: nodeType("type").notNull(),
     sort_order: smallint("sort_order").notNull().default(0),

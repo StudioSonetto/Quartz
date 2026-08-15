@@ -31,6 +31,7 @@ export function buildTree(nodes: NodeModel[]): Tree {
       name: "",
       path: ROOT_PATH,
       reference: null,
+      unsynced: null,
       type: "core.group",
       sort_order: 0,
       children: [],

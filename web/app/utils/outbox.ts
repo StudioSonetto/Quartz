@@ -2,7 +2,14 @@ export type DeleteNode = { path: string; slides: string };
 export type DeleteComponent = { node: string; type: ComponentType };
 export type UpsertNode = Pick<
   NodeModel,
-  "id" | "slides" | "name" | "path" | "reference" | "type" | "sort_order"
+  | "id"
+  | "slides"
+  | "name"
+  | "path"
+  | "reference"
+  | "unsynced"
+  | "type"
+  | "sort_order"
 >;
 
 export type SavePayload = {
@@ -53,6 +60,7 @@ export function buildSavePayload(
       name: n.name,
       path: n.path,
       reference: n.reference,
+      unsynced: n.unsynced,
       type: n.type,
       sort_order: n.sort_order,
     });

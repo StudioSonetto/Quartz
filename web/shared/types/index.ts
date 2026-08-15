@@ -38,6 +38,7 @@ export const EMPTY_TREE: Tree = {
   path: "",
   type: "core.group",
   reference: "",
+  unsynced: null,
   sort_order: 0,
   children: [],
 };

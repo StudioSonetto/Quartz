@@ -6,6 +6,8 @@
         @click="selectOption(option.value)"
         :disabled="props.disabled"
         :class="[option.icon, { selected: isSelected(option.value) }]"
+        :title="option.label ?? option.value"
+        :aria-label="option.label ?? option.value"
         class="option"
         :key="option.value"
       />
@@ -40,6 +42,7 @@ const props = defineProps<{
   options: {
     value: string;
     icon: string;
+    label?: string;
   }[];
   toggleMode?: boolean;
   disabled?: boolean;

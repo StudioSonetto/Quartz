@@ -6,8 +6,6 @@ export const useDeckStore = defineStore("deck", () => {
 
   const slides = ref<SlidesModel[]>([]);
 
-  // The page fetches the deck row for its own use; the `deck.title` built-in
-  // needs a copy the renderer can reach.
   const deckTitle = ref("");
 
   const currentSlideId = ref<string | null>(null);
@@ -52,9 +50,6 @@ export const useDeckStore = defineStore("deck", () => {
     componentsAt(currentSlidesIndex.value),
   );
 
-  // Lives here, not in `useVariableScope`: that composable is instantiated once
-  // per rendered element, so a computed inside it would rescan the whole slide
-  // for every node on any component change.
   const variablesByNode = computed(() => {
     const map = new Map<string, VariableDef[]>();
 
@@ -69,9 +64,6 @@ export const useDeckStore = defineStore("deck", () => {
     return map;
   });
 
-  // Hoisted for the same reason. `slides.index` is the current slide because the
-  // renderer only ever draws `currentTree`. Typed against `BUILTIN_NAMES` so the
-  // editor's shadowing warning cannot drift from what actually resolves.
   const builtins = computed<Record<BuiltinName, Value>>(() => ({
     "slides.index": currentSlidesIndex.value,
     "slides.count": slides.value.length,
@@ -223,14 +215,17 @@ export const useDeckStore = defineStore("deck", () => {
     return [];
   }
 
+  // `channel` narrows the answer to "who receives a write of this kind" — a
+  // peer that holds the channel back is not one. Null asks for the whole group.
   function peersOf(
     id: string,
+    channel: SyncChannel | null = null,
     located: { node: Tree; slideIndex: number } | null = locateNode(id),
   ): { node: Tree; slideIndex: number }[] {
     if (!located) return [];
 
     const { reference: key, type } = located.node;
-    if (!key) return [];
+    if (!key || (channel && !syncs(located.node, channel))) return [];
 
     const out: { node: Tree; slideIndex: number }[] = [];
     slides.value.forEach((_, slideIndex) => {
@@ -527,6 +522,7 @@ export const useDeckStore = defineStore("deck", () => {
       path,
       type,
       reference: null,
+      unsynced: null,
       sort_order: nextSiblingOrder(parentPath),
     };
 
@@ -569,7 +565,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   function updateNode(
     id: string,
-    patch: Partial<Pick<NodeModel, "name" | "reference">>,
+    patch: Partial<Pick<NodeModel, "name" | "reference" | "unsynced">>,
   ) {
     const target = getNodeAsTree(id);
 
@@ -579,9 +575,19 @@ export const useDeckStore = defineStore("deck", () => {
 
     sync.enqueueNode(id);
 
-    if (patch.name === undefined || patch.reference !== undefined) return;
+    if (patch.reference !== undefined) return;
 
-    for (const { node } of peersOf(id)) {
+    if (patch.unsynced !== undefined) {
+      for (const { node } of peersOf(id)) {
+        node.unsynced = patch.unsynced ? [...patch.unsynced] : null;
+        sync.enqueueNode(node.id);
+      }
+      return;
+    }
+
+    if (patch.name === undefined) return;
+
+    for (const { node } of peersOf(id, "name")) {
       node.name = patch.name;
       sync.enqueueNode(node.id);
     }
@@ -672,6 +678,7 @@ export const useDeckStore = defineStore("deck", () => {
       path: childPath(ancestorPath, id),
       type: "core.group",
       reference: null,
+      unsynced: null,
       sort_order: nextSiblingOrder(ancestorPath),
     };
 
@@ -957,9 +964,11 @@ export const useDeckStore = defineStore("deck", () => {
       component,
     );
 
-    if (!located?.node.reference) return;
-
-    for (const { slideIndex, node } of peersOf(component.node, located)) {
+    for (const { slideIndex, node } of peersOf(
+      component.node,
+      component.type,
+      located,
+    )) {
       writeComponentAt(slideIndex, {
         ...component,
         node: node.id,
@@ -1007,9 +1016,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     removeComponentAt(located.slideIndex, nodeId, type);
 
-    if (!located.node.reference) return;
-
-    for (const { slideIndex, node } of peersOf(nodeId, located)) {
+    for (const { slideIndex, node } of peersOf(nodeId, type, located)) {
       removeComponentAt(slideIndex, node.id, type);
     }
   }

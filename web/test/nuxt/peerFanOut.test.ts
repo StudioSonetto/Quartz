@@ -187,6 +187,34 @@ describe("peer fan-out", () => {
     ).toBe(false);
   });
 
+  it("holds a root's name back until the channel is turned on", () => {
+    const store = seed();
+    const root = (id: string, slide: string) =>
+      buildTree([mk(id, slide, ROOT_PATH, 0, "core.group", "root")] as any);
+    store.trees.set(SLIDE_A, root(ROOT_A, SLIDE_A));
+    store.trees.set(SLIDE_B, root(ROOT_B, SLIDE_B));
+
+    store.updateNode(ROOT_A, { name: "Cover" });
+    expect(store.getNodeById(ROOT_B)!.name).toBe(ROOT_B);
+
+    store.updateNode(ROOT_A, { unsynced: [] });
+    expect(store.getNodeById(ROOT_B)!.unsynced).toEqual([]);
+
+    store.updateNode(ROOT_A, { name: "Cover" });
+    expect(store.getNodeById(ROOT_B)!.name).toBe("Cover");
+  });
+
+  it("stops a component write at a node that unsynced its type", () => {
+    const store = seed();
+    store.updateNode(A, { unsynced: ["core.transform"] });
+    store.updateComponent(transform(A, 99, 99) as any);
+
+    expect(store.getComponent(B, "core.transform")!.data.position).toEqual({
+      x: 10,
+      y: 20,
+    });
+  });
+
   it("mirrors name but never mirrors the key itself", () => {
     const store = seed();
     store.updateNode(A, { name: "Footer" });
