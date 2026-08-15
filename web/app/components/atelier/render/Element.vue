@@ -49,8 +49,6 @@
   @apply border-rd;
 }
 
-/* Presenting keeps pointer events for hotspots, so the hover outline is opted
-   into rather than suppressed. */
 .element-hoverable {
   @apply hover:outline-accent;
 }
@@ -70,7 +68,7 @@ const { setIsDragging } = useAtelierStore();
 const presenting = inject(presentingKey, ref(false));
 const { fire } = useEventDispatch();
 
-const { scale } = useCanvasScale();
+const { canvasRect, scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
 
 const element = useTemplateRef<HTMLElement>("element");
@@ -105,9 +103,39 @@ function onEscape() {
 
 const isMounted = ref(false);
 
+let gesture: {
+  drag: DragGesture;
+  box: Rect;
+  origin: { x: number; y: number };
+  scale: { x: number; y: number };
+  moved: boolean;
+} | null = null;
+
 const { x, y, isDragging } = useDraggable(element, {
   exact: true,
   disabled: editing,
+  onStart: (position, event) => {
+    if (props.isLocked) return;
+
+    const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
+
+    if (!drag) return;
+
+    const el = document.getElementById(drag.node);
+    const box = el && canvasRect(el);
+
+    if (!box) return;
+
+    gesture = {
+      drag,
+      box,
+      origin: { x: event.clientX - position.x, y: event.clientY - position.y },
+      scale: scale(),
+      moved: false,
+    };
+
+    begin([drag.node]);
+  },
 });
 
 const dragStart = ref<{
@@ -122,13 +150,34 @@ watchThrottled(
   [x, y],
   ([newX, newY]) => {
     if (props.isLocked) return;
+
+    // The trailing flush lands after the drag ended and its state was cleared —
+    // acting on it would seed the next drag from a stale pointer origin.
+    if (!isDragging.value) return;
+
+    if (gesture) {
+      const { drag, box, origin, scale: s } = gesture;
+
+      gesture.moved = true;
+
+      const snapped = apply({
+        ...box,
+        left: box.left + (newX - origin.x) * s.x,
+        top: box.top + (newY - origin.y) * s.y,
+      });
+
+      return drag.move(
+        (snapped.left - box.left) / s.x,
+        (snapped.top - box.top) / s.y,
+      );
+    }
+
     if (isGridChild.value) return;
 
     const transform = getNodeComponent(props.node.id, "core.transform");
 
     if (!transform) return;
 
-    // A bound position is read-only to dragging — the binding would win.
     if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
     if (!dragStart.value) {
@@ -172,7 +221,12 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    if (dragStart.value) {
+    if (gesture) {
+      // A press with no movement is a click — ending it would commit a save.
+      if (gesture.moved) gesture.drag.end?.();
+
+      gesture = null;
+    } else if (dragStart.value) {
       const transform = getNodeComponent(props.node.id, "core.transform");
 
       if (transform) updateComponent(transform);
@@ -203,7 +257,6 @@ const elementStyle = computed(() => {
     transform: "",
   };
 
-  // Editable (text) grid children keep pointer events (inline text edit)
   return editable() ? grid : { ...grid, pointerEvents: "none" };
 });
 
@@ -229,7 +282,6 @@ function onSelect(event: MouseEvent) {
   selectFromEvent(target, event);
 }
 
-// Stopping propagation only when a handler ran keeps a bare click paging the deck.
 function onClick(event: MouseEvent) {
   if (!presenting.value) return onSelect(event);
 
@@ -241,7 +293,6 @@ function onHover() {
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
-  // Arrow keys move the caret while editing, not the node.
   if (
     editing.value ||
     props.isLocked ||

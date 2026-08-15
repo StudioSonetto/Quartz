@@ -1,20 +1,6 @@
 export const snappingKey: InjectionKey<ReturnType<typeof useSnapping>> =
   Symbol("snapping");
 
-let active: ReturnType<typeof useSnapping> | null = null;
-
-export function provideSnapping(instance: ReturnType<typeof useSnapping>) {
-  active = instance;
-
-  onScopeDispose(() => {
-    if (active === instance) active = null;
-  });
-}
-
-export function activeSnapping() {
-  return active;
-}
-
 export function useSnapping() {
   const deck = useDeckStore();
   const { currentTree } = storeToRefs(deck);

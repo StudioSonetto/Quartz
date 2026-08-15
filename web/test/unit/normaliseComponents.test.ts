@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  defineModule,
-  registerModule,
-  __resetRegistry,
-} from "~/modules/registry";
+import animation from "~/modules/core/components/animation";
 
 function comp(node: string, type: string, data: any) {
   return { node, type, data } as any;
@@ -22,6 +18,7 @@ function node(id: string, type: string, path = id) {
 
 beforeEach(() => {
   __resetRegistry();
+
   registerModule(
     defineModule({
       id: "core",

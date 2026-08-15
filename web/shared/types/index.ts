@@ -106,6 +106,10 @@ export interface HandleDef {
   rotate?: (node: Tree) => HandleGesture<(degrees: number) => void> | undefined;
 }
 
+export interface DragGesture extends HandleGesture {
+  node: string;
+}
+
 export interface NodeTypeDef {
   type: NodeType;
   label: string;
@@ -118,6 +122,7 @@ export interface NodeTypeDef {
   onMount?: (nodeId: string) => void;
   onCreate?: (nodeId: string) => void;
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
+  drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
   handles?: HandleDef;
   asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
