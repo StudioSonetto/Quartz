@@ -1,5 +1,5 @@
 <template>
-  <div class="contents" ref="container">
+  <div class="contents" ref="container" @click="onClick" @mouseenter="onHover">
     <div
       v-if="!presenting"
       ref="border"
@@ -25,22 +25,22 @@
 <style scoped lang="postcss">
 .group-border {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-dashed outline-accent/0 hover:outline-accent;
+  @apply outline outline-3 outline-solid outline-accent/0 hover:outline-accent;
   @apply border-rd;
 }
 </style>
 
 <script setup lang="ts">
-import { flattenTree } from "~/utils/tree";
-
 const { isSelected, updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 
 const presenting = inject(presentingKey, ref(false));
+const { fire } = useEventDispatch();
 
-const { renderRoot, scale } = useCanvasScale();
+const { canvasRect, renderRoot, scale } = useCanvasScale();
+const { begin, apply, end } = inject(snappingKey)!;
 
 const props = defineProps<{
   node: Tree;
@@ -112,8 +112,6 @@ const borderStyle = computed(() => {
 let rafId = 0;
 
 function scheduleBounds() {
-  // No border to size while presenting, and an animating slide would otherwise
-  // re-measure every child on every frame the style observer fires.
   if (presenting.value || rafId) return;
 
   rafId = requestAnimationFrame(() => {
@@ -144,6 +142,7 @@ const startPositions = ref<Map<string, { x: number; y: number }> | null>(null);
 const startDrag = ref<{ x: number; y: number } | null>(null);
 
 let movable: Tree[] = [];
+let startBox: Rect | null = null;
 
 const throttle = useFrameThrottle();
 
@@ -151,6 +150,8 @@ watchThrottled(
   [x, y],
   ([newX, newY]) => {
     if (props.isLocked) return;
+
+    if (!isDragging.value) return;
 
     if (!startPositions.value || !startDrag.value) {
       movable = flattenTree(props.node).filter((n) => n.type !== "core.group");
@@ -162,8 +163,6 @@ watchThrottled(
 
         if (!transform) return;
 
-        // Left out of the snapshot, so the move loop below skips it: a bound
-        // position would overwrite whatever the drag wrote.
         if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
         snapshot.set(node.id, {
@@ -175,13 +174,28 @@ watchThrottled(
       startPositions.value = snapshot;
       startDrag.value = { x: newX, y: newY };
 
+      startBox = border.value && canvasRect(border.value);
+
+      begin([props.node.id]);
+
       return;
     }
 
     const { x: scaleX, y: scaleY } = scale();
 
-    const deltaX = (newX - startDrag.value.x) * scaleX;
-    const deltaY = (newY - startDrag.value.y) * scaleY;
+    let deltaX = (newX - startDrag.value.x) * scaleX;
+    let deltaY = (newY - startDrag.value.y) * scaleY;
+
+    if (startBox) {
+      const snapped = apply({
+        ...startBox,
+        left: startBox.left + deltaX,
+        top: startBox.top + deltaY,
+      });
+
+      deltaX = snapped.left - startBox.left;
+      deltaY = snapped.top - startBox.top;
+    }
 
     movable.forEach((node) => {
       const start = startPositions.value?.get(node.id);
@@ -210,7 +224,10 @@ watch(isDragging, (newState) => {
 
     startPositions.value = null;
     startDrag.value = null;
+    startBox = null;
     movable = [];
+
+    end();
   }
 });
 
@@ -218,5 +235,15 @@ const { selectFromEvent, clear } = useNodeSelection();
 
 function onSelect(event: MouseEvent) {
   selectFromEvent(props.node, event);
+}
+
+function onClick(event: MouseEvent) {
+  if (!presenting.value) return;
+
+  if (fire(props.node, "click")) event.stopPropagation();
+}
+
+function onHover() {
+  if (presenting.value) fire(props.node, "hover");
 }
 </script>

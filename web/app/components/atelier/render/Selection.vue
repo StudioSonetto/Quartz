@@ -15,15 +15,12 @@
 
 <style scoped lang="postcss">
 .selection {
-  @apply absolute z-45 outline outline-1 outline-dashed outline-accent;
+  @apply absolute z-45 outline outline-3 outline-solid outline-accent;
   @apply cursor-move;
 }
 </style>
 
 <script setup lang="ts">
-import type { Rect } from "~/utils/selection";
-import { snappingKey } from "~/composables/useSnapping";
-
 const deck = useDeckStore();
 const { selectedNodes } = storeToRefs(deck);
 const comps = useNodeComponents();
@@ -35,7 +32,6 @@ const movable = computed(() =>
   selectedNodes.value.filter((n) => {
     const transform = comps.getNodeComponent(n.id, "core.transform");
 
-    // A bound position would overwrite the drag, so the node does not move.
     if (!transform || anyBound(transform.data, ["position.x", "position.y"])) {
       return false;
     }
