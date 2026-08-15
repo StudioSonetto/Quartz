@@ -33,5 +33,22 @@ export function useCanvasScale() {
     };
   }
 
-  return { findRenderEl, renderRoot, scale };
+  function canvasRect(element: Element): Rect | null {
+    const container = findRenderEl();
+
+    if (!container) return null;
+
+    const r = element.getBoundingClientRect();
+    const c = container.getBoundingClientRect();
+    const s = scale();
+
+    return {
+      left: (r.left - c.left) * s.x,
+      top: (r.top - c.top) * s.y,
+      width: r.width * s.x,
+      height: r.height * s.y,
+    };
+  }
+
+  return { canvasRect, findRenderEl, renderRoot, scale };
 }

@@ -1,12 +1,7 @@
 import type { Tree } from "#shared/types";
 import { isDescendantPath } from "~/utils/nodePath";
 
-export interface Rect {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+export type { Rect } from "#shared/types";
 
 export function rangeIds(
   orderedIds: string[],

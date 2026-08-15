@@ -101,12 +101,7 @@ const { updateComponent } = useDeckStore();
 const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
-const box = ref<{
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-} | null>(null);
+const box = ref<Rect | null>(null);
 
 function computeBox() {
   const node = soleSelected.value;
@@ -177,13 +172,23 @@ const selectedTransform = computed(() => {
   return node ? transformOf(node)?.data : undefined;
 });
 
+const handles = computed(() => {
+  const node = soleSelected.value;
+
+  return node ? getNodeType(node.type)?.handles : undefined;
+});
+
 const canResize = computed(() => {
+  if (handles.value?.resize) return true;
+
   const data = selectedTransform.value;
 
   return !!data && !anyBound(data, RESIZE_WRITES);
 });
 
 const canRotate = computed(() => {
+  if (handles.value?.rotate) return true;
+
   const data = selectedTransform.value;
 
   return !!data && !isBound(data, "rotation");
@@ -191,7 +196,10 @@ const canRotate = computed(() => {
 
 let activeDrag: (() => void) | null = null;
 
-function startPointerDrag(onMove: (ev: PointerEvent) => void) {
+function startPointerDrag(
+  onMove: (ev: PointerEvent) => void,
+  onEnd?: () => void,
+) {
   let raf = 0;
   let latest: PointerEvent | null = null;
 
@@ -221,6 +229,8 @@ function startPointerDrag(onMove: (ev: PointerEvent) => void) {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
 
+    onEnd?.();
+
     const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
 
     window.addEventListener("click", swallowClick, {
@@ -246,6 +256,26 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const node = soleSelected.value;
 
   if (!node) return;
+
+  if (handles.value?.resize) {
+    if (!box.value) return;
+
+    const gesture = handles.value.resize(
+      node,
+      { x: h.dx, y: h.dy },
+      { ...box.value },
+    );
+
+    if (!gesture) return;
+
+    const originX = e.clientX;
+    const originY = e.clientY;
+
+    return startPointerDrag(
+      (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
+      () => gesture.end?.(),
+    );
+  }
 
   const transform = transformOf(node);
 
@@ -317,23 +347,40 @@ function startRotate(e: PointerEvent) {
 
   if (!node) return;
 
+  const element = document.getElementById(node.id);
+
+  if (!element) return;
+
+  const rect = element.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+
+  const degreesFrom = (ev: PointerEvent) =>
+    ((Math.atan2(ev.clientY - cy, ev.clientX - cx) - startAngle) * 180) /
+    Math.PI;
+
+  if (handles.value?.rotate) {
+    const gesture = handles.value.rotate(node);
+
+    if (!gesture) return;
+
+    return startPointerDrag(
+      (ev) => gesture.move(degreesFrom(ev)),
+      () => gesture.end?.(),
+    );
+  }
+
   const transform = transformOf(node);
 
   if (!transform) return;
 
   if (isBound(transform.data, "rotation")) return;
 
-  const rect = document.getElementById(node.id)!.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
   const startRotation = transform.data.rotation ?? 0;
 
   startPointerDrag((ev) => {
-    const angle = Math.atan2(ev.clientY - cy, ev.clientX - cx);
-    const deg = ((angle - startAngle) * 180) / Math.PI;
-
-    transform.data.rotation = Math.round(startRotation + deg);
+    transform.data.rotation = Math.round(startRotation + degreesFrom(ev));
 
     updateComponent(transform);
   });

@@ -219,6 +219,10 @@ function onSelect(event: MouseEvent) {
     return;
   }
 
+  const picked = getNodeType(props.node.type)?.pick?.(props.node, event);
+
+  if (picked) return selectFromEvent(picked, event);
+
   const target =
     isGridChild.value && props.node.parent ? props.node.parent : props.node;
 

@@ -2,6 +2,7 @@
   <div
     ref="renderEl"
     :style="rootStyle"
+    :data-editable="canEdit ? 'true' : undefined"
     @click="onCanvasClick"
     @click.right="onCanvasClick"
     @dragenter="canEdit && assetDrag.over($event)"
@@ -126,4 +127,5 @@ provide(renderScaleKey, scale);
 const snapping = useSnapping();
 
 provide(snappingKey, snapping);
+provideSnapping(snapping);
 </script>
