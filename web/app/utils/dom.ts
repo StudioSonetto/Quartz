@@ -11,9 +11,7 @@ export function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export function isInsideOpenDialog(target: EventTarget | null): boolean {
-  const el = target as Element | null;
-
-  return !!el?.closest?.("dialog[open]");
+  return !!(target as Element | null)?.closest?.("dialog[open]");
 }
 
 export function wrapIndex(i: number, delta: number, n: number): number {

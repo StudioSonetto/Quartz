@@ -29,6 +29,14 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isModel(asset.name));
   });
 
+  const modelUrls = computed(
+    () => new Map(models.value.map((a) => [a.name, a.url.toString()])),
+  );
+
+  function modelUrl(name: string) {
+    return modelUrls.value.get(name);
+  }
+
   const isImage = (name: string) => assetKind(name) === "image";
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
@@ -178,6 +186,7 @@ export const useAssetsStore = defineStore("assets", () => {
     imageUrl,
     fonts,
     models,
+    modelUrl,
     isImage,
     isFont,
     isModel,

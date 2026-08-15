@@ -31,9 +31,17 @@ export const useDeckStore = defineStore("deck", () => {
   const components = ref<Map<string, ComponentModel[]>>(new Map());
 
   function forgetSlide(id: string) {
+    const tree = trees.value.get(id);
+
+    if (tree?.id) for (const node of flattenTree(tree)) releaseNode(node);
+
     trees.value.delete(id);
     components.value.delete(id);
     slidesInLoading.value.delete(id);
+  }
+
+  function releaseNode(node: Tree) {
+    getNodeType(node.type)?.onDelete?.(node.id);
   }
 
   const treeAt = (i: number) => {
@@ -625,8 +633,10 @@ export const useDeckStore = defineStore("deck", () => {
       slideComponents.filter((c) => !removedIds.has(c.node)),
     );
 
-    // Drop every removed id from the outbox before enqueuing the deletes.
-    for (const n of removed) sync.dropNode(n.id);
+    for (const n of removed) {
+      sync.dropNode(n.id);
+      releaseNode(n);
+    }
     for (const r of roots)
       sync.enqueueDelete({ path: r.path, slides: r.slides }, r.id);
     selectedNodeIds.value = [];

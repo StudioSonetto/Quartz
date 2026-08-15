@@ -122,6 +122,7 @@ export interface NodeTypeDef {
   parents?: NodeType[];
   onMount?: (nodeId: string) => void;
   onCreate?: (nodeId: string) => void;
+  onDelete?: (nodeId: string) => void;
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
   handles?: HandleDef;
