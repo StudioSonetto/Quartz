@@ -135,9 +135,8 @@
   }
 
   .node-lock {
-    @apply flex-shrink-0 w-auto p-0 ml-1 border-none bg-transparent;
-    @apply text-light-200 opacity-0 transition-opacity cursor-pointer;
-    @apply transition-colors;
+    @apply text-light-200 opacity-0 cursor-pointer;
+    @apply transition-colors transition-opacity;
 
     div {
       @apply ui-text-4;
