@@ -3,6 +3,7 @@ export const defaultKeymap: Record<string, string> = {
   "mod+a": "core.selection.selectAll",
   "mod+g": "core.selection.group",
   "mod+shift+g": "core.selection.ungroup",
+  "mod+shift+l": "core.node.lock",
   "mod+d": "core.selection.duplicate",
   "mod+c": "core.selection.copy",
   "mod+x": "core.selection.cut",

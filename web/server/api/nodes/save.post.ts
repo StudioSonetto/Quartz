@@ -24,6 +24,7 @@ const bodySchema = z.object({
           .array(z.enum(["name", ...componentType.enumValues]))
           .nullable()
           .optional(),
+        locked: z.boolean().default(false),
         type: z.enum(nodeType.enumValues),
         sort_order: z.number().int().default(0),
       }),
@@ -136,6 +137,7 @@ export default defineEventHandler(async (event) => {
             path: sql`excluded.path`,
             reference: sql`excluded.reference`,
             unsynced: sql`excluded.unsynced`,
+            locked: sql`excluded.locked`,
             type: sql`excluded.type`,
             sort_order: sql`excluded.sort_order`,
           },

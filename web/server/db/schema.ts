@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   customType,
   foreignKey,
   index,
@@ -119,6 +120,7 @@ export const nodes = pgTable.withRLS(
     path: ltree("path").notNull(),
     reference: text("reference"),
     unsynced: text("unsynced").array(),
+    locked: boolean("locked").notNull().default(false),
     slides: uuid("slides").notNull(),
     type: nodeType("type").notNull(),
     sort_order: smallint("sort_order").notNull().default(0),

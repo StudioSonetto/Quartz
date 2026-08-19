@@ -14,7 +14,7 @@
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
       isSelected(props.node.id) ? 'outline-accent!' : '',
-      { 'element-hoverable': !presenting },
+      { 'element-hoverable': !presenting && !locked },
     ]"
     ref="element"
     class="element"
@@ -55,9 +55,6 @@
 </style>
 
 <script setup lang="ts">
-import { getNodeType } from "~/modules/registry";
-import { snappingKey } from "~/composables/useSnapping";
-
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
 const { isSelected, updateComponent } = deck;
@@ -80,6 +77,8 @@ const props = defineProps<{
 
 const isGridChild = computed(() => isNodeGridChild(props.node));
 
+const locked = computed(() => props.isLocked || isNodeLocked(props.node));
+
 const {
   editing,
   editable,
@@ -91,7 +90,7 @@ const {
 );
 
 function onDoubleClick(event: MouseEvent) {
-  if (presenting.value) return;
+  if (presenting.value || locked.value) return;
 
   if (!editing.value && editable()) startEditing(event);
 }
@@ -121,6 +120,8 @@ const { x, y, isDragging } = useDraggable(element, {
 
     if (!drag) return;
 
+    if (isNodeLocked(deck.getNodeAsTree(drag.node))) return;
+
     const el = document.getElementById(drag.node);
     const box = el && canvasRect(el);
 
@@ -149,10 +150,6 @@ const throttle = useFrameThrottle();
 watchThrottled(
   [x, y],
   ([newX, newY]) => {
-    if (props.isLocked) return;
-
-    // The trailing flush lands after the drag ended and its state was cleared —
-    // acting on it would seed the next drag from a stale pointer origin.
     if (!isDragging.value) return;
 
     if (gesture) {
@@ -172,7 +169,7 @@ watchThrottled(
       );
     }
 
-    if (isGridChild.value) return;
+    if (locked.value || isGridChild.value) return;
 
     const transform = getNodeComponent(props.node.id, "core.transform");
 
@@ -222,7 +219,6 @@ watch(isDragging, (newState) => {
 
   if (!newState) {
     if (gesture) {
-      // A press with no movement is a click — ending it would commit a save.
       if (gesture.moved) gesture.drag.end?.();
 
       gesture = null;
@@ -247,24 +243,31 @@ const render = computed(() => {
 const elementStyle = computed(() => {
   const base = render.value?.style;
 
-  if (!base || !isGridChild.value) return base;
+  const style =
+    base && isGridChild.value
+      ? { ...base, position: "static", left: "", top: "", transform: "" }
+      : base;
 
-  const grid = {
-    ...base,
-    position: "static",
-    left: "",
-    top: "",
-    transform: "",
-  };
+  const def = getNodeType(props.node.type);
+  const passThrough =
+    isNodeLocked(props.node) &&
+    def?.hitTest !== "contents" &&
+    !presenting.value;
 
-  return editable() ? grid : { ...grid, pointerEvents: "none" };
+  if (passThrough || (isGridChild.value && !editable()))
+    return { ...style, pointerEvents: "none" };
+
+  return style;
 });
 
 const { selectFromEvent, clear } = useNodeSelection();
+const marquee = inject(marqueeKey);
 const { soleSelected } = storeToRefs(deck);
 
 function onSelect(event: MouseEvent) {
   if (presenting.value) return;
+
+  if (props.isLocked) return;
 
   if (editing.value) {
     event.stopPropagation();
@@ -274,12 +277,13 @@ function onSelect(event: MouseEvent) {
 
   const picked = getNodeType(props.node.type)?.pick?.(props.node, event);
 
-  if (picked) return selectFromEvent(picked, event);
-
   const target =
-    isGridChild.value && props.node.parent ? props.node.parent : props.node;
+    picked ??
+    (isGridChild.value && props.node.parent ? props.node.parent : props.node);
 
-  selectFromEvent(target, event);
+  if (selectFromEvent(target, event)) return;
+
+  if (event.type === "mousedown") marquee?.begin?.(event);
 }
 
 function onClick(event: MouseEvent) {
@@ -295,7 +299,7 @@ function onHover() {
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
   if (
     editing.value ||
-    props.isLocked ||
+    locked.value ||
     soleSelected.value?.id !== props.node.id ||
     isGridChild.value
   )

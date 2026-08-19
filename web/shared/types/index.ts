@@ -39,6 +39,7 @@ export const EMPTY_TREE: Tree = {
   type: "core.group",
   reference: "",
   unsynced: null,
+  locked: false,
   sort_order: 0,
   children: [],
 };
@@ -126,6 +127,7 @@ export interface NodeTypeDef {
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
   handles?: HandleDef;
+  hitTest?: "element" | "contents";
   asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
 }
@@ -151,6 +153,7 @@ export interface CommandContext {
   atelier: any;
   soleSelected: Tree | null;
   selectedNodes: Tree[];
+  unlockedNodes: Tree[];
   selectedNodeIds: string[];
   activeTab: number;
   focus: AtelierFocus;

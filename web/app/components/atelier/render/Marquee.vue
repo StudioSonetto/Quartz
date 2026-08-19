@@ -24,10 +24,6 @@
 </style>
 
 <script setup lang="ts">
-import { flattenTree } from "~/utils/tree";
-import { ROOT_PATH } from "~/utils/nodePath";
-import { rectsIntersect, type Rect } from "~/utils/selection";
-
 const deck = useDeckStore();
 const { currentTree } = storeToRefs(deck);
 
@@ -51,7 +47,7 @@ let origin: { x: number; y: number; c: DOMRect; additive: boolean } | null =
   null;
 let moved = false;
 
-function onDown(e: PointerEvent) {
+function onDown(e: MouseEvent) {
   const container = renderRoot.value;
 
   if (!container) return;
@@ -67,6 +63,10 @@ function onDown(e: PointerEvent) {
 
   moved = false;
 }
+
+const marquee = inject(marqueeKey);
+
+if (marquee) marquee.begin = onDown;
 
 useEventListener(window, "pointermove", (e: PointerEvent) => {
   if (!origin) return;
@@ -113,8 +113,6 @@ useEventListener(window, "pointerup", () => {
     extendSelection(hits);
   }
 
-  // A marquee drag leaves a synthetic click on `.render` that would clear the
-  // just-made selection; swallow it. (A plain click still clears.)
   if (moved) arm();
 
   rect.value = null;

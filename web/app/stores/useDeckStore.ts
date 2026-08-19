@@ -110,6 +110,10 @@ export const useDeckStore = defineStore("deck", () => {
       .filter((n): n is Tree => n !== undefined);
   });
 
+  const unlockedSelection = computed<Tree[]>(() =>
+    unlockedOnly(selectedNodes.value),
+  );
+
   const soleSelected = computed<Tree | null>(() => {
     if (selectedNodeIds.value.length !== 1) return null;
 
@@ -531,6 +535,7 @@ export const useDeckStore = defineStore("deck", () => {
       type,
       reference: null,
       unsynced: null,
+      locked: false,
       sort_order: nextSiblingOrder(parentPath),
     };
 
@@ -573,7 +578,9 @@ export const useDeckStore = defineStore("deck", () => {
 
   function updateNode(
     id: string,
-    patch: Partial<Pick<NodeModel, "name" | "reference" | "unsynced">>,
+    patch: Partial<
+      Pick<NodeModel, "name" | "reference" | "unsynced" | "locked">
+    >,
   ) {
     const target = getNodeAsTree(id);
 
@@ -618,7 +625,6 @@ export const useDeckStore = defineStore("deck", () => {
     );
     const removedIds = new Set(removed.map((n) => n.id));
 
-    // Remove the nodes and their subtrees from local state.
     trees.value.set(
       slideId,
       buildTree(
@@ -627,7 +633,7 @@ export const useDeckStore = defineStore("deck", () => {
           .map(({ children, parent, ...n }) => n),
       ),
     );
-    // Purge the removed subtrees' components so they can't resolve in flush().
+
     components.value.set(
       slideId,
       slideComponents.filter((c) => !removedIds.has(c.node)),
@@ -644,13 +650,11 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function deleteSelectedNodes() {
-    deleteNodes(selectedNodes.value);
+    deleteNodes(unlockedSelection.value);
   }
 
-  function selectionRoots(): Tree[] {
-    return outermostNodes(selectedNodes.value).filter(
-      (n) => n.path !== ROOT_PATH,
-    );
+  function selectionRoots(nodes: Tree[] = unlockedSelection.value): Tree[] {
+    return outermostNodes(nodes).filter((n) => n.path !== ROOT_PATH);
   }
 
   function selectNodes(ids: string[]) {
@@ -689,6 +693,7 @@ export const useDeckStore = defineStore("deck", () => {
       type: "core.group",
       reference: null,
       unsynced: null,
+      locked: false,
       sort_order: nextSiblingOrder(ancestorPath),
     };
 
@@ -710,8 +715,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     sync.enqueueNode(id);
     for (const c of groupDefaults) sync.enqueueComponent(c.node, c.type);
-    // Persist every node — reparented ones changed path, and recanonicalisation
-    // may have changed sibling sort_order.
+
     for (const n of nextFlat) {
       if (n.path !== ROOT_PATH && n.id !== id) sync.enqueueNode(n.id);
     }
@@ -722,7 +726,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function ungroupSelection() {
-    const groups = selectedNodes.value.filter(
+    const groups = unlockedSelection.value.filter(
       (n) => n.type === "core.group" && n.path !== ROOT_PATH,
     );
 
@@ -763,8 +767,6 @@ export const useDeckStore = defineStore("deck", () => {
     anchorId.value = null;
   }
 
-  // Insert already-cloned nodes/components (fresh ids) under `destPath`,
-  // rebasing the clone root's path onto that parent + a fresh sort_order.
   function insertClone(
     clone: { nodes: NodeModel[]; components: ComponentModel[]; rootId: string },
     destPath: string,
@@ -803,7 +805,7 @@ export const useDeckStore = defineStore("deck", () => {
   const CLONE_OFFSET = { x: 24, y: 24 };
 
   function duplicateSelection() {
-    const roots = selectionRoots();
+    const roots = selectionRoots(selectedNodes.value);
     if (!roots.length) return;
     const slideId = currentSlides.value?.id;
     if (!slideId) return;
@@ -821,8 +823,8 @@ export const useDeckStore = defineStore("deck", () => {
     selectNodes(newIds);
   }
 
-  function copySelection() {
-    const roots = selectionRoots();
+  function copySelection(nodes: Tree[] = selectedNodes.value) {
+    const roots = selectionRoots(nodes);
     if (!roots.length) return;
     const slideId = currentSlides.value?.id;
     if (!slideId) return;
@@ -842,7 +844,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function cutSelection() {
-    copySelection();
+    copySelection(unlockedSelection.value);
     deleteSelectedNodes();
   }
 
@@ -895,7 +897,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!tree) return;
 
-    selectedNodeIds.value = flattenTree(tree)
+    selectedNodeIds.value = unlockedOnly(flattenTree(tree))
       .filter((n) => n.path !== ROOT_PATH)
       .map((n) => n.id);
     anchorId.value = selectedNodeIds.value.at(-1) ?? null;
@@ -949,7 +951,12 @@ export const useDeckStore = defineStore("deck", () => {
     sync.enqueueComponent(component.node, component.type);
   }
 
-  function updateComponent(component: ComponentModel) {
+  function updateComponent(
+    component: ComponentModel,
+    located = locateNode(component.node),
+  ) {
+    if (isNodeLocked(located?.node)) return;
+
     const state = isStateless(component.type)
       ? BASE_STATE
       : useAnimationState().activeState(component.node);
@@ -957,17 +964,18 @@ export const useDeckStore = defineStore("deck", () => {
     const anim = state ? getComponent(component.node, "core.animation") : null;
 
     if (anim && overridesFor(anim.data, state, component.type)) {
-      return updateComponent({
-        ...anim,
-        data: setNested(
-          anim.data,
-          ["states", state, "overrides", component.type],
-          component.data,
-        ),
-      });
+      return updateComponent(
+        {
+          ...anim,
+          data: setNested(
+            anim.data,
+            ["states", state, "overrides", component.type],
+            component.data,
+          ),
+        },
+        located,
+      );
     }
-
-    const located = locateNode(component.node);
 
     writeComponentAt(
       located?.slideIndex ?? currentSlidesIndex.value,
@@ -1023,6 +1031,7 @@ export const useDeckStore = defineStore("deck", () => {
   function removeComponent(nodeId: string, type: ComponentType) {
     const located = locateNode(nodeId);
     if (!located || isGuaranteed(located.node.type, type)) return;
+    if (isNodeLocked(located.node)) return;
 
     removeComponentAt(located.slideIndex, nodeId, type);
 
@@ -1056,6 +1065,7 @@ export const useDeckStore = defineStore("deck", () => {
     anchorId,
     clipboard,
     selectedNodes,
+    unlockedSelection,
     soleSelected,
     isSelected,
     allSlidesLoaded,

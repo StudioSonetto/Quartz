@@ -178,7 +178,11 @@ const handles = computed(() => {
   return node ? getNodeType(node.type)?.handles : undefined;
 });
 
+const locked = computed(() => isNodeLocked(soleSelected.value));
+
 const canResize = computed(() => {
+  if (locked.value) return false;
+
   if (handles.value?.resize) return true;
 
   const data = selectedTransform.value;
@@ -187,6 +191,8 @@ const canResize = computed(() => {
 });
 
 const canRotate = computed(() => {
+  if (locked.value) return false;
+
   if (handles.value?.rotate) return true;
 
   const data = selectedTransform.value;

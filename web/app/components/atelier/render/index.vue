@@ -112,6 +112,8 @@ useEventListener(
 
 provide(renderRootKey, renderEl);
 
+provide(marqueeKey, {});
+
 const { width, height } = useElementSize(renderEl);
 
 const scale = computed(() =>

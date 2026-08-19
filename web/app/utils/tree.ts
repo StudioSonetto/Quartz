@@ -1,6 +1,3 @@
-import type { NodeModel, Tree } from "#shared/types";
-import { ROOT_PATH } from "./nodePath";
-
 export function buildTree(nodes: NodeModel[]): Tree {
   const lookup: Record<string, Tree> = {};
 
@@ -32,6 +29,7 @@ export function buildTree(nodes: NodeModel[]): Tree {
       path: ROOT_PATH,
       reference: null,
       unsynced: null,
+      locked: false,
       type: "core.group",
       sort_order: 0,
       children: [],
@@ -41,9 +39,6 @@ export function buildTree(nodes: NodeModel[]): Tree {
 
 const NONE: ReadonlySet<string> = new Set();
 
-// Depth-first pre-order, `node` itself included. Children of a collapsed node
-// are skipped, so passing the collapsed set yields exactly the rows the
-// hierarchy is showing; omitting it flattens the whole tree.
 export function flattenTree(
   node: Tree,
   collapsedIds: ReadonlySet<string> = NONE,

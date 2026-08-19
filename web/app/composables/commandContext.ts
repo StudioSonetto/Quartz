@@ -14,6 +14,9 @@ export function buildCommandContext(): CommandContext {
     get selectedNodes() {
       return deck.selectedNodes;
     },
+    get unlockedNodes() {
+      return deck.unlockedSelection;
+    },
     get selectedNodeIds() {
       return deck.selectedNodeIds;
     },

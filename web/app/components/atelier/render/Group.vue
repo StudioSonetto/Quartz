@@ -5,7 +5,10 @@
       ref="border"
       :id="props.node.id"
       class="group-border"
-      :class="[isSelected(props.node.id) ? 'outline-accent!' : '']"
+      :class="[
+        isSelected(props.node.id) ? 'outline-accent!' : '',
+        { 'group-border-locked': locked },
+      ]"
       :style="borderStyle"
       :tabindex="0"
       @click="onSelect"
@@ -28,6 +31,10 @@
   @apply outline outline-3 outline-solid outline-accent/0 hover:outline-accent;
   @apply border-rd;
 }
+
+.group-border-locked {
+  @apply pointer-events-none;
+}
 </style>
 
 <script setup lang="ts">
@@ -46,6 +53,8 @@ const props = defineProps<{
   node: Tree;
   isLocked?: boolean;
 }>();
+
+const locked = computed(() => props.isLocked || isNodeLocked(props.node));
 
 const container = useTemplateRef<HTMLElement>("container");
 const border = useTemplateRef<HTMLElement>("border");
@@ -149,8 +158,6 @@ const throttle = useFrameThrottle();
 watchThrottled(
   [x, y],
   ([newX, newY]) => {
-    if (props.isLocked) return;
-
     if (!isDragging.value) return;
 
     if (!startPositions.value || !startDrag.value) {

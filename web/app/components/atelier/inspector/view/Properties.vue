@@ -3,6 +3,7 @@
     <div
       v-if="selectedNodes.length"
       class="view"
+      :class="{ disabled: lockedSelection }"
       tabindex="-1"
       @keydown="onKeydown"
       @contextmenu.prevent
@@ -73,13 +74,15 @@
 </style>
 
 <script setup lang="ts">
-const { selectedNodes } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const { selectedNodes, unlockedSelection } = storeToRefs(deck);
 const { getNodeComponents } = useNodeComponents();
 
-import { getComponentType } from "~/modules/registry";
-import { isEditableTarget, wrapIndex } from "~/utils/dom";
-
 const { clear } = useNodeSelection();
+
+const lockedSelection = computed(
+  () => selectedNodes.value.length > 0 && !unlockedSelection.value.length,
+);
 
 const sameType = computed(
   () => new Set(selectedNodes.value.map((n) => n.type)).size === 1,
@@ -99,8 +102,6 @@ const componentsByType = computed(() => {
   return map;
 });
 
-// Optional components make a same-type selection heterogeneous, so the panel
-// list is the union across the selection — anchor's types first, by insertion.
 const typePanels = computed(() =>
   [...componentsByType.value.keys()].map((type) => ({
     type,
@@ -110,7 +111,6 @@ const typePanels = computed(() =>
 
 const addComponent = useTemplateRef<{ open: () => void }>("addComponent");
 
-// Offer a type while any selected node still lacks it — `add` targets them all.
 const addable = computed(() => {
   const anchor = selectedNodes.value[0];
   if (!anchor || !sameType.value) return [];
@@ -125,8 +125,8 @@ const addable = computed(() => {
 const actions = computed(() => [
   {
     icon: "i-carbon-add-large",
-    tooltip: "Add component",
-    disabled: !addable.value.length,
+    tooltip: lockedSelection.value ? "Locked" : "Add component",
+    disabled: !addable.value.length || lockedSelection.value,
     onClick: () => addComponent.value?.open(),
   },
 ]);
@@ -151,16 +151,13 @@ function moveFocus(els: HTMLElement[], delta: number) {
 function onKeydown(e: KeyboardEvent) {
   const view = e.currentTarget as HTMLElement;
 
-  // Esc releases the selection outright rather than stepping back to the tree,
-  // so deselecting is one press from here as well. Also means the wrapping
-  // below can never trap keyboard users.
   if (e.key === "Escape") {
-    // A field with an unsaved edit claims the first press to abandon it, so
-    // deselecting takes a second one.
     if (e.defaultPrevented) return;
 
     e.preventDefault();
+
     clear();
+
     return;
   }
 
