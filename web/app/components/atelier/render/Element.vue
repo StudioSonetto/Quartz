@@ -13,8 +13,8 @@
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      isSelected(props.node.id) ? 'outline-accent!' : '',
-      { 'element-hoverable': !presenting && !locked },
+      isSelected(props.node.id) || isHovered ? 'outline-accent!' : '',
+      { 'element-hoverable': !presenting && !locked && !picked },
     ]"
     ref="element"
     class="element"
@@ -23,6 +23,8 @@
     @click="onClick"
     @mousedown="onSelect"
     @mouseenter="onHover"
+    @mousemove="onPointerMove"
+    @mouseleave="onPointerLeave"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
@@ -60,7 +62,9 @@ const deck = useDeckStore();
 const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
-const { setIsDragging } = useAtelierStore();
+const atelier = useAtelierStore();
+const { setIsDragging, setHovered } = atelier;
+const { hoveredNodeId } = storeToRefs(atelier);
 
 const presenting = inject(presentingKey, ref(false));
 const { fire } = useEventDispatch();
@@ -294,6 +298,44 @@ function onClick(event: MouseEvent) {
 
 function onHover() {
   if (presenting.value) fire(props.node, "hover");
+}
+
+const isHovered = computed(() => hoveredNodeId.value === props.node.id);
+
+const picked = ref<string | null>(null);
+
+let pickFrame = 0;
+
+function onPointerMove(event: MouseEvent) {
+  // Locking the canvas itself must not stop this: onSelect picks children
+  // through a locked parent too, so hover has to match it.
+  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
+    return;
+
+  const pick = getNodeType(props.node.type)?.pick;
+
+  if (!pick) return;
+
+  pickFrame = requestAnimationFrame(() => {
+    pickFrame = 0;
+
+    picked.value = pick(props.node, event)?.id ?? null;
+
+    setHovered(picked.value);
+  });
+}
+
+function onPointerLeave() {
+  if (pickFrame) {
+    cancelAnimationFrame(pickFrame);
+    pickFrame = 0;
+  }
+
+  if (!picked.value) return;
+
+  picked.value = null;
+
+  setHovered(null);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {

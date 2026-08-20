@@ -20,6 +20,7 @@ export const useAtelierStore = defineStore("atelier", () => {
   const paletteOpen = ref<boolean>(false);
 
   const highlightedNodeId = ref<string | null>(null);
+  const hoveredNodeId = ref<string | null>(null);
   const collapsedNodeIds = ref<Set<string>>(new Set());
 
   const openComponentKeys = ref<Set<string>>(new Set());
@@ -50,6 +51,10 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   function setHighlighted(id: string | null) {
     highlightedNodeId.value = id;
+  }
+
+  function setHovered(id: string | null) {
+    hoveredNodeId.value = id;
   }
 
   function isCollapsed(id: string) {
@@ -93,6 +98,7 @@ export const useAtelierStore = defineStore("atelier", () => {
     snapThreshold,
     paletteOpen,
     highlightedNodeId,
+    hoveredNodeId,
     collapsedNodeIds,
     openComponentKeys,
     focus,
@@ -102,6 +108,7 @@ export const useAtelierStore = defineStore("atelier", () => {
     closePalette,
     togglePalette,
     setHighlighted,
+    setHovered,
     isCollapsed,
     setCollapsed,
     toggleCollapsed,
