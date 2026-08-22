@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   customType,
   foreignKey,
   index,
@@ -16,7 +17,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { authenticatedRole } from "drizzle-orm/supabase";
 
-// Drizzle doesn't support ltree, so a custom type is needed.
 const ltree = customType<{ data: string }>({ dataType: () => "ltree" });
 
 export const nodeType = pgEnum("node_type", [
@@ -38,6 +38,7 @@ export const componentType = pgEnum("component_type", [
   "core.typography",
   "webgl.transform",
   "core.image",
+  "core.event",
 ]);
 
 export const lapidaries = pgTable.withRLS(
@@ -118,6 +119,8 @@ export const nodes = pgTable.withRLS(
     name: text("name").notNull(),
     path: ltree("path").notNull(),
     reference: text("reference"),
+    unsynced: text("unsynced").array(),
+    locked: boolean("locked").notNull().default(false),
     slides: uuid("slides").notNull(),
     type: nodeType("type").notNull(),
     sort_order: smallint("sort_order").notNull().default(0),

@@ -29,9 +29,19 @@ export const useAssetsStore = defineStore("assets", () => {
     return assets.value.filter((asset) => isModel(asset.name));
   });
 
+  const modelUrls = computed(
+    () => new Map(models.value.map((a) => [a.name, a.url.toString()])),
+  );
+
+  function modelUrl(name: string) {
+    return modelUrls.value.get(name);
+  }
+
   const isImage = (name: string) => assetKind(name) === "image";
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
+
+  const blobUrls = new Set<string>();
 
   async function resolveAsset(deck: string, asset: FileObject) {
     const { url, response } = await getStorageObject(
@@ -41,7 +51,22 @@ export const useAssetsStore = defineStore("assets", () => {
       asset.updated_at ?? asset.id,
     );
 
-    return response.ok ? { ...asset, url } : null;
+    if (!response.ok) return null;
+
+    if (isModel(asset.name)) {
+      const blob = URL.createObjectURL(await response.blob());
+
+      blobUrls.add(blob);
+
+      return { ...asset, url: new URL(blob) };
+    }
+
+    return { ...asset, url };
+  }
+
+  function releaseBlobUrls() {
+    blobUrls.forEach((url) => URL.revokeObjectURL(url));
+    blobUrls.clear();
   }
 
   async function fetchAssets(deck: string) {
@@ -54,6 +79,8 @@ export const useAssetsStore = defineStore("assets", () => {
     }
 
     if (!data) return;
+
+    releaseBlobUrls();
 
     // One round trip per asset, run together — a deck of twenty used to cost
     // twenty sequential fetches before anything appeared.
@@ -159,6 +186,7 @@ export const useAssetsStore = defineStore("assets", () => {
     imageUrl,
     fonts,
     models,
+    modelUrl,
     isImage,
     isFont,
     isModel,

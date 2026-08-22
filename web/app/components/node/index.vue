@@ -1,6 +1,12 @@
 <template>
-  <li class="node" role="none" :data-node-type="props.node.type">
-    <button
+  <li
+    class="node"
+    :class="{ 'node-locked': locked }"
+    role="none"
+    :data-node-type="props.node.type"
+  >
+    <div
+      class="node-item"
       :id="`node-${props.node.id}`"
       role="treeitem"
       :aria-selected="isSelected"
@@ -12,7 +18,7 @@
       <div class="flex items-center w-full">
         <div
           :class="[nodeIcon, { '-rotate-90': isGroup && !isOpen }]"
-          class="flex-shrink-0 transition-transform"
+          class="node-icon"
         ></div>
         <input
           maxlength="30"
@@ -34,7 +40,16 @@
       >
         {{ props.node.reference }}
       </p>
-    </button>
+      <button
+        v-if="!isRoot"
+        class="node-lock"
+        :title="lockTitle"
+        :aria-label="lockTitle"
+        @click.stop="toggleLock"
+      >
+        <div :class="locked ? 'i-carbon-locked' : 'i-carbon-unlocked'"></div>
+      </button>
+    </div>
     <ul
       ref="nested"
       v-if="node.children"
@@ -49,6 +64,14 @@
         @keydown.delete.stop="handleDelete"
         @contextmenu.prevent="
           useContextMenu().open($event, [
+            {
+              label: 'Lock / Unlock',
+              icon: 'i-carbon-locked',
+              shortcut: comboForCommand('core.node.lock'),
+              action: () => {
+                run('core.node.lock');
+              },
+            },
             {
               label: 'Delete',
               icon: 'i-carbon-trash-can',
@@ -67,18 +90,14 @@
 
 <style scoped lang="postcss">
 .node {
-  button {
+  > .node-item {
     @apply flex items-center justify-between;
     @apply w-full px-2 py-2 mb-3 border-rd relative;
     @apply ui-text-3 text-light-200 transition-colors cursor-pointer;
 
-    div p,
-    [class*="i-"] {
-      @apply pointer-events-none;
-    }
-
-    div [class*="i-"] {
-      @apply ui-text-4 mr-2.5;
+    .node-icon {
+      @apply flex-shrink-0 ui-text-4 mr-2.5;
+      @apply pointer-events-none transition-transform;
     }
 
     .name {
@@ -96,10 +115,6 @@
     &.hovering:not(.selected) {
       @apply bg-light-200/5;
 
-      div [class*="i-"] {
-        @apply opacity-100;
-      }
-
       .reference {
         @apply opacity-60;
       }
@@ -108,13 +123,39 @@
     &.selected {
       @apply bg-light-200 text-dark-900;
 
-      .name {
+      .name,
+      .node-lock {
         @apply text-dark-900;
       }
 
       .reference {
         @apply text-dark-900 opacity-100;
       }
+    }
+  }
+
+  .node-lock {
+    @apply text-light-200 opacity-0 cursor-pointer;
+    @apply transition-colors transition-opacity;
+
+    div {
+      @apply ui-text-4;
+    }
+  }
+
+  > .node-item:hover .node-lock,
+  > .node-item.selected .node-lock,
+  .node-lock:focus-visible {
+    @apply opacity-100;
+  }
+
+  &.node-locked > .node-item {
+    > :not(.node-lock) {
+      @apply opacity-60;
+    }
+
+    > .node-lock {
+      @apply opacity-100;
     }
   }
 
@@ -126,9 +167,6 @@
 
 <script setup lang="ts">
 import { useDraggable } from "vue-draggable-plus";
-
-import { getNodeType, canContain } from "~/modules/registry";
-import { isEditableTarget } from "~/utils/dom";
 
 const { updateNode, reorderNodes } = useDeckStore();
 const { run } = useCommands();
@@ -157,6 +195,16 @@ const nodeIcon = computed(
 );
 
 const isSelected = computed(() => isNodeSelected(props.node.id));
+const isRoot = computed(() => props.node.path === ROOT_PATH);
+
+const locked = computed(() => isNodeLocked(props.node));
+
+const lockTitle = computed(() => (locked.value ? "Unlock" : "Lock"));
+
+function toggleLock() {
+  updateNode(props.node.id, { locked: !locked.value });
+}
+
 const isGroup = computed(() => {
   return props.node.type === "core.group";
 });
@@ -181,6 +229,7 @@ useDraggable(nested, children, {
         dragEl.dataset.nodeType as NodeType,
       ),
   },
+  filter: ".node-locked",
   animation: 200,
   clone: (node: Tree) =>
     JSON.parse(
@@ -194,6 +243,7 @@ useDraggable(nested, children, {
 function onSelect(node: Tree, event: MouseEvent) {
   if (event.shiftKey) return range(node);
   if (event.metaKey || event.ctrlKey) return toggle(node);
+
   select(node, { handOffFocus: !isEditableTarget(event.target) });
 }
 

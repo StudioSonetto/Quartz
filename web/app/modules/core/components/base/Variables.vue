@@ -1,53 +1,23 @@
 <template>
-  <div v-if="component" ref="editor" class="variables-editor">
-    <div class="variables-list">
-      <VariableEntry
-        v-for="(entry, index) in list"
-        :key="index"
-        :entry="entry"
-        :problem="problems.get(index)"
-        :scope="scope"
-        :selected="selected === index"
-        :open="open.has(index)"
-        @select="selected = index"
-        @toggle="toggle(index)"
-        @rename="(to) => renameVariable(index, to)"
-        @patch="(changes) => patch(index, changes)"
-      />
-      <p v-if="!list.length" class="variables-empty">none</p>
-    </div>
-    <div class="variables-footer">
-      <UIButton variant="icon" @click="add">
-        <div class="i-carbon-add"></div>
-      </UIButton>
-      <UIButton
-        variant="icon"
-        :disabled="selected === null"
-        @click="removeSelected"
-      >
-        <div class="i-carbon-subtract"></div>
-      </UIButton>
-    </div>
-  </div>
+  <NodeComponentList
+    v-if="component"
+    :key="component.node"
+    :count="list.length"
+    @add="add"
+    @remove="remove"
+  >
+    <VariableEntry
+      v-for="(entry, index) in list"
+      :key="index"
+      :index="index"
+      :entry="entry"
+      :problem="problems.get(index)"
+      :scope="scope"
+      @rename="(to) => renameVariable(index, to)"
+      @patch="(changes) => patch(index, changes)"
+    />
+  </NodeComponentList>
 </template>
-
-<style scoped lang="postcss">
-.variables-editor {
-  @apply flex flex-col w-full ui-text-3;
-
-  .variables-list {
-    @apply flex flex-col gap-3;
-  }
-
-  .variables-empty {
-    @apply m-0 opacity-60;
-  }
-
-  .variables-footer {
-    @apply flex justify-end gap-1 mt-6;
-  }
-}
-</style>
 
 <script setup lang="ts">
 // Not auto-imported: Nuxt only scans `app/components/`, not `app/modules/`.
@@ -79,28 +49,6 @@ const scope = computed(() => {
 
   return node ? scopeFor(node) : undefined;
 });
-
-const selected = ref<number | null>(null);
-const open = ref(new Set<number>());
-
-watch(
-  () => component.value?.node,
-  () => {
-    selected.value = null;
-    open.value = new Set();
-  },
-);
-
-const editor = useTemplateRef<HTMLElement>("editor");
-
-onClickOutside(editor, () => {
-  selected.value = null;
-});
-
-function toggle(index: number) {
-  if (open.value.has(index)) open.value.delete(index);
-  else open.value.add(index);
-}
 
 function write(next: VariableDef[]) {
   const target = component.value;
@@ -148,31 +96,11 @@ function renameVariable(index: number, to: string) {
   }
 }
 
-function removeSelected() {
-  const index = selected.value;
-
-  if (index === null) return;
-
+function remove(index: number) {
   write(list.value.filter((_, i) => i !== index));
-
-  const next = new Set<number>();
-
-  for (const i of open.value) {
-    if (i === index) continue;
-
-    next.add(i > index ? i - 1 : i);
-  }
-
-  open.value = next;
-  selected.value = null;
 }
 
 function add() {
-  const index = list.value.length;
-
   write([...list.value, { name: "", kind: "colour", expression: "#151515" }]);
-
-  selected.value = index;
-  open.value.add(index);
 }
 </script>

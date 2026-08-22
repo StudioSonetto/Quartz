@@ -28,7 +28,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   value?: string;
-  options: string[];
+  options: readonly string[];
   disabled?: boolean;
 }>();
 

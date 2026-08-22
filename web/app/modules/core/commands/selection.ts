@@ -32,7 +32,7 @@ const alignCommands: Command[] = alignOps.map(({ op, title, icon }) => ({
   title,
   category: "Arrange",
   icon,
-  when: (ctx) => ctx.selectedNodes.length >= 1,
+  when: (ctx) => ctx.unlockedNodes.length >= 1,
   run: () => useAlignment().align(op),
 }));
 
@@ -52,7 +52,7 @@ const distributeCommands: Command[] = [
   title,
   category: "Arrange",
   icon,
-  when: (ctx) => ctx.selectedNodes.length >= 3,
+  when: (ctx) => ctx.unlockedNodes.length >= 3,
   run: () => useAlignment().distribute(axis),
 }));
 
@@ -61,7 +61,7 @@ const groupCommand: Command = {
   title: "Group Selection",
   category: "Arrange",
   icon: "i-carbon-group-objects",
-  when: (ctx) => ctx.selectedNodes.length >= 2,
+  when: (ctx) => ctx.unlockedNodes.length >= 2,
   run: (ctx) => ctx.deck.groupSelection(),
 };
 
@@ -71,7 +71,7 @@ const ungroupCommand: Command = {
   category: "Arrange",
   icon: "i-carbon-ungroup-objects",
   when: (ctx) =>
-    ctx.selectedNodes.some(
+    ctx.unlockedNodes.some(
       (n: Tree) => n.type === "core.group" && n.path !== ROOT_PATH,
     ),
   run: (ctx) => ctx.deck.ungroupSelection(),
@@ -100,7 +100,7 @@ const cutCommand: Command = {
   title: "Cut",
   category: "Edit",
   icon: "i-carbon-cut",
-  when: (ctx) => ctx.selectedNodes.length >= 1,
+  when: (ctx) => ctx.unlockedNodes.length >= 1,
   run: (ctx) => ctx.deck.cutSelection(),
 };
 

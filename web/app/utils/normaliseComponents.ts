@@ -1,7 +1,4 @@
-import { getNodeType, getComponentType } from "~/modules/registry";
-import { ROOT_PATH } from "~/utils/nodePath";
-
-function isPlainObject(v: unknown): v is Record<string, any> {
+export function isPlainObject(v: unknown): v is Record<string, any> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
@@ -10,11 +7,14 @@ export function deepMerge(
   override: Record<string, any>,
 ): Record<string, any> {
   const out: Record<string, any> = { ...base };
+
   for (const key of Object.keys(override)) {
     const b = base[key];
     const o = override[key];
+
     out[key] = isPlainObject(b) && isPlainObject(o) ? deepMerge(b, o) : o;
   }
+
   return out;
 }
 
@@ -32,6 +32,10 @@ export function effectiveDefaults(
   );
   const override = typeof entry === "string" || !entry ? {} : entry.data;
   return deepMerge(base, override);
+}
+
+export function migrated(type: ComponentType, data: Record<string, any>) {
+  return getComponentType(type)?.migrate?.(data) ?? data;
 }
 
 const ROOT_COMPONENTS: ComponentType[] = ["core.base", "core.layout"];
@@ -62,7 +66,8 @@ export function normaliseComponents(
         const existing = kept.find((c) => c.type === type);
 
         if (existing) {
-          existing.data = deepMerge(eff, existing.data);
+          existing.data = deepMerge(eff, migrated(type, existing.data));
+
           result.push(existing);
         } else {
           result.push({ node: node.id, type, data: eff } as ComponentModel);
@@ -73,7 +78,11 @@ export function normaliseComponents(
         if (ROOT_COMPONENTS.includes(c.type) || c.type === "core.transform")
           continue;
 
-        c.data = deepMerge(effectiveDefaults("core.group", c.type), c.data);
+        c.data = deepMerge(
+          effectiveDefaults("core.group", c.type),
+          migrated(c.type, c.data),
+        );
+
         result.push(c);
       }
 
@@ -95,7 +104,7 @@ export function normaliseComponents(
       const existing = kept.find((c) => c.type === type);
 
       if (existing) {
-        existing.data = deepMerge(eff, existing.data);
+        existing.data = deepMerge(eff, migrated(type, existing.data));
 
         result.push(existing);
       } else {
@@ -103,12 +112,13 @@ export function normaliseComponents(
       }
     }
 
-    // Preserve any remaining present components (e.g. optional `animation`),
-    // merged over their own type defaults when the type is known.
     for (const c of kept) {
       if (guaranteed.includes(c.type)) continue;
 
-      c.data = deepMerge(effectiveDefaults(node.type, c.type), c.data);
+      c.data = deepMerge(
+        effectiveDefaults(node.type, c.type),
+        migrated(c.type, c.data),
+      );
 
       result.push(c);
     }

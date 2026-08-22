@@ -18,7 +18,7 @@ export interface ComponentRow {
 // Between two rows for the same node the later one wins, matching the upsert.
 export function expandComponentsToPeers(
   rows: ComponentRow[],
-  peerIds: Map<string, string[]>,
+  peersFor: (node: string, type: ComponentRow["type"]) => string[],
 ): ComponentRow[] {
   const rowKey = (node: string, type: ComponentRow["type"]) => `${node}:${type}`;
   const out = new Map<string, ComponentRow>();
@@ -28,7 +28,7 @@ export function expandComponentsToPeers(
   const explicit = new Set(out.keys());
 
   for (const row of rows) {
-    for (const node of peerIds.get(row.node) ?? []) {
+    for (const node of peersFor(row.node, row.type)) {
       const key = rowKey(node, row.type);
       if (explicit.has(key)) continue;
 

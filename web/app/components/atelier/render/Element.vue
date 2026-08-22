@@ -13,14 +13,18 @@
     :id="props.node.id"
     :class="[
       props.node.path === 'root' ? 'root' : 'element',
-      isSelected(props.node.id) ? 'outline-accent!' : '',
+      isSelected(props.node.id) || isHovered ? 'outline-accent!' : '',
+      { 'element-hoverable': !presenting && !locked && !picked },
     ]"
     ref="element"
     class="element"
     :tabindex="0"
     :contenteditable="editing ? 'plaintext-only' : 'false'"
-    @click="onSelect"
+    @click="onClick"
     @mousedown="onSelect"
+    @mouseenter="onHover"
+    @mousemove="onPointerMove"
+    @mouseleave="onPointerLeave"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
@@ -43,23 +47,29 @@
 <style scoped lang="postcss">
 .element {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-accent/0 hover:outline-accent;
+  @apply outline outline-3 outline-accent/0;
   @apply border-rd;
+}
+
+.element-hoverable {
+  @apply hover:outline-accent;
 }
 </style>
 
 <script setup lang="ts">
-import { getNodeType } from "~/modules/registry";
-import { snappingKey } from "~/composables/useSnapping";
-
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
 const { isSelected, updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
-const { setIsDragging } = useAtelierStore();
+const atelier = useAtelierStore();
+const { setIsDragging, setHovered } = atelier;
+const { hoveredNodeId } = storeToRefs(atelier);
 
-const { scale } = useCanvasScale();
+const presenting = inject(presentingKey, ref(false));
+const { fire } = useEventDispatch();
+
+const { canvasRect, scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
 
 const element = useTemplateRef<HTMLElement>("element");
@@ -70,6 +80,8 @@ const props = defineProps<{
 }>();
 
 const isGridChild = computed(() => isNodeGridChild(props.node));
+
+const locked = computed(() => props.isLocked || isNodeLocked(props.node));
 
 const {
   editing,
@@ -82,6 +94,8 @@ const {
 );
 
 function onDoubleClick(event: MouseEvent) {
+  if (presenting.value || locked.value) return;
+
   if (!editing.value && editable()) startEditing(event);
 }
 
@@ -92,9 +106,41 @@ function onEscape() {
 
 const isMounted = ref(false);
 
+let gesture: {
+  drag: DragGesture;
+  box: Rect;
+  origin: { x: number; y: number };
+  scale: { x: number; y: number };
+  moved: boolean;
+} | null = null;
+
 const { x, y, isDragging } = useDraggable(element, {
   exact: true,
   disabled: editing,
+  onStart: (position, event) => {
+    if (props.isLocked) return;
+
+    const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
+
+    if (!drag) return;
+
+    if (isNodeLocked(deck.getNodeAsTree(drag.node))) return;
+
+    const el = document.getElementById(drag.node);
+    const box = el && canvasRect(el);
+
+    if (!box) return;
+
+    gesture = {
+      drag,
+      box,
+      origin: { x: event.clientX - position.x, y: event.clientY - position.y },
+      scale: scale(),
+      moved: false,
+    };
+
+    begin([drag.node]);
+  },
 });
 
 const dragStart = ref<{
@@ -108,14 +154,31 @@ const throttle = useFrameThrottle();
 watchThrottled(
   [x, y],
   ([newX, newY]) => {
-    if (props.isLocked) return;
-    if (isGridChild.value) return;
+    if (!isDragging.value) return;
+
+    if (gesture) {
+      const { drag, box, origin, scale: s } = gesture;
+
+      gesture.moved = true;
+
+      const snapped = apply({
+        ...box,
+        left: box.left + (newX - origin.x) * s.x,
+        top: box.top + (newY - origin.y) * s.y,
+      });
+
+      return drag.move(
+        (snapped.left - box.left) / s.x,
+        (snapped.top - box.top) / s.y,
+      );
+    }
+
+    if (locked.value || isGridChild.value) return;
 
     const transform = getNodeComponent(props.node.id, "core.transform");
 
     if (!transform) return;
 
-    // A bound position is read-only to dragging — the binding would win.
     if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
     if (!dragStart.value) {
@@ -159,7 +222,11 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    if (dragStart.value) {
+    if (gesture) {
+      if (gesture.moved) gesture.drag.end?.();
+
+      gesture = null;
+    } else if (dragStart.value) {
       const transform = getNodeComponent(props.node.id, "core.transform");
 
       if (transform) updateComponent(transform);
@@ -180,41 +247,101 @@ const render = computed(() => {
 const elementStyle = computed(() => {
   const base = render.value?.style;
 
-  if (!base || !isGridChild.value) return base;
+  const style =
+    base && isGridChild.value
+      ? { ...base, position: "static", left: "", top: "", transform: "" }
+      : base;
 
-  const grid = {
-    ...base,
-    position: "static",
-    left: "",
-    top: "",
-    transform: "",
-  };
+  const def = getNodeType(props.node.type);
+  const passThrough =
+    isNodeLocked(props.node) &&
+    def?.hitTest !== "contents" &&
+    !presenting.value;
 
-  // Editable (text) grid children keep pointer events (inline text edit)
-  return editable() ? grid : { ...grid, pointerEvents: "none" };
+  if (passThrough || (isGridChild.value && !editable()))
+    return { ...style, pointerEvents: "none" };
+
+  return style;
 });
 
 const { selectFromEvent, clear } = useNodeSelection();
+const marquee = inject(marqueeKey);
 const { soleSelected } = storeToRefs(deck);
 
 function onSelect(event: MouseEvent) {
+  if (presenting.value) return;
+
+  if (props.isLocked) return;
+
   if (editing.value) {
     event.stopPropagation();
 
     return;
   }
 
-  const target =
-    isGridChild.value && props.node.parent ? props.node.parent : props.node;
+  const picked = getNodeType(props.node.type)?.pick?.(props.node, event);
 
-  selectFromEvent(target, event);
+  const target =
+    picked ??
+    (isGridChild.value && props.node.parent ? props.node.parent : props.node);
+
+  if (selectFromEvent(target, event)) return;
+
+  if (event.type === "mousedown") marquee?.begin?.(event);
+}
+
+function onClick(event: MouseEvent) {
+  if (!presenting.value) return onSelect(event);
+
+  if (fire(props.node, "click")) event.stopPropagation();
+}
+
+function onHover() {
+  if (presenting.value) fire(props.node, "hover");
+}
+
+const isHovered = computed(() => hoveredNodeId.value === props.node.id);
+
+const picked = ref<string | null>(null);
+
+let pickFrame = 0;
+
+function onPointerMove(event: MouseEvent) {
+  // Locking the canvas itself must not stop this: onSelect picks children
+  // through a locked parent too, so hover has to match it.
+  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
+    return;
+
+  const pick = getNodeType(props.node.type)?.pick;
+
+  if (!pick) return;
+
+  pickFrame = requestAnimationFrame(() => {
+    pickFrame = 0;
+
+    picked.value = pick(props.node, event)?.id ?? null;
+
+    setHovered(picked.value);
+  });
+}
+
+function onPointerLeave() {
+  if (pickFrame) {
+    cancelAnimationFrame(pickFrame);
+    pickFrame = 0;
+  }
+
+  if (!picked.value) return;
+
+  picked.value = null;
+
+  setHovered(null);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
-  // Arrow keys move the caret while editing, not the node.
   if (
     editing.value ||
-    props.isLocked ||
+    locked.value ||
     soleSelected.value?.id !== props.node.id ||
     isGridChild.value
   )

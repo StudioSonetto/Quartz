@@ -1,14 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  defineModule,
-  registerModule,
-  __resetRegistry,
-} from "~/modules/registry";
-import {
-  deepMerge,
-  effectiveDefaults,
-  normaliseComponents,
-} from "~/utils/normaliseComponents";
+import animation from "~/modules/core/components/animation";
 
 function comp(node: string, type: string, data: any) {
   return { node, type, data } as any;
@@ -27,6 +18,7 @@ function node(id: string, type: string, path = id) {
 
 beforeEach(() => {
   __resetRegistry();
+
   registerModule(
     defineModule({
       id: "core",
@@ -108,9 +100,18 @@ beforeEach(() => {
           defaultData: () => ({
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            scale: 1,
+            scale: { x: 1, y: 1, z: 1 },
           }),
+          migrate: (data: any) =>
+            typeof data.scale === "number"
+              ? {
+                  ...data,
+                  scale: { x: data.scale, y: data.scale, z: data.scale },
+                }
+              : data,
         },
+        // The real one — it owns migrating the overrides its states hold.
+        animation,
         {
           type: "webgl.model",
           icon: "i",
@@ -222,4 +223,32 @@ describe("normaliseComponents", () => {
     expect(components.some((c) => c.type === "core.transform")).toBe(false);
   });
 
+  // The merge alone cannot fix this: a stored number beats an object default.
+  it("migrates stored data to the current shape before merging defaults", () => {
+    const components = normaliseComponents(
+      [node("o1", "webgl.object")],
+      [comp("o1", "webgl.transform", { scale: 2 })],
+    );
+    const transform = components.find((c) => c.type === "webgl.transform")!;
+
+    expect(transform.data.scale).toEqual({ x: 2, y: 2, z: 2 });
+  });
+
+  it("migrates animation state overrides, not just the component itself", () => {
+    const components = normaliseComponents(
+      [node("o1", "webgl.object")],
+      [
+        comp("o1", "core.animation", {
+          states: {
+            big: { overrides: { "webgl.transform": { scale: 3 } } },
+          },
+        }),
+      ],
+    );
+    const animation = components.find((c) => c.type === "core.animation")!;
+
+    expect(
+      animation.data.states.big.overrides["webgl.transform"].scale,
+    ).toEqual({ x: 3, y: 3, z: 3 });
+  });
 });

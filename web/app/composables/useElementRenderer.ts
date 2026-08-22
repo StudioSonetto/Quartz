@@ -1,14 +1,13 @@
-import { getNodeType, getModuleApi } from "~/modules/registry";
-import { effectiveDefaults } from "~/utils/normaliseComponents";
-
 export const renderScaleKey: InjectionKey<Ref<number>> = Symbol("renderScale");
 
+export const presentingKey: InjectionKey<Ref<boolean>> = Symbol("presenting");
+
 export function useElementRenderer() {
-  const { getNodeComponent } = useNodeComponents();
+  const { getStoredComponent, stagedData } = useNodeComponents();
   const { imageUrl } = useAssetsStore();
 
   function findComponent(node: Tree, type: ComponentType) {
-    return getNodeComponent(node.id, type);
+    return getStoredComponent(node.id, type);
   }
 
   const scale = inject(
@@ -23,8 +22,6 @@ export function useElementRenderer() {
 
     if (!def) return undefined;
 
-    // Renderers read several components per node, and the scope cannot change
-    // within one pass — build it at most once per node.
     let scopeId: string | undefined;
     let scope: Scope;
 
@@ -39,12 +36,8 @@ export function useElementRenderer() {
 
     const ctx: RenderContext = {
       findComponent,
-      data: (node: Tree, type: ComponentType) => {
-        const raw =
-          findComponent(node, type)?.data ?? effectiveDefaults(node.type, type);
-
-        return resolveData(raw, () => cachedScope(node));
-      },
+      data: (node: Tree, type: ComponentType) =>
+        resolveData(stagedData(node, type), () => cachedScope(node)),
       optional: (node: Tree, type: ComponentType) =>
         findComponent(node, type)?.data,
       scale: scale.value,

@@ -1,8 +1,9 @@
 <template>
-  <AtelierInspectorView name="Properties" :actions="[]">
+  <AtelierInspectorView name="Properties" :actions="actions">
     <div
       v-if="selectedNodes.length"
       class="view"
+      :class="{ disabled: lockedSelection }"
       tabindex="-1"
       @keydown="onKeydown"
       @contextmenu.prevent
@@ -30,6 +31,10 @@
       <div class="i-carbon-error"></div>
       <p>No nodes selected</p>
     </div>
+    <AtelierInspectorOptionalComponentsModal
+      ref="addComponent"
+      :available="addable"
+    />
   </AtelierInspectorView>
 </template>
 
@@ -69,43 +74,62 @@
 </style>
 
 <script setup lang="ts">
-const { selectedNodes } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const { selectedNodes, unlockedSelection } = storeToRefs(deck);
 const { getNodeComponents } = useNodeComponents();
 
-import { getComponentType } from "~/modules/registry";
-import { isEditableTarget, wrapIndex } from "~/utils/dom";
-
 const { clear } = useNodeSelection();
+
+const lockedSelection = computed(
+  () => selectedNodes.value.length > 0 && !unlockedSelection.value.length,
+);
 
 const sameType = computed(
   () => new Set(selectedNodes.value.map((n) => n.type)).size === 1,
 );
 
-// Homogeneous ⇒ every node has the same component set, so derive the panel list
-// from the anchor (first selected) node.
-const typePanels = computed(() => {
-  const anchor = selectedNodes.value[0];
-  if (!anchor) return [];
-  return getNodeComponents(anchor.id).map((c) => ({
-    type: c.type,
-    def: getComponentType(c.type),
-  }));
-});
-
-// One pass over the selection groups every component by type, so each panel's
-// `:components` is a cached, stable array rather than an O(types × nodes) lookup
-// recomputed per row on every render.
 const componentsByType = computed(() => {
   const map = new Map<ComponentType, ComponentModel[]>();
+
   for (const node of selectedNodes.value) {
     for (const c of getNodeComponents(node.id)) {
       const list = map.get(c.type);
+
       if (list) list.push(c);
       else map.set(c.type, [c]);
     }
   }
   return map;
 });
+
+const typePanels = computed(() =>
+  [...componentsByType.value.keys()].map((type) => ({
+    type,
+    def: getComponentType(type),
+  })),
+);
+
+const addComponent = useTemplateRef<{ open: () => void }>("addComponent");
+
+const addable = computed(() => {
+  const anchor = selectedNodes.value[0];
+  if (!anchor || !sameType.value) return [];
+
+  return optionalComponentsFor(anchor.type).filter(
+    (def) =>
+      (componentsByType.value.get(def.type)?.length ?? 0) <
+      selectedNodes.value.length,
+  );
+});
+
+const actions = computed(() => [
+  {
+    icon: "i-carbon-add-large",
+    tooltip: lockedSelection.value ? "Locked" : "Add component",
+    disabled: !addable.value.length || lockedSelection.value,
+    onClick: () => addComponent.value?.open(),
+  },
+]);
 
 const FOCUSABLE = "button, input, select, textarea, [href], [tabindex]";
 
@@ -114,8 +138,6 @@ function getFocusables(view: HTMLElement): HTMLElement[] {
     (el) =>
       !(el as HTMLButtonElement).disabled &&
       el.offsetParent !== null &&
-      // Open component headers opt out of the tab order, so this keeps the
-      // list in step with what native Tab would visit.
       el.tabIndex >= 0,
   );
 }
@@ -129,25 +151,21 @@ function moveFocus(els: HTMLElement[], delta: number) {
 function onKeydown(e: KeyboardEvent) {
   const view = e.currentTarget as HTMLElement;
 
-  // Esc releases the selection outright rather than stepping back to the tree,
-  // so deselecting is one press from here as well. Also means the wrapping
-  // below can never trap keyboard users.
   if (e.key === "Escape") {
-    // A field with an unsaved edit claims the first press to abandon it, so
-    // deselecting takes a second one.
     if (e.defaultPrevented) return;
 
     e.preventDefault();
+
     clear();
+
     return;
   }
 
-  // Left/Right are globally bound to slide navigation. While this panel holds
-  // focus they belong to it, so claim them — otherwise editing a node's
-  // properties and pressing Left jumps the deck to another slide.
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
     if (isEditableTarget(e.target)) return;
+
     e.preventDefault();
+
     return;
   }
 
@@ -155,8 +173,6 @@ function onKeydown(e: KeyboardEvent) {
 
   if (!isArrow && e.key !== "Tab") return;
 
-  // Editable fields own their arrows — caret movement, and number inputs
-  // stepping their value — so leave those alone.
   if (isArrow && isEditableTarget(e.target)) return;
 
   const els = getFocusables(view);
@@ -165,8 +181,6 @@ function onKeydown(e: KeyboardEvent) {
 
   const dir = isArrow ? (e.key === "ArrowUp" ? -1 : 1) : e.shiftKey ? -1 : 1;
 
-  // Tab already moves natively; we only step in to wrap it around the ends,
-  // matching how the tree re-cycles nodes. Arrows always move.
   if (!isArrow && document.activeElement !== (dir > 0 ? els.at(-1) : els[0])) {
     return;
   }

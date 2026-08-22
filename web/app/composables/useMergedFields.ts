@@ -1,5 +1,3 @@
-import { mergedValue, setNested } from "~/utils/mergedComponent";
-
 export function useMergedFields(
   components: MaybeRefOrGetter<ComponentModel[]>,
 ) {

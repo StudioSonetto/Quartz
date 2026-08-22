@@ -38,6 +38,8 @@ export const EMPTY_TREE: Tree = {
   path: "",
   type: "core.group",
   reference: "",
+  unsynced: null,
+  locked: false,
   sort_order: 0,
   children: [],
 };
@@ -72,6 +74,8 @@ export interface ComponentTypeDef {
   icon: string;
   inspector: Component;
   defaultData: () => Record<string, any>;
+  optional?: boolean;
+  migrate?: (data: Record<string, any>) => Record<string, any>;
 }
 
 export type DefaultComponent =
@@ -81,6 +85,31 @@ export type DefaultComponent =
 export interface AssetDropDef {
   kind: AssetKind;
   apply: (nodeId: string, name: string) => void | Promise<void>;
+}
+
+export interface Rect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface HandleGesture<M = (dx: number, dy: number) => void> {
+  move: M;
+  end?: () => void;
+}
+
+export interface HandleDef {
+  resize?: (
+    node: Tree,
+    direction: { x: number; y: number },
+    box: Rect,
+  ) => HandleGesture | undefined;
+  rotate?: (node: Tree) => HandleGesture<(degrees: number) => void> | undefined;
+}
+
+export interface DragGesture extends HandleGesture {
+  node: string;
 }
 
 export interface NodeTypeDef {
@@ -94,6 +123,11 @@ export interface NodeTypeDef {
   parents?: NodeType[];
   onMount?: (nodeId: string) => void;
   onCreate?: (nodeId: string) => void;
+  onDelete?: (nodeId: string) => void;
+  pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
+  drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
+  handles?: HandleDef;
+  hitTest?: "element" | "contents";
   asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
 }
@@ -119,6 +153,7 @@ export interface CommandContext {
   atelier: any;
   soleSelected: Tree | null;
   selectedNodes: Tree[];
+  unlockedNodes: Tree[];
   selectedNodeIds: string[];
   activeTab: number;
   focus: AtelierFocus;

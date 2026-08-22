@@ -1,19 +1,6 @@
-import type { Rect } from "~/utils/selection";
-import { ROOT_PATH } from "~/utils/nodePath";
-import {
-  snapCandidates,
-  resolveSnap,
-  relatedIds,
-  type SnapLine,
-} from "~/utils/snapping";
-import { flattenTree } from "~/utils/tree";
-
 export const snappingKey: InjectionKey<ReturnType<typeof useSnapping>> =
   Symbol("snapping");
 
-// Drag-time snapping. Candidates are frozen once at `begin()` (positions of all
-// OTHER nodes on the slide, in canvas units) so per-frame work is a cheap
-// compare — no per-frame getBoundingClientRect over the whole tree.
 export function useSnapping() {
   const deck = useDeckStore();
   const { currentTree } = storeToRefs(deck);

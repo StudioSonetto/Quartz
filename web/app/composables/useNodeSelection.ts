@@ -1,3 +1,6 @@
+export const marqueeKey: InjectionKey<{ begin?: (event: MouseEvent) => void }> =
+  Symbol("marquee");
+
 export function useNodeSelection() {
   const deck = useDeckStore();
   const { selectedNodeIds, anchorId, currentTree } = storeToRefs(deck);
@@ -42,19 +45,26 @@ export function useNodeSelection() {
   }
 
   function extendSelection(nodes: Tree[]) {
-    const add = nodes.map((n) => n.id);
+    const add = unlockedOnly(nodes).map((n) => n.id);
     selectedNodeIds.value = [...new Set([...selectedNodeIds.value, ...add])];
     commitFocus(deck.soleSelected?.id ?? null);
   }
 
-  function selectFromEvent(node: Tree, event: MouseEvent) {
+  // Canvas presses are the one path a lock blocks — the hierarchy calls
+  // select/toggle/range directly, so a locked node can still be inspected.
+  // Returns false when it refused, so the caller can hand the press on.
+  function selectFromEvent(node: Tree, event: MouseEvent): boolean {
+    if (isNodeLocked(node)) return false;
+
     event.stopPropagation();
     if (event.shiftKey || event.metaKey || event.ctrlKey) {
       if (event.type === "mousedown") toggle(node);
 
-      return;
+      return true;
     }
     select(node);
+
+    return true;
   }
 
   function clear() {

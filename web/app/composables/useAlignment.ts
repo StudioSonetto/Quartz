@@ -1,16 +1,10 @@
-import {
-  alignPositions,
-  distributePositions,
-  type AlignOp,
-  type Frame,
-  type NodeRect,
-} from "~/utils/align";
-
 function isAlignable(node: Tree, comps: ReturnType<typeof useNodeComponents>) {
+  if (isNodeLocked(node)) return false;
+
   const transform = comps.getNodeComponent(node.id, "core.transform");
 
   if (!transform) return false;
-  // A bound position would overwrite the alignment, so the node is not offered.
+
   if (anyBound(transform.data, ["position.x", "position.y"])) return false;
   if (comps.isGridChild(node)) return false;
 
@@ -28,9 +22,7 @@ export function useAlignment() {
     const s = scale();
 
     return nodes.map((n) => {
-      // Geometry, so it reads what the canvas drew rather than a literal a
-      // binding overrides.
-      const data = comps.resolvedData(n, "core.transform")!;
+      const data = comps.renderData(n, "core.transform")!;
       const el = document.getElementById(n.id);
       const measured = el?.getBoundingClientRect();
       return {

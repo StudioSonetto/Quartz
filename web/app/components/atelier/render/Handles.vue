@@ -89,8 +89,6 @@ const resizeHandles: { pos: Pos; dx: number; dy: number }[] = [
   { pos: "w", dx: -1, dy: 0 },
 ];
 
-// Resizing rewrites all four, so a binding on any of them makes the gesture a
-// no-op the user cannot see the reason for.
 const RESIZE_WRITES = [
   "size.width",
   "size.height",
@@ -100,15 +98,10 @@ const RESIZE_WRITES = [
 
 const { soleSelected } = storeToRefs(useDeckStore());
 const { updateComponent } = useDeckStore();
-const { getNodeComponent, resolvedData } = useNodeComponents();
+const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
-const box = ref<{
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-} | null>(null);
+const box = ref<Rect | null>(null);
 
 function computeBox() {
   const node = soleSelected.value;
@@ -139,9 +132,6 @@ function computeBox() {
   };
 }
 
-// The selected element's box only moves when its own style/size changes (drag,
-// nudge, resize) or the render container resizes; observe those and coalesce
-// bursts into one recompute per frame, rather than polling every frame forever.
 let rafId = 0;
 
 function scheduleBounds() {
@@ -182,13 +172,29 @@ const selectedTransform = computed(() => {
   return node ? transformOf(node)?.data : undefined;
 });
 
+const handles = computed(() => {
+  const node = soleSelected.value;
+
+  return node ? getNodeType(node.type)?.handles : undefined;
+});
+
+const locked = computed(() => isNodeLocked(soleSelected.value));
+
 const canResize = computed(() => {
+  if (locked.value) return false;
+
+  if (handles.value?.resize) return true;
+
   const data = selectedTransform.value;
 
   return !!data && !anyBound(data, RESIZE_WRITES);
 });
 
 const canRotate = computed(() => {
+  if (locked.value) return false;
+
+  if (handles.value?.rotate) return true;
+
   const data = selectedTransform.value;
 
   return !!data && !isBound(data, "rotation");
@@ -196,7 +202,10 @@ const canRotate = computed(() => {
 
 let activeDrag: (() => void) | null = null;
 
-function startPointerDrag(onMove: (ev: PointerEvent) => void) {
+function startPointerDrag(
+  onMove: (ev: PointerEvent) => void,
+  onEnd?: () => void,
+) {
   let raf = 0;
   let latest: PointerEvent | null = null;
 
@@ -226,6 +235,8 @@ function startPointerDrag(onMove: (ev: PointerEvent) => void) {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
 
+    onEnd?.();
+
     const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
 
     window.addEventListener("click", swallowClick, {
@@ -252,6 +263,26 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
   if (!node) return;
 
+  if (handles.value?.resize) {
+    if (!box.value) return;
+
+    const gesture = handles.value.resize(
+      node,
+      { x: h.dx, y: h.dy },
+      { ...box.value },
+    );
+
+    if (!gesture) return;
+
+    const originX = e.clientX;
+    const originY = e.clientY;
+
+    return startPointerDrag(
+      (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
+      () => gesture.end?.(),
+    );
+  }
+
   const transform = transformOf(node);
 
   if (!transform) return;
@@ -262,9 +293,7 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
   if (!el) return;
 
-  // Scale and rotation feed the anchor maths and may themselves be bound, so
-  // read what the canvas drew rather than the literal underneath.
-  const drawn = resolvedData(node, "core.transform") ?? transform.data;
+  const drawn = renderData(node, "core.transform");
 
   const s = scale();
   const u = drawn.scale || 1;
@@ -324,23 +353,40 @@ function startRotate(e: PointerEvent) {
 
   if (!node) return;
 
+  const element = document.getElementById(node.id);
+
+  if (!element) return;
+
+  const rect = element.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+
+  const degreesFrom = (ev: PointerEvent) =>
+    ((Math.atan2(ev.clientY - cy, ev.clientX - cx) - startAngle) * 180) /
+    Math.PI;
+
+  if (handles.value?.rotate) {
+    const gesture = handles.value.rotate(node);
+
+    if (!gesture) return;
+
+    return startPointerDrag(
+      (ev) => gesture.move(degreesFrom(ev)),
+      () => gesture.end?.(),
+    );
+  }
+
   const transform = transformOf(node);
 
   if (!transform) return;
 
   if (isBound(transform.data, "rotation")) return;
 
-  const rect = document.getElementById(node.id)!.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
   const startRotation = transform.data.rotation ?? 0;
 
   startPointerDrag((ev) => {
-    const angle = Math.atan2(ev.clientY - cy, ev.clientX - cx);
-    const deg = ((angle - startAngle) * 180) / Math.PI;
-
-    transform.data.rotation = Math.round(startRotation + deg);
+    transform.data.rotation = Math.round(startRotation + degreesFrom(ev));
 
     updateComponent(transform);
   });

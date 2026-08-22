@@ -28,7 +28,13 @@ async function adoptFromPeers(slide: { id: string; deck: string }) {
   const peerSlides = alias(slides, "peer_slides");
 
   const rows = await db
-    .select({ node: nodes.id, type: components.type, data: components.data })
+    .select({
+      node: nodes.id,
+      type: components.type,
+      data: components.data,
+      path: nodes.path,
+      unsynced: nodes.unsynced,
+    })
     .from(nodes)
     .innerJoin(
       peer,
@@ -47,12 +53,17 @@ async function adoptFromPeers(slide: { id: string; deck: string }) {
     )
     .orderBy(asc(peerSlides.index));
 
-  const adopted = new Map<string, (typeof rows)[number]>();
+  const adopted = new Map<
+    string,
+    Pick<(typeof rows)[number], "node" | "type" | "data">
+  >();
 
   for (const row of rows) {
     const key = `${row.node}:${row.type}`;
 
-    if (!adopted.has(key)) adopted.set(key, row);
+    if (adopted.has(key) || !syncs(row, row.type)) continue;
+
+    adopted.set(key, { node: row.node, type: row.type, data: row.data });
   }
 
   if (!adopted.size) return;

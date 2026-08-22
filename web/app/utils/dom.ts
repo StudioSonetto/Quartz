@@ -1,6 +1,3 @@
-// True for elements that own their own keystrokes — text entry, and number
-// inputs whose arrows step the value. Keyboard handlers check this before
-// claiming a key so typing and caret movement keep working.
 export function isEditableTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
 
@@ -13,8 +10,10 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
-// Step `i` by `delta` around a list of length `n`, wrapping at both ends. An
-// index of -1 (nothing current) enters from whichever end we are moving from.
+export function isInsideOpenDialog(target: EventTarget | null): boolean {
+  return !!(target as Element | null)?.closest?.("dialog[open]");
+}
+
 export function wrapIndex(i: number, delta: number, n: number): number {
   if (n === 0) return -1;
   if (i < 0) return delta > 0 ? 0 : n - 1;

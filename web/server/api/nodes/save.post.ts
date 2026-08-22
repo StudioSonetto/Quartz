@@ -20,6 +20,11 @@ const bodySchema = z.object({
         name: z.string(),
         path: z.string(),
         reference: z.string().nullable().optional(),
+        unsynced: z
+          .array(z.enum(["name", ...componentType.enumValues]))
+          .nullable()
+          .optional(),
+        locked: z.boolean().default(false),
         type: z.enum(nodeType.enumValues),
         sort_order: z.number().int().default(0),
       }),
@@ -37,15 +42,26 @@ const bodySchema = z.object({
       }),
     )
     .default([]),
+  componentsToDelete: z
+    .array(
+      z.object({
+        node: z.string().uuid(),
+        type: z.enum(componentType.enumValues),
+      }),
+    )
+    .default([]),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
 
-  const { nodesToUpsert, nodesToDelete, componentsToUpsert } =
-    await validateBody(event, bodySchema);
+  const {
+    nodesToUpsert,
+    nodesToDelete,
+    componentsToUpsert,
+    componentsToDelete,
+  } = await validateBody(event, bodySchema);
 
-  // Every node this request touches must live on a slide the user owns.
   const slideIds = [
     ...new Set([
       ...nodesToUpsert.map((node) => node.slides),
@@ -64,16 +80,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 403 });
   }
 
-  // Components may target pre-existing nodes not in nodesToUpsert; those nodes
-  // must also belong to the user (upserted nodes are covered by the check above).
   const upsertIds = new Set(nodesToUpsert.map((node) => node.id));
-  const foreignNodeIds = [
+  const componentNodeIds = [
     ...new Set(
-      componentsToUpsert
-        .map((component) => component.node)
-        .filter((id) => !upsertIds.has(id)),
+      [...componentsToUpsert, ...componentsToDelete].map(
+        (component) => component.node,
+      ),
     ),
   ];
+  const foreignNodeIds = componentNodeIds.filter((id) => !upsertIds.has(id));
 
   if (foreignNodeIds.length) {
     const owned = await db
@@ -90,10 +105,6 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.transaction(async (tx) => {
-    // Read before the upsert overwrites them: only a save that actually renames
-    // a keyed node should push a name out to its peers. `reorderNodes`,
-    // `groupSelection` and `insertClone` mark whole slides dirty, so most saves
-    // carry keyed nodes whose name has not changed at all.
     const keyedUpserts = nodesToUpsert.filter((node) => !!node.reference);
     const storedNames = new Map<string, string>();
 
@@ -111,8 +122,6 @@ export default defineEventHandler(async (event) => {
       for (const node of stored) storedNames.set(node.id, node.name);
     }
 
-    // A node with no stored row is new, and converging its group on the name it
-    // arrived with is the right outcome.
     const renamed = keyedUpserts.filter(
       (node) => storedNames.get(node.id) !== node.name,
     );
@@ -127,6 +136,8 @@ export default defineEventHandler(async (event) => {
             name: sql`excluded.name`,
             path: sql`excluded.path`,
             reference: sql`excluded.reference`,
+            unsynced: sql`excluded.unsynced`,
+            locked: sql`excluded.locked`,
             type: sql`excluded.type`,
             sort_order: sql`excluded.sort_order`,
           },
@@ -144,18 +155,16 @@ export default defineEventHandler(async (event) => {
         );
     }
 
-    // A write to a keyed node must land on every node in the deck sharing that
-    // key, whether or not the client had those slides loaded. Uses `tx` so it
-    // sees nodes this same request just upserted.
-    const componentNodeIds = [
-      ...new Set(componentsToUpsert.map((component) => component.node)),
-    ];
-    // A rename saves the node row alone, so renamed nodes need peers resolved
-    // even with nothing in `componentsToUpsert`. One query serves both.
     const peerLookupIds = [
       ...new Set([...componentNodeIds, ...renamed.map((node) => node.id)]),
     ];
     const peerIds = new Map<string, string[]>();
+    const unsynced = new Map<string, string[]>();
+
+    const peersFor = (source: string, channel: SyncChannel) =>
+      unsynced.get(source)?.includes(channel)
+        ? []
+        : (peerIds.get(source) ?? []);
 
     if (peerLookupIds.length) {
       const src = alias(nodes, "src");
@@ -163,13 +172,14 @@ export default defineEventHandler(async (event) => {
       const peerSlides = alias(slides, "peer_slides");
 
       const peerRows = await tx
-        .select({ source: src.id, peer: nodes.id })
+        .select({
+          source: src.id,
+          peer: nodes.id,
+          path: src.path,
+          unsynced: src.unsynced,
+        })
         .from(src)
         .innerJoin(srcSlides, eq(src.slides, srcSlides.id))
-        // Other slides of the same deck only. A key repeated within one slide
-        // is legacy data — the old reference field wrote one key across a whole
-        // multi-selection — and fanning writes between those would collapse
-        // them onto each other. `peersOf` skips the source slide to match.
         .innerJoin(
           peerSlides,
           and(
@@ -194,22 +204,23 @@ export default defineEventHandler(async (event) => {
           ),
         );
 
-      for (const { source, peer } of peerRows) {
-        peerIds.set(source, [...(peerIds.get(source) ?? []), peer]);
+      for (const row of peerRows) {
+        const peers = peerIds.get(row.source);
+
+        if (peers) peers.push(row.peer);
+        else {
+          peerIds.set(row.source, [row.peer]);
+          unsynced.set(row.source, unsyncedOf(row));
+        }
       }
     }
 
-    // `name` is the one node column peers share. `path`, `slides`, `sort_order`
-    // and `reference` are per-copy and must never travel.
-    //
-    // Collected by name first: a group or ungroup can rename several keyed
-    // nodes at once, and a statement per node would hold the transaction open
-    // for a round trip each.
     const namePushes = new Map<string, Set<string>>();
 
     for (const node of renamed) {
-      const peers = peerIds.get(node.id);
-      if (!peers?.length) continue;
+      const peers = peersFor(node.id, "name");
+
+      if (!peers.length) continue;
 
       const targets = namePushes.get(node.name) ?? new Set<string>();
       for (const peer of peers) targets.add(peer);
@@ -223,7 +234,7 @@ export default defineEventHandler(async (event) => {
         .where(inArray(nodes.id, [...targets]));
     }
 
-    const componentRows = expandComponentsToPeers(componentsToUpsert, peerIds);
+    const componentRows = expandComponentsToPeers(componentsToUpsert, peersFor);
 
     if (componentRows.length) {
       await tx
@@ -233,6 +244,28 @@ export default defineEventHandler(async (event) => {
           target: [components.node, components.type],
           set: { data: sql`excluded.data` },
         });
+    }
+
+    const deletesByType = new Map<
+      (typeof componentType.enumValues)[number],
+      Set<string>
+    >();
+
+    for (const target of componentsToDelete) {
+      const ids = deletesByType.get(target.type) ?? new Set<string>();
+
+      ids.add(target.node);
+      for (const peer of peersFor(target.node, target.type)) ids.add(peer);
+
+      deletesByType.set(target.type, ids);
+    }
+
+    for (const [type, ids] of deletesByType) {
+      await tx
+        .delete(components)
+        .where(
+          and(inArray(components.node, [...ids]), eq(components.type, type)),
+        );
     }
   });
 });

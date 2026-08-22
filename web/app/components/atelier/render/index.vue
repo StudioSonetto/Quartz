@@ -89,6 +89,11 @@ const props = defineProps<{
   canEdit?: boolean;
 }>();
 
+provide(
+  presentingKey,
+  computed(() => !props.canEdit),
+);
+
 const renderEl = useTemplateRef<HTMLElement>("renderEl");
 
 let pressedCanvas = false;
@@ -106,6 +111,8 @@ useEventListener(
 );
 
 provide(renderRootKey, renderEl);
+
+provide(marqueeKey, {});
 
 const { width, height } = useElementSize(renderEl);
 

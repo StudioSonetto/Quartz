@@ -8,15 +8,12 @@
     v-else
     @click="prevSlides()"
     @contextmenu.prevent="nextSlides()"
-    @keydown.enter.space.right="nextSlides()"
-    @keydown.left="prevSlides()"
-    @keydown.esc="leavePresentation()"
     @mousemove="onCursorMoved"
     tabindex="0"
     autofocus
     class="live"
   >
-    <AtelierRender class="select-none pointer-events-none" />
+    <AtelierRender class="select-none" />
     <div
       :class="{
         'opacity-0': !cursorMoved,
@@ -46,8 +43,28 @@ const client = useSupabaseClient();
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
-const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
+const { slides, currentSlidesIndex, currentTree } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
+const { fireTree } = useEventDispatch();
+const { reset } = useAnimationState();
+
+useEventListener(window, "keydown", onKey);
+
+function onKey(event: KeyboardEvent) {
+  const combo = eventToCombo(event);
+
+  if (fireTree(currentTree.value, "key", combo)) {
+    event.preventDefault();
+
+    return;
+  }
+
+  if (combo === "escape") return leavePresentation();
+  if (combo === "arrowleft") return prevSlides();
+  if (["enter", " ", "arrowright"].includes(combo)) return nextSlides();
+}
+
+watch(currentTree, (next) => fireTree(next, "enter"));
 
 const cursorMoved = ref(false);
 
@@ -78,6 +95,9 @@ const { refresh: refreshSlides } = await useAsyncData(
 );
 
 onMounted(async () => {
+  reset();
+  fireTree(currentTree.value, "enter");
+
   const id = useRoute().params.id as string;
 
   deckRC = client
@@ -116,6 +136,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  reset();
+
   client.removeAllChannels();
 });
 </script>
