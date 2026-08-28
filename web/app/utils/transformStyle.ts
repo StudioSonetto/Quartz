@@ -14,9 +14,15 @@ export function boxStyle(
   scale: number,
 ): Record<string, string | number> {
   return {
-    left: `${(transform.position.x / 1920) * 100}%`,
-    top: `${(transform.position.y / 1080) * 100}%`,
+    ...offsetStyle(transform.position),
     zIndex: transform.position.z,
     transform: transformStyle(transform, scale),
+  };
+}
+
+export function offsetStyle(position: { x: number; y: number }) {
+  return {
+    left: `${(position.x / 1920) * 100}%`,
+    top: `${(position.y / 1080) * 100}%`,
   };
 }

@@ -1,7 +1,3 @@
-import type { Command, Tree } from "#shared/types";
-import type { AlignOp } from "~/utils/align";
-import { ROOT_PATH } from "~/utils/nodePath";
-
 const alignOps: { op: AlignOp; title: string; icon: string }[] = [
   { op: "left", title: "Align Left", icon: "i-carbon-align-horizontal-left" },
   {
@@ -32,7 +28,7 @@ const alignCommands: Command[] = alignOps.map(({ op, title, icon }) => ({
   title,
   category: "Arrange",
   icon,
-  when: (ctx) => ctx.unlockedNodes.length >= 1,
+  when: (ctx) => ctx.alignableNodes.length >= 1,
   run: () => useAlignment().align(op),
 }));
 
@@ -52,7 +48,7 @@ const distributeCommands: Command[] = [
   title,
   category: "Arrange",
   icon,
-  when: (ctx) => ctx.unlockedNodes.length >= 3,
+  when: (ctx) => ctx.alignableNodes.length >= 3,
   run: () => useAlignment().distribute(axis),
 }));
 

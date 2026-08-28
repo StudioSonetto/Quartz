@@ -29,7 +29,7 @@ const props = defineProps<{
 
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { scopeFor } = useVariableScope();
+const { inheritedNames, scopeFor } = useVariableScope();
 
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
@@ -41,14 +41,22 @@ const list = computed<VariableDef[]>(() => {
   return Array.isArray(value) ? value : [];
 });
 
-const problems = computed(() => variableProblems(list.value));
+const ownerNode = computed(() => {
+  const target = component.value;
 
-const scope = computed(() => {
-  const owner = component.value;
-  const node = owner ? deck.getNodeAsTree(owner.node) : undefined;
-
-  return node ? scopeFor(node) : undefined;
+  return target ? deck.getNodeAsTree(target.node) : undefined;
 });
+
+const problems = computed(() =>
+  variableProblems(
+    list.value,
+    ownerNode.value ? inheritedNames(ownerNode.value) : undefined,
+  ),
+);
+
+const scope = computed(() =>
+  ownerNode.value ? scopeFor(ownerNode.value) : undefined,
+);
 
 function write(next: VariableDef[]) {
   const target = component.value;

@@ -72,6 +72,24 @@ export function useNodeComponents() {
     return getNodeComponent(parent.id, "core.layout")?.data.mode === "grid";
   }
 
+  function groupOffset(node: Tree) {
+    let x = 0;
+    let y = 0;
+
+    for (let parent = node.parent; parent; parent = parent.parent) {
+      if (parent.type !== "core.group" || parent.path === ROOT_PATH) continue;
+      if (isGridChild(parent)) continue;
+      if (renderData(parent, "core.layout").mode === "grid") continue;
+
+      const { position } = renderData(parent, "core.transform");
+
+      x += position.x;
+      y += position.y;
+    }
+
+    return { x, y };
+  }
+
   return {
     getNodeComponent,
     getStoredComponent,
@@ -79,5 +97,6 @@ export function useNodeComponents() {
     renderData,
     getNodeComponents,
     isGridChild,
+    groupOffset,
   };
 }

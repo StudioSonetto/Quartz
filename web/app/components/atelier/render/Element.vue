@@ -49,10 +49,10 @@
   @apply absolute transform-origin-top-left;
   @apply outline outline-3 outline-accent/0;
   @apply border-rd;
-}
 
-.element-hoverable {
-  @apply hover:outline-accent;
+  &.element-hoverable {
+    @apply hover:outline-accent;
+  }
 }
 </style>
 
@@ -146,7 +146,7 @@ const { x, y, isDragging } = useDraggable(element, {
 const dragStart = ref<{
   transform: { x: number; y: number };
   pointer: { x: number; y: number };
-  size: { width: number; height: number };
+  box: Rect;
 } | null>(null);
 
 const throttle = useFrameThrottle();
@@ -182,8 +182,9 @@ watchThrottled(
     if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
     if (!dragStart.value) {
-      const rect = element.value?.getBoundingClientRect();
-      const { x: scaleX, y: scaleY } = scale();
+      const box = element.value && canvasRect(element.value);
+
+      if (!box) return;
 
       dragStart.value = {
         transform: {
@@ -191,10 +192,7 @@ watchThrottled(
           y: transform.data.position.y,
         },
         pointer: { x: newX, y: newY },
-        size: {
-          width: (rect?.width ?? 0) * scaleX,
-          height: (rect?.height ?? 0) * scaleY,
-        },
+        box,
       };
 
       begin([props.node.id]);
@@ -202,18 +200,19 @@ watchThrottled(
       return;
     }
 
-    const { transform: startPos, pointer, size } = dragStart.value;
+    const { transform: startPos, pointer, box } = dragStart.value;
     const { x: scaleX, y: scaleY } = scale();
 
     const snapped = apply({
-      left: startPos.x + (newX - pointer.x) * scaleX,
-      top: startPos.y + (newY - pointer.y) * scaleY,
-      width: size.width,
-      height: size.height,
+      ...box,
+      left: box.left + (newX - pointer.x) * scaleX,
+      top: box.top + (newY - pointer.y) * scaleY,
     });
 
-    transform.data.position.x = Math.round(snapped.left);
-    transform.data.position.y = Math.round(snapped.top);
+    transform.data.position.x = Math.round(
+      startPos.x + snapped.left - box.left,
+    );
+    transform.data.position.y = Math.round(startPos.y + snapped.top - box.top);
   },
   { throttle },
 );
@@ -354,6 +353,8 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
   const transform = getNodeComponent(props.node.id, "core.transform");
 
   if (!transform) return;
+
+  if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
   transform.data.position.x += dx * step;
   transform.data.position.y += dy * step;

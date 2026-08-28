@@ -154,6 +154,7 @@ export interface CommandContext {
   soleSelected: Tree | null;
   selectedNodes: Tree[];
   unlockedNodes: Tree[];
+  alignableNodes: Tree[];
   selectedNodeIds: string[];
   activeTab: number;
   focus: AtelierFocus;

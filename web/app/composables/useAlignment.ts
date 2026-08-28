@@ -8,8 +8,22 @@ function isAlignable(node: Tree, comps: ReturnType<typeof useNodeComponents>) {
   if (anyBound(transform.data, ["position.x", "position.y"])) return false;
   if (comps.isGridChild(node)) return false;
 
+  if (
+    getNodeType(node.type)?.sizing === "derived" &&
+    comps.renderData(node, "core.layout").mode !== "grid"
+  )
+    return false;
+
   return true;
 }
+
+export function alignableNodes(nodes: Tree[]): Tree[] {
+  const comps = useNodeComponents();
+
+  return nodes.filter((n) => isAlignable(n, comps));
+}
+
+type Offsets = Map<string, { x: number; y: number }>;
 
 export function useAlignment() {
   const deck = useDeckStore();
@@ -18,17 +32,23 @@ export function useAlignment() {
   const comps = useNodeComponents();
   const { scale } = useCanvasScale();
 
-  function rectsFor(nodes: Tree[]): NodeRect[] {
+  function offsetsFor(nodes: Tree[]): Offsets {
+    return new Map(nodes.map((n) => [n.id, comps.groupOffset(n)]));
+  }
+
+  function rectsFor(nodes: Tree[], offsets: Offsets): NodeRect[] {
     const s = scale();
 
     return nodes.map((n) => {
-      const data = comps.renderData(n, "core.transform")!;
+      const data = comps.renderData(n, "core.transform");
       const el = document.getElementById(n.id);
       const measured = el?.getBoundingClientRect();
+      const offset = offsets.get(n.id)!;
+
       return {
         id: n.id,
-        left: data.position.x,
-        top: data.position.y,
+        left: data.position.x + offset.x,
+        top: data.position.y + offset.y,
         width:
           typeof data.size?.width === "number"
             ? data.size.width
@@ -41,9 +61,7 @@ export function useAlignment() {
     });
   }
 
-  const alignable = computed(() =>
-    selectedNodes.value.filter((n) => isAlignable(n, comps)),
-  );
+  const alignable = computed(() => alignableNodes(selectedNodes.value));
   const canAlign = computed(() => alignable.value.length >= 1);
   const canDistribute = computed(() => alignable.value.length >= 3);
 
@@ -56,21 +74,26 @@ export function useAlignment() {
     return { left, top, width: right - left, height: bottom - top };
   }
 
-  function apply(next: Record<string, { left: number; top: number }>) {
+  function apply(
+    next: Record<string, { left: number; top: number }>,
+    offsets: Offsets,
+  ) {
     for (const [id, pos] of Object.entries(next)) {
       const t = comps.getNodeComponent(id, "core.transform");
+      const offset = offsets.get(id);
 
-      if (!t) continue;
+      if (!t || !offset) continue;
 
-      t.data.position.x = pos.left;
-      t.data.position.y = pos.top;
+      t.data.position.x = pos.left - offset.x;
+      t.data.position.y = pos.top - offset.y;
 
       deck.updateComponent(t);
     }
   }
 
   function align(op: AlignOp) {
-    const rects = rectsFor(alignable.value);
+    const offsets = offsetsFor(alignable.value);
+    const rects = rectsFor(alignable.value, offsets);
 
     if (!rects.length) return;
 
@@ -84,15 +107,16 @@ export function useAlignment() {
             height: canvasSize.value.height,
           };
 
-    apply(alignPositions(rects, op, frame));
+    apply(alignPositions(rects, op, frame), offsets);
   }
 
   function distribute(axis: "h" | "v") {
-    const rects = rectsFor(alignable.value);
+    const offsets = offsetsFor(alignable.value);
+    const rects = rectsFor(alignable.value, offsets);
 
     if (rects.length < 3) return;
 
-    apply(distributePositions(rects, axis));
+    apply(distributePositions(rects, axis), offsets);
   }
 
   return { align, distribute, canAlign, canDistribute };

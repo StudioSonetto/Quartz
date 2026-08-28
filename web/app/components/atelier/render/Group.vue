@@ -1,5 +1,11 @@
 <template>
-  <div class="contents" ref="container" @click="onClick" @mouseenter="onHover">
+  <div
+    :class="isGridChild ? 'contents' : 'group-layer'"
+    ref="container"
+    :style="layerStyle"
+    @click="onClick"
+    @mouseenter="onHover"
+  >
     <div
       v-if="!presenting"
       ref="border"
@@ -26,20 +32,36 @@
 </template>
 
 <style scoped lang="postcss">
+.group-layer {
+  @apply absolute w-full h-full pointer-events-none;
+
+  & > :deep(*) {
+    @apply pointer-events-auto;
+  }
+
+  & > :deep(.group-layer) {
+    @apply pointer-events-none;
+  }
+}
+
 .group-border {
   @apply absolute transform-origin-top-left;
   @apply outline outline-3 outline-solid outline-accent/0 hover:outline-accent;
   @apply border-rd;
-}
 
-.group-border-locked {
-  @apply pointer-events-none;
+  &.group-border-locked {
+    @apply pointer-events-none;
+  }
 }
 </style>
 
 <script setup lang="ts">
 const { isSelected, updateComponent } = useDeckStore();
-const { getNodeComponent } = useNodeComponents();
+const {
+  getNodeComponent,
+  renderData,
+  isGridChild: isNodeGridChild,
+} = useNodeComponents();
 
 const { setIsDragging } = useAtelierStore();
 
@@ -59,6 +81,14 @@ const locked = computed(() => props.isLocked || isNodeLocked(props.node));
 const container = useTemplateRef<HTMLElement>("container");
 const border = useTemplateRef<HTMLElement>("border");
 
+const isGridChild = computed(() => isNodeGridChild(props.node));
+
+const layerStyle = computed(() =>
+  isGridChild.value
+    ? undefined
+    : offsetStyle(renderData(props.node, "core.transform").position),
+);
+
 const bounds = ref<{
   left: number;
   top: number;
@@ -71,7 +101,8 @@ function computeBounds() {
 
   if (!render) return;
 
-  const renderRect = render.getBoundingClientRect();
+  const base = (isGridChild.value ? render : container.value) ?? render;
+  const renderRect = base.getBoundingClientRect();
 
   let minLeft = Infinity;
   let minTop = Infinity;

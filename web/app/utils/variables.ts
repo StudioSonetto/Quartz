@@ -54,21 +54,16 @@ export function applyBindings(
   for (const [path, source] of Object.entries(bind)) {
     const result = resolveSource(source, scope);
 
-    // A failed binding leaves the stored literal, so the canvas keeps rendering.
     if (!result.ok) continue;
 
     out = setNested(out, path.split("."), result.value);
   }
 
-  // Renderers never see reserved keys, by construction rather than convention —
-  // that includes the WebGL layer, which lives in another repo.
   return Object.fromEntries(
     Object.entries(out).filter(([key]) => !key.startsWith("$")),
   );
 }
 
-// The one place that knows unbound data is returned as-is. `scope` is a thunk so
-// the caller can skip building one for the common case of no bindings at all.
 export function resolveData(
   data: Record<string, any>,
   scope: () => Scope,
@@ -85,8 +80,6 @@ export function isBound(
   return !!data?.[BIND_KEY]?.[path];
 }
 
-// A bound property is read-only to direct manipulation: the binding would
-// overwrite whatever a gesture wrote, so the gesture is refused instead.
 export function anyBound(
   data: Record<string, any> | undefined,
   paths: readonly string[],
@@ -94,8 +87,6 @@ export function anyBound(
   return paths.some((path) => isBound(data, path));
 }
 
-// Reachability over the declared names only. A cycle would otherwise be caught
-// per-render by the evaluator's visited set — silently, and invisibly.
 function reaches(
   from: string,
   target: string,
@@ -113,23 +104,27 @@ function reaches(
   return false;
 }
 
-export function variableProblems(list: VariableDef[]): Map<number, string> {
+export function variableProblems(
+  list: VariableDef[],
+  inherited: ReadonlySet<string> = new Set(),
+): Map<number, string> {
   const problems = new Map<number, string>();
   const graph = new Map<string, string[]>();
   const declared = new Set(list.map((entry) => entry.name).filter(Boolean));
   const seenNames = new Set<string>();
 
   list.forEach((entry, index) => {
-    // A freshly added row is blank; that is not yet a mistake.
     if (!entry.name && !entry.expression) return;
 
     if (!entry.name) {
       problems.set(index, "Needs a name");
+
       return;
     }
 
     if (seenNames.has(entry.name)) {
       problems.set(index, `Duplicate name "${entry.name}"`);
+
       return;
     }
 
@@ -137,21 +132,19 @@ export function variableProblems(list: VariableDef[]): Map<number, string> {
 
     if (BUILTINS.has(entry.name)) {
       problems.set(index, `"${entry.name}" is a built-in`);
+
       return;
     }
 
     const sources = holeSources(entry.expression);
 
-    // Checked on what the holes leave behind, so a stray `{{` after a complete
-    // one is caught too.
     if (entry.expression.replace(HOLE, "").includes("{{")) {
       problems.set(index, "Unclosed {{");
+
       return;
     }
 
     if (!sources.length) {
-      // Braced values need a scope to resolve, which this function does not
-      // take; only a literal can be checked here.
       const mismatch = kindProblem(literalValue(entry.expression), entry.kind);
 
       if (mismatch) problems.set(index, mismatch);
@@ -173,7 +166,8 @@ export function variableProblems(list: VariableDef[]): Map<number, string> {
     }
 
     const unknown = uses.find(
-      (name) => !declared.has(name) && !BUILTINS.has(name),
+      (name) =>
+        !declared.has(name) && !inherited.has(name) && !BUILTINS.has(name),
     );
 
     if (unknown) {
@@ -211,8 +205,6 @@ export function kindProblem(
       : "Expected a colour";
   }
 
-  // A lone hole keeps its value's type, so `{{ slides.index }}` arrives as a
-  // number. Text renders it either way; only a boolean is a real mistake.
   return typeof value === "string" || typeof value === "number"
     ? null
     : "Expected text";
@@ -237,7 +229,6 @@ function printAst(ast: Ast, rename: (name: string) => string): string {
   }
 }
 
-// A source with no holes is literal text, so a rename must not rewrite it.
 function overHoles(
   source: string,
   transform: (inner: string) => string,

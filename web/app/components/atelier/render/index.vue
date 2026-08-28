@@ -77,7 +77,7 @@ const rootStyle = computed(() => {
 });
 
 function onCanvasClick() {
-  if (!pressedCanvas) return;
+  if (!pressedCanvas || !props.canEdit) return;
 
   const root = currentTree.value;
 

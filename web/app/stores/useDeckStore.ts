@@ -611,12 +611,17 @@ export const useDeckStore = defineStore("deck", () => {
   function deleteNodes(nodes: Tree[]) {
     if (!nodes.length) return;
 
-    const roots = outermostNodes(nodes.filter((n) => n.path !== ROOT_PATH));
+    let roots = outermostNodes(nodes.filter((n) => n.path !== ROOT_PATH));
 
     if (!roots.length) return;
 
     const slideId = currentSlides.value?.id;
+
     if (!slideId) return;
+
+    roots = roots.filter((r) => r.slides === slideId);
+
+    if (!roots.length) return;
 
     const slideComponents = components.value.get(slideId) ?? [];
     const flat = currentFlat();
@@ -643,8 +648,10 @@ export const useDeckStore = defineStore("deck", () => {
       sync.dropNode(n.id);
       releaseNode(n);
     }
+
     for (const r of roots)
       sync.enqueueDelete({ path: r.path, slides: r.slides }, r.id);
+
     selectedNodeIds.value = [];
     anchorId.value = null;
   }
@@ -659,6 +666,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   function selectNodes(ids: string[]) {
     if (!ids.length) return;
+
     selectedNodeIds.value = ids;
     anchorId.value = ids[ids.length - 1]!;
   }

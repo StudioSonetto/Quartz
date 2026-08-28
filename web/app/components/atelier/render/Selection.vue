@@ -22,22 +22,23 @@
 
 <script setup lang="ts">
 const deck = useDeckStore();
-const { selectedNodes } = storeToRefs(deck);
+const { selectedNodes, unlockedSelection } = storeToRefs(deck);
 const comps = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 const snapping = inject(snappingKey)!;
 const { arm } = useSuppressClickAfterDrag();
 
 const movable = computed(() =>
-  selectedNodes.value.filter((n) => {
-    const transform = comps.getNodeComponent(n.id, "core.transform");
+  outermostNodes(
+    unlockedSelection.value.filter((n) => {
+      const transform = comps.getNodeComponent(n.id, "core.transform");
 
-    if (!transform || anyBound(transform.data, ["position.x", "position.y"])) {
-      return false;
-    }
+      if (!transform || anyBound(transform.data, ["position.x", "position.y"]))
+        return false;
 
-    return !comps.isGridChild(n);
-  }),
+      return !comps.isGridChild(n);
+    }),
+  ),
 );
 
 const box = ref<Rect | null>(null);
@@ -109,7 +110,6 @@ type DragState = {
   startX: number;
   startY: number;
   starts: Map<string, DragEntry>;
-  // Union box of the moving set in canvas units, snapped as one.
   union: Rect;
   s: { x: number; y: number };
 };
@@ -125,15 +125,11 @@ function startMove(e: PointerEvent) {
 
   const s = scale();
   const starts = new Map<string, DragEntry>();
-  let left = Infinity,
-    top = Infinity;
 
   for (const n of nodes) {
     const t = comps.getNodeComponent(n.id, "core.transform")!;
 
     starts.set(n.id, { t, x: t.data.position.x, y: t.data.position.y });
-    left = Math.min(left, t.data.position.x);
-    top = Math.min(top, t.data.position.y);
   }
 
   drag = {
@@ -141,8 +137,8 @@ function startMove(e: PointerEvent) {
     startY: e.clientY,
     starts,
     union: {
-      left,
-      top,
+      left: box.value.left * s.x,
+      top: box.value.top * s.y,
       width: box.value.width * s.x,
       height: box.value.height * s.y,
     },
@@ -160,7 +156,6 @@ function flushMove() {
   const dxRaw = (latest.clientX - drag.startX) * drag.s.x;
   const dyRaw = (latest.clientY - drag.startY) * drag.s.y;
 
-  // Snap the union box, derive the applied delta from the snap correction.
   const snapped = snapping.apply({
     left: drag.union.left + dxRaw,
     top: drag.union.top + dyRaw,
@@ -175,7 +170,6 @@ function flushMove() {
     entry.t.data.position.x = Math.round(entry.x + dx);
     entry.t.data.position.y = Math.round(entry.y + dy);
   }
-  // The box follows via the style MutationObserver above — no manual recompute.
 }
 
 useEventListener(window, "pointermove", (e: PointerEvent) => {
@@ -202,8 +196,6 @@ useEventListener(window, "pointerup", () => {
 
   drag = null;
 
-  // Swallow the synthetic post-drag click so `.render`'s @click doesn't clear
-  // the multi-selection we just moved.
   arm();
 });
 </script>

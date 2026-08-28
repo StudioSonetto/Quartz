@@ -99,6 +99,12 @@ describe("variableProblems", () => {
     );
   });
 
+  it("accepts a reference to a name an ancestor declares", () => {
+    expect(
+      variableProblems([num("a", "{{ brand * 2 }}")], new Set(["brand"])).size,
+    ).toBe(0);
+  });
+
   it("accepts a reference to a built-in", () => {
     expect(variableProblems([num("a", "{{ slides.count - 1 }}")]).size).toBe(0);
   });

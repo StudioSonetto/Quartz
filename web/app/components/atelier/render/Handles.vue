@@ -185,6 +185,10 @@ const canResize = computed(() => {
 
   if (handles.value?.resize) return true;
 
+  const node = soleSelected.value;
+
+  if (node && getNodeType(node.type)?.sizing === "derived") return false;
+
   const data = selectedTransform.value;
 
   return !!data && !anyBound(data, RESIZE_WRITES);
@@ -315,19 +319,19 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const anchorY = drawn.position.y + hc0 / 2 + (ax * sin + ay * cos);
 
   startPointerDrag((ev) => {
-    const dx = ev.clientX - startX;
-    const dy = ev.clientY - startY;
+    const dx = (ev.clientX - startX) * s.x;
+    const dy = (ev.clientY - startY) * s.y;
 
     const localX = dx * cos + dy * sin;
     const localY = -dx * sin + dy * cos;
 
     const sizeW =
       h.dx !== 0
-        ? Math.max(1, Math.round(startW + (localX * h.dx * s.x) / u))
+        ? Math.max(1, Math.round(startW + (localX * h.dx) / u))
         : startW;
     const sizeH =
       h.dy !== 0
-        ? Math.max(1, Math.round(startH + (localY * h.dy * s.x) / u))
+        ? Math.max(1, Math.round(startH + (localY * h.dy) / u))
         : startH;
 
     const wc = sizeW * u;

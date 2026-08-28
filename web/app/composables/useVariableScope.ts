@@ -1,7 +1,6 @@
 export function useVariableScope() {
   const deck = useDeckStore();
 
-  // Nearest first, so the node's own variables shadow its ancestors'.
   function chainFor(node: Tree): VariableDef[][] {
     const chain: VariableDef[][] = [];
 
@@ -22,5 +21,17 @@ export function useVariableScope() {
     return buildScope(chainFor(node), deck.builtins);
   }
 
-  return { chainFor, scopeFor };
+  function inheritedNames(node: Tree): Set<string> {
+    const names = new Set<string>();
+
+    for (const list of node.parent ? chainFor(node.parent) : []) {
+      for (const entry of list) {
+        if (entry.name) names.add(entry.name);
+      }
+    }
+
+    return names;
+  }
+
+  return { chainFor, inheritedNames, scopeFor };
 }

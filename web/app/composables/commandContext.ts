@@ -1,9 +1,11 @@
-import type { CommandContext } from "#shared/types";
+import type { CommandContext, Tree } from "#shared/types";
 
 export function buildCommandContext(): CommandContext {
   const deck = useDeckStore();
   const atelier = useAtelierStore();
   const route = useRoute();
+
+  let alignable: Tree[] | undefined;
 
   return {
     deck,
@@ -16,6 +18,9 @@ export function buildCommandContext(): CommandContext {
     },
     get unlockedNodes() {
       return deck.unlockedSelection;
+    },
+    get alignableNodes() {
+      return (alignable ??= alignableNodes(deck.selectedNodes));
     },
     get selectedNodeIds() {
       return deck.selectedNodeIds;
