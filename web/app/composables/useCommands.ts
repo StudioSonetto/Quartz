@@ -24,7 +24,8 @@ export function useCommands() {
     atelier.pushRecentCommand(id);
 
     try {
-      await command.run(ctx);
+      if (command.undoable === false) await command.run(ctx);
+      else await useHistoryStore().transact(command.title, () => command.run(ctx));
     } catch (e) {
       console.error(`Command "${id}" failed:`, e);
     }

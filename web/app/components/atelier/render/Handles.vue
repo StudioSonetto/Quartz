@@ -96,8 +96,10 @@ const RESIZE_WRITES = [
   "position.y",
 ] as const;
 
-const { soleSelected } = storeToRefs(useDeckStore());
-const { updateComponent } = useDeckStore();
+const deck = useDeckStore();
+const { soleSelected } = storeToRefs(deck);
+const { updateComponent } = deck;
+const history = useHistoryStore();
 const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
@@ -207,9 +209,12 @@ const canRotate = computed(() => {
 let activeDrag: (() => void) | null = null;
 
 function startPointerDrag(
+  label: string,
   onMove: (ev: PointerEvent) => void,
   onEnd?: () => void,
 ) {
+  const end = history.begin(label);
+
   let raf = 0;
   let latest: PointerEvent | null = null;
 
@@ -240,6 +245,7 @@ function startPointerDrag(
     window.removeEventListener("pointerup", up);
 
     onEnd?.();
+    end();
 
     const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
 
@@ -282,6 +288,7 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
     const originY = e.clientY;
 
     return startPointerDrag(
+      "Resize",
       (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
       () => gesture.end?.(),
     );
@@ -318,7 +325,7 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const anchorX = drawn.position.x + wc0 / 2 + (ax * cos - ay * sin);
   const anchorY = drawn.position.y + hc0 / 2 + (ax * sin + ay * cos);
 
-  startPointerDrag((ev) => {
+  startPointerDrag("Resize", (ev) => {
     const dx = (ev.clientX - startX) * s.x;
     const dy = (ev.clientY - startY) * s.y;
 
@@ -376,6 +383,7 @@ function startRotate(e: PointerEvent) {
     if (!gesture) return;
 
     return startPointerDrag(
+      "Rotate",
       (ev) => gesture.move(degreesFrom(ev)),
       () => gesture.end?.(),
     );
@@ -389,7 +397,7 @@ function startRotate(e: PointerEvent) {
 
   const startRotation = transform.data.rotation ?? 0;
 
-  startPointerDrag((ev) => {
+  startPointerDrag("Rotate", (ev) => {
     transform.data.rotation = Math.round(startRotation + degreesFrom(ev));
 
     updateComponent(transform);

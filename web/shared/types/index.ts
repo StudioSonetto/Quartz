@@ -139,6 +139,7 @@ export interface Command {
   icon?: string;
   when?: (ctx: CommandContext) => boolean;
   run: (ctx: CommandContext) => void | Promise<void>;
+  undoable?: boolean;
 }
 
 export type AtelierFocus =

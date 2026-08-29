@@ -72,6 +72,9 @@ const { fire } = useEventDispatch();
 const { canvasRect, scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
 
+const history = useHistoryStore();
+let endMove: (() => void) | null = null;
+
 const element = useTemplateRef<HTMLElement>("element");
 
 const props = defineProps<{
@@ -119,6 +122,8 @@ const { x, y, isDragging } = useDraggable(element, {
   disabled: editing,
   onStart: (position, event) => {
     if (props.isLocked) return;
+
+    endMove = history.begin("Move");
 
     const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
 
@@ -233,6 +238,9 @@ watch(isDragging, (newState) => {
 
     dragStart.value = null;
 
+    endMove?.();
+    endMove = null;
+
     end();
   }
 });
@@ -306,8 +314,6 @@ const picked = ref<string | null>(null);
 let pickFrame = 0;
 
 function onPointerMove(event: MouseEvent) {
-  // Locking the canvas itself must not stop this: onSelect picks children
-  // through a locked parent too, so hover has to match it.
   if (presenting.value || props.isLocked || isDragging.value || pickFrame)
     return;
 
@@ -356,6 +362,10 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
+  const slideId = deck.currentSlides?.id;
+
+  if (slideId) history.capture(slideId);
+
   transform.data.position.x += dx * step;
   transform.data.position.y += dy * step;
 
@@ -368,5 +378,10 @@ onMounted(() => {
   const def = getNodeType(props.node.type);
 
   if (def?.onMount) nextTick(() => def.onMount!(props.node.id));
+});
+
+onUnmounted(() => {
+  endMove?.();
+  endMove = null;
 });
 </script>
