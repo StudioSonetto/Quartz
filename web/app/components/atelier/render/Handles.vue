@@ -100,6 +100,7 @@ const deck = useDeckStore();
 const { soleSelected } = storeToRefs(deck);
 const { updateComponent } = deck;
 const history = useHistoryStore();
+const snapping = inject(snappingKey)!;
 const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
 
@@ -327,38 +328,67 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const anchorX = drawn.position.x + wc0 / 2 + (ax * cos - ay * sin);
   const anchorY = drawn.position.y + hc0 / 2 + (ax * sin + ay * cos);
 
-  startPointerDrag("Resize", (ev) => {
-    const dx = (ev.clientX - startX) * s.x;
-    const dy = (ev.clientY - startY) * s.y;
+  snapping.begin([node.id]);
 
-    const localX = dx * cos + dy * sin;
-    const localY = -dx * sin + dy * cos;
+  startPointerDrag(
+    "Resize",
+    (ev) => {
+      const dx = (ev.clientX - startX) * s.x;
+      const dy = (ev.clientY - startY) * s.y;
 
-    const sizeW =
-      h.dx !== 0
-        ? Math.max(1, Math.round(startW + (localX * h.dx) / u))
-        : startW;
-    const sizeH =
-      h.dy !== 0
-        ? Math.max(1, Math.round(startH + (localY * h.dy) / u))
-        : startH;
+      const localX = dx * cos + dy * sin;
+      const localY = -dx * sin + dy * cos;
 
-    const wc = sizeW * u;
-    const hc = sizeH * u;
+      let sizeW =
+        h.dx !== 0
+          ? Math.max(1, Math.round(startW + (localX * h.dx) / u))
+          : startW;
+      let sizeH =
+        h.dy !== 0
+          ? Math.max(1, Math.round(startH + (localY * h.dy) / u))
+          : startH;
 
-    const nax = (-h.dx * wc) / 2;
-    const nay = (-h.dy * hc) / 2;
-    const cx = anchorX - (nax * cos - nay * sin);
-    const cy = anchorY - (nax * sin + nay * cos);
+      if (!rad) {
+        const box = {
+          left: anchorX + ((h.dx - 1) * sizeW * u) / 2,
+          top: anchorY + ((h.dy - 1) * sizeH * u) / 2,
+          width: sizeW * u,
+          height: sizeH * u,
+        };
 
-    if (h.dx !== 0) transform.data.size.width = sizeW;
-    if (h.dy !== 0) transform.data.size.height = sizeH;
+        const snapped = snapping.applyEdges(
+          {
+            x: h.dx !== 0 ? anchorX + h.dx * sizeW * u : undefined,
+            y: h.dy !== 0 ? anchorY + h.dy * sizeH * u : undefined,
+          },
+          box,
+        );
 
-    transform.data.position.x = Math.round(cx - wc / 2);
-    transform.data.position.y = Math.round(cy - hc / 2);
+        if (snapped.x != null)
+          sizeW = Math.max(1, Math.round(((snapped.x - anchorX) * h.dx) / u));
 
-    updateComponent(transform);
-  });
+        if (snapped.y != null)
+          sizeH = Math.max(1, Math.round(((snapped.y - anchorY) * h.dy) / u));
+      }
+
+      const wc = sizeW * u;
+      const hc = sizeH * u;
+
+      const nax = (-h.dx * wc) / 2;
+      const nay = (-h.dy * hc) / 2;
+      const cx = anchorX - (nax * cos - nay * sin);
+      const cy = anchorY - (nax * sin + nay * cos);
+
+      if (h.dx !== 0) transform.data.size.width = sizeW;
+      if (h.dy !== 0) transform.data.size.height = sizeH;
+
+      transform.data.position.x = Math.round(cx - wc / 2);
+      transform.data.position.y = Math.round(cy - hc / 2);
+
+      updateComponent(transform);
+    },
+    () => snapping.end(),
+  );
 }
 
 function startRotate(e: PointerEvent) {

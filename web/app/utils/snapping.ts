@@ -1,21 +1,10 @@
-import type { Rect } from "~/utils/selection";
-import { isDescendantPath, isSelfOrDescendantPath } from "~/utils/nodePath";
-
 export interface SnapLine {
   axis: "x" | "y";
   pos: number;
-  // Perpendicular extent of the source element, in canvas units. When present
-  // the guide is drawn only across this span (extended to cover the moving box
-  // in `resolveSnap`); when absent — canvas edge/centre lines — it spans the
-  // whole canvas.
   from?: number;
   to?: number;
 }
 
-// The ids of every node related by ancestry to any moving node — the moving
-// nodes themselves, their descendants (which drag along) and their ancestors
-// (which wrap them). None are valid snap targets while that set is dragging.
-// Pure so it can be unit-tested without a store/DOM; compares materialised paths.
 export function relatedIds(
   nodes: { id: string; path: string }[],
   movingIds: string[],
@@ -49,8 +38,6 @@ export function snapCandidates(
     { axis: "y", pos: canvas.height },
   ];
   for (const b of others) {
-    // For a vertical (axis "x") line the perpendicular extent is the box's
-    // y-range; for a horizontal (axis "y") line it is the x-range.
     const yFrom = b.top;
     const yTo = b.top + b.height;
     const xFrom = b.left;
@@ -67,14 +54,53 @@ export function snapCandidates(
   return lines;
 }
 
+export function snapValue(
+  value: number,
+  axis: "x" | "y",
+  candidates: SnapLine[],
+  threshold: number,
+): { value: number; line: SnapLine | null } {
+  let best: { delta: number; line: SnapLine } | null = null;
+
+  for (const line of candidates) {
+    if (line.axis !== axis) continue;
+
+    const delta = line.pos - value;
+
+    if (
+      Math.abs(delta) < threshold &&
+      (!best || Math.abs(delta) < Math.abs(best.delta))
+    )
+      best = { delta, line };
+  }
+
+  return { value: value + (best?.delta ?? 0), line: best?.line ?? null };
+}
+
+export function extendLine(
+  line: SnapLine,
+  axis: "x" | "y",
+  box: Rect,
+): SnapLine {
+  if (line.from == null || line.to == null) return line;
+
+  const start = axis === "x" ? box.top : box.left;
+  const end = start + (axis === "x" ? box.height : box.width);
+
+  return {
+    ...line,
+    from: Math.min(line.from, start),
+    to: Math.max(line.to, end),
+  };
+}
+
 export function resolveSnap(
   box: Rect,
   candidates: SnapLine[],
   threshold: number,
 ): { left: number; top: number; matched: SnapLine[] } {
   const matched: SnapLine[] = [];
-  // Per axis, the box exposes three probes (near edge, centre, far edge). Take
-  // the smallest in-threshold correction across all probes.
+
   const probe = (axis: "x" | "y") => {
     const start = axis === "x" ? box.left : box.top;
     const size = axis === "x" ? box.width : box.height;
@@ -82,34 +108,29 @@ export function resolveSnap(
     let best: { delta: number; line: SnapLine } | null = null;
     for (const line of candidates) {
       if (line.axis !== axis) continue;
+
       for (const p of points) {
         const delta = line.pos - p;
+
         if (Math.abs(delta) < threshold) {
           if (!best || Math.abs(delta) < Math.abs(best.delta))
             best = { delta, line };
         }
       }
     }
+
     return best;
   };
 
-  // Grow the matched line's span so it reaches across both the source element
-  // and the moving box. Canvas lines (no `from`/`to`) keep spanning the canvas.
-  const segment = (line: SnapLine, axis: "x" | "y"): SnapLine => {
-    if (line.from == null || line.to == null) return line;
-    const movStart = axis === "x" ? box.top : box.left;
-    const movEnd = movStart + (axis === "x" ? box.height : box.width);
-    return {
-      ...line,
-      from: Math.min(line.from, movStart),
-      to: Math.max(line.to, movEnd),
-    };
-  };
+  const segment = (line: SnapLine, axis: "x" | "y") =>
+    extendLine(line, axis, box);
 
   const bx = probe("x");
   const by = probe("y");
+
   if (bx) matched.push(segment(bx.line, "x"));
   if (by) matched.push(segment(by.line, "y"));
+
   return {
     left: box.left + (bx?.delta ?? 0),
     top: box.top + (by?.delta ?? 0),
