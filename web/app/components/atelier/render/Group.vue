@@ -71,6 +71,10 @@ const { fire } = useEventDispatch();
 const { canvasRect, renderRoot, scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
 
+const move = useHistoryGesture("Move");
+
+useEventListener(window, "pointercancel", () => move.stop());
+
 const props = defineProps<{
   node: Tree;
   isLocked?: boolean;
@@ -214,6 +218,8 @@ watchThrottled(
 
       startBox = border.value && canvasRect(border.value);
 
+      move.start();
+
       begin([props.node.id]);
 
       return;
@@ -266,6 +272,7 @@ watch(isDragging, (newState) => {
     movable = [];
 
     end();
+    move.stop();
   }
 });
 

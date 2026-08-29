@@ -160,8 +160,10 @@ export const useDeckStore = defineStore("deck", () => {
     (id) => {
       if (!id) return;
 
-      selectedNodeIds.value = [];
-      anchorId.value = null;
+      if (!history.replaying) {
+        selectedNodeIds.value = [];
+        anchorId.value = null;
+      }
 
       useAnimationState().reset();
 
@@ -238,8 +240,6 @@ export const useDeckStore = defineStore("deck", () => {
     return [];
   }
 
-  // `channel` narrows the answer to "who receives a write of this kind" — a
-  // peer that holds the channel back is not one. Null asks for the whole group.
   function peersOf(
     id: string,
     channel: SyncChannel | null = null,
@@ -291,13 +291,15 @@ export const useDeckStore = defineStore("deck", () => {
 
   async function updateDeckTitle(title: string) {
     const previous = deckTitle.value;
-    const id = useRoute().params.id?.toString() ?? "";
-
-    await writeDeckTitle(id, title);
 
     if (previous === title) return;
 
-    history.push({
+    const id = useRoute().params.id?.toString() ?? "";
+    const record = history.pushLater();
+
+    await writeDeckTitle(id, title);
+
+    record({
       label: "Rename Deck",
       mergeKey: "deck:title",
       undo: () => writeDeckTitle(id, previous),
@@ -344,13 +346,17 @@ export const useDeckStore = defineStore("deck", () => {
 
   const insertingSlides = ref(false);
 
+  type CreatedSlide = SlidesModel & { root?: string };
+
   async function insertNewSlides(deck: string, id?: string) {
     if (insertingSlides.value) return;
 
     insertingSlides.value = true;
 
+    const record = history.pushLater();
+
     try {
-      const slide = await apiFetch<SlidesModel>("/api/slides", {
+      const slide = await apiFetch<CreatedSlide>("/api/slides", {
         method: "POST",
         body: { deck, index: slides.value.length, ...(id ? { id } : {}) },
       });
@@ -358,19 +364,16 @@ export const useDeckStore = defineStore("deck", () => {
       if (slide) {
         slides.value = [...slides.value, slide];
 
-        history.push({
+        record({
           label: "Add Slide",
           undo: async () => {
-            await deleteSlides(slide.id);
+            if (slides.value.length <= 1)
+              throw new HistoryUnreachable(
+                "Add Slide undo cannot remove the only slide",
+              );
 
-            if (slides.value.some((s) => s.id === slide.id)) {
-              if (slides.value.length <= 1)
-                throw new HistoryUnreachable(
-                  "Add Slide undo cannot remove the only slide",
-                );
-
+            if (!(await deleteSlides(slide.id)))
               throw new Error("Add Slide undo did not remove the slide");
-            }
           },
           redo: async () => {
             const again = await insertNewSlides(deck, slide.id);
@@ -390,28 +393,26 @@ export const useDeckStore = defineStore("deck", () => {
     }
   }
 
-  async function deleteSlides(id: string) {
+  async function deleteSlides(id: string): Promise<boolean> {
     const index = slides.value.findIndex((s) => s.id === id);
 
-    if (index === -1 || slides.value.length <= 1) return;
+    if (index === -1) return true;
+
+    if (slides.value.length <= 1) return false;
 
     const deck = slides.value[index]!.deck;
     const previousSlideId = currentSlideId.value;
+    const record = history.pushLater();
 
     if (!trees.value.get(id)?.id) await fetchAllNodes(index).catch(() => {});
-
-    const tree = trees.value.get(id);
 
     const snapshot: SlideSnapshot = {
       deck,
       order: slides.value.map((s) => s.id),
-      nodes: tree?.id
-        ? flattenTree(tree).map(({ children, parent, ...n }) => n)
-        : [],
-      components: JSON.parse(JSON.stringify(components.value.get(id) ?? [])),
+      ...history.readSlide(id),
     };
 
-    if (tree?.id) for (const n of flattenTree(tree)) sync.dropNode(n.id);
+    for (const n of snapshot.nodes) sync.dropNode(n.id);
 
     sync.dropSlide(id);
     forgetSlide(id);
@@ -427,8 +428,8 @@ export const useDeckStore = defineStore("deck", () => {
     try {
       await apiFetch(`/api/slides/${id}`, { method: "DELETE" });
 
-      if (tree?.id)
-        history.push({
+      if (snapshot.nodes.length)
+        record({
           label: "Delete Slide",
           undo: () => restoreSlide(id, snapshot),
           redo: async () => {
@@ -437,17 +438,19 @@ export const useDeckStore = defineStore("deck", () => {
                 "Delete Slide redo cannot remove the only slide",
               );
 
-            await deleteSlides(id);
-
-            if (slides.value.some((s) => s.id === id))
+            if (!(await deleteSlides(id)))
               throw new Error("Delete Slide redo did not remove the slide");
           },
         });
+
+      return true;
     } catch {
       currentSlideId.value = previousSlideId;
 
       await fetchAllSlides(deck).catch(() => {});
       await parallelLoad().catch(() => {});
+
+      return false;
     }
   }
 
@@ -456,13 +459,13 @@ export const useDeckStore = defineStore("deck", () => {
   async function restoreSlide(id: string, snap: SlideSnapshot) {
     const slide = await insertNewSlides(snap.deck, id);
 
-    if (!slide) throw new Error("Could not recreate the slide");
+    if (!slide) throw new Error("Could not restore the slide yet; try again");
 
     const oldRoot = snap.nodes.find((n) => n.path === ROOT_PATH);
 
     if (oldRoot && slide.root) history.remapNode(oldRoot.id, slide.root);
 
-    history.applySlide(id, { nodes: snap.nodes, components: snap.components });
+    history.applySlides(new Map([[id, snap]]));
 
     await sync.flush();
     await applySlideOrder(snap.order);
@@ -488,6 +491,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     reorderingSlides.value = true;
 
+    const record = history.pushLater();
     const intended = slides.value.map((s) => s.id).join();
 
     let submitted: string[] = [];
@@ -508,7 +512,7 @@ export const useDeckStore = defineStore("deck", () => {
         submitted.join() === intended &&
         submitted.join() !== previousOrder.join()
       )
-        history.push({
+        record({
           label: "Reorder Slides",
           undo: () => applySlideOrder(previousOrder),
           redo: () => applySlideOrder(submitted),
@@ -605,7 +609,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function flatModels(): NodeModel[] {
-    return currentFlat().map(({ children, parent, ...n }) => n);
+    return stripTree(currentFlat());
   }
 
   function buildDefaultComponents(
@@ -757,9 +761,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     setSlideNodes(
       slideId,
-      flat
-        .filter((n) => !removedIds.has(n.id))
-        .map(({ children, parent, ...n }) => n),
+      stripTree(flat.filter((n) => !removedIds.has(n.id))),
     );
 
     setSlideComponents(
@@ -1083,10 +1085,7 @@ export const useDeckStore = defineStore("deck", () => {
     walk(root, "", 0, true);
 
     // Rebuild to restore parent refs and canonical sort_order-sorted children.
-    setSlideNodes(
-      slideId,
-      flattenTree(root).map(({ children, parent, ...n }) => n),
-    );
+    setSlideNodes(slideId, stripTree(flattenTree(root)));
 
     for (const id of changed) sync.enqueueNode(id);
   }
@@ -1096,7 +1095,12 @@ export const useDeckStore = defineStore("deck", () => {
     if (!slideComponents) return;
 
     const slideId = slides.value[slideIndex]?.id;
-    if (slideId) history.capture(slideId);
+
+    // Rapid writes to one component coalesce: typing 240 into a width box is
+    // one entry, not three. A gesture has already opened its own transaction,
+    // so this key is ignored during a drag.
+    if (slideId)
+      history.capture(slideId, `component:${component.node}:${component.type}`);
 
     const index = slideComponents.findIndex(
       (c) => c.node === component.node && c.type === component.type,
@@ -1211,6 +1215,7 @@ export const useDeckStore = defineStore("deck", () => {
   return {
     slides,
     deckTitle,
+    currentSlideId,
     currentSlides,
     currentSlidesIndex,
     trees,

@@ -115,6 +115,7 @@ onUnmounted(() => {
   snapshotScheduler.stop();
 
   useAnimationState().reset();
+  useHistoryStore().clear();
 
   document.removeEventListener("visibilitychange", flushOnHide);
   window.removeEventListener("pagehide", flushOnPageHide);

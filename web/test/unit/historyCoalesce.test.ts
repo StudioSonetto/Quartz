@@ -1,3 +1,6 @@
+import { describe, it, expect } from "vitest";
+import { mergeInto, MERGE_WINDOW_MS } from "~/utils/historyMerge";
+
 const entry = (over: any = {}) => ({
   label: "Edit",
   at: 1000,

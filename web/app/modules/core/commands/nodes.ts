@@ -1,7 +1,3 @@
-import { canContain, isCreatable } from "../../registry";
-import { ROOT_PATH } from "~/utils/nodePath";
-import type { Command, NodeTypeDef } from "#shared/types";
-
 export function makeCreateCommands(defs: NodeTypeDef[]): Command[] {
   return defs.filter(isCreatable).map((def) => ({
     id: `core.node.create.${def.type}`,
@@ -46,6 +42,7 @@ const selectAllCommand: Command = {
   category: "Selection",
   icon: "i-carbon-select-window",
   when: (ctx) => !!ctx.deckId,
+  undoable: false,
   run: (ctx) => ctx.deck.selectAll(),
 };
 
@@ -55,6 +52,7 @@ const clearSelectionCommand: Command = {
   category: "Selection",
   icon: "i-carbon-close",
   when: (ctx) => ctx.selectedNodeIds.length > 0,
+  undoable: false,
   run: () => useNodeSelection().clear(),
 };
 

@@ -243,6 +243,7 @@ function startPointerDrag(
 
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", up);
 
     onEnd?.();
     end();
@@ -264,6 +265,7 @@ function startPointerDrag(
 
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
 
   activeDrag = up;
 }

@@ -192,9 +192,9 @@ describe("history: content", () => {
     );
 
     await history.undo();
-    expect(
-      deck.getComponent(PEER_ID, "core.transform")!.data.position.x,
-    ).not.toBe(999);
+    expect(deck.getComponent(PEER_ID, "core.transform")!.data.position.x).toBe(
+      10,
+    );
   });
 
   it("makes one entry for a whole transaction", async () => {

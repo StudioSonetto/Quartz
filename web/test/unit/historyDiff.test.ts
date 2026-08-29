@@ -1,3 +1,6 @@
+import { describe, it, expect } from "vitest";
+import { diffSlideState, remapSlideState } from "~/utils/historyDiff";
+
 const SLIDE = "slide-1";
 
 const node = (id: string, over: Partial<any> = {}) =>

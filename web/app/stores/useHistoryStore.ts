@@ -12,9 +12,14 @@ export const useHistoryStore = defineStore("history", () => {
   let queue: Promise<void> = Promise.resolve();
 
   type Captured = Map<string, SlideState>;
+  type Focus = { slideId: string | null; selection: string[] };
 
-  let open: { label: string; mergeKey?: string; before: Captured } | null =
-    null;
+  let open: {
+    label: string;
+    mergeKey?: string;
+    before: Captured;
+    focus: Focus;
+  } | null = null;
   let autoClose: ReturnType<typeof setTimeout> | null = null;
 
   const remaps = new Map<string, string>();
@@ -41,42 +46,88 @@ export const useHistoryStore = defineStore("history", () => {
     const tree = deck.trees.get(slideId);
 
     return {
-      nodes: tree?.id
-        ? flattenTree(tree).map(({ children, parent, ...n }) => n)
-        : [],
+      nodes: tree?.id ? stripTree(flattenTree(tree)) : [],
       components: JSON.parse(
         JSON.stringify(deck.components.get(slideId) ?? []),
       ),
     };
   }
 
-  function applySlide(slideId: string, snapshot: SlideState) {
+  function readFocus(): Focus {
     const deck = useDeckStore();
-    const sync = useDeckSync();
-    const target = remapSlideState(snapshot, resolveId);
-    const ops = diffSlideState(readSlide(slideId), target);
 
-    deck.trees.set(slideId, buildTree(target.nodes));
-    deck.components.set(slideId, JSON.parse(JSON.stringify(target.components)));
-
-    for (const id of ops.nodes) sync.enqueueNode(id);
-    for (const { id, ...del } of ops.deletes) sync.enqueueDelete(del, id);
-    for (const c of ops.components) sync.enqueueComponent(c.node, c.type);
-    for (const c of ops.componentDeletes)
-      sync.enqueueComponentDelete(c.node, c.type);
+    return {
+      slideId: deck.currentSlides?.id ?? null,
+      selection: [...deck.selectedNodeIds],
+    };
   }
 
-  function captureCurrent() {
+  function applyFocus(focus: Focus) {
+    const deck = useDeckStore();
+
+    if (focus.slideId && deck.slides.some((s) => s.id === focus.slideId))
+      deck.currentSlideId = focus.slideId;
+
+    // A slide the background load has not reached yet has no tree, and
+    // filtering against nothing would silently deselect everything.
+    const tree = focus.slideId ? deck.trees.get(focus.slideId) : undefined;
+
+    if (!tree?.id) return;
+
+    // One flatten for the whole selection; getNodeById would rescan every
+    // loaded slide per id.
+    const live = new Set(flattenTree(tree).map((n) => n.id));
+
+    deck.selectedNodeIds = focus.selection.filter((id) => live.has(id));
+    deck.anchorId = deck.selectedNodeIds.at(-1) ?? null;
+  }
+
+  function applySlides(states: Captured) {
+    const deck = useDeckStore();
+
+    // Check every slide before touching any: a slide another client deleted is
+    // gone for good, and throwing part-way would leave the entry half-applied.
+    for (const slideId of states.keys())
+      if (!deck.slides.some((s) => s.id === slideId))
+        throw new HistoryUnreachable("The slide no longer exists");
+
+    const sync = useDeckSync();
+
+    for (const [slideId, snapshot] of states) {
+      // Ids are only ever remapped by a slide restore, so skip the two scans
+      // remapSlideState would otherwise make on every step.
+      const target = remaps.size
+        ? remapSlideState(snapshot, resolveId)
+        : snapshot;
+      const ops = diffSlideState(readSlide(slideId), target);
+
+      deck.trees.set(slideId, buildTree(target.nodes));
+      deck.components.set(
+        slideId,
+        JSON.parse(JSON.stringify(target.components)),
+      );
+
+      for (const id of ops.nodes) sync.enqueueNode(id);
+      for (const { id, ...del } of ops.deletes) sync.enqueueDelete(del, id);
+      for (const c of ops.components) sync.enqueueComponent(c.node, c.type);
+      for (const c of ops.componentDeletes)
+        sync.enqueueComponentDelete(c.node, c.type);
+    }
+  }
+
+  function captureCurrent(mergeKey?: string) {
     const slideId = useDeckStore().currentSlides?.id;
 
-    if (slideId) capture(slideId);
+    if (slideId) capture(slideId, mergeKey);
   }
 
-  function capture(slideId: string) {
+  // mergeKey coalesces a burst of identical edits into one entry. Only set when
+  // this call opens the transaction: an edit already in progress owns the key.
+  function capture(slideId: string, mergeKey?: string) {
     if (replaying.value) return;
 
     if (!open) {
-      open = { label: "Edit", before: new Map() };
+      open = { label: "Edit", mergeKey, before: new Map(), focus: readFocus() };
       autoClose = setTimeout(() => commit(), 0);
     }
 
@@ -86,6 +137,7 @@ export const useHistoryStore = defineStore("history", () => {
   function commit() {
     if (autoClose) clearTimeout(autoClose);
     autoClose = null;
+    depth = 0;
 
     const pending = open;
     open = null;
@@ -108,15 +160,18 @@ export const useHistoryStore = defineStore("history", () => {
 
     if (!changed) return;
 
-    push({
+    const focusAfter = readFocus();
+
+    record({
       label: pending.label,
       mergeKey: pending.mergeKey,
       undo: () => {
-        for (const [slideId, state] of pending.before)
-          applySlide(slideId, state);
+        applySlides(pending.before);
+        applyFocus(pending.focus);
       },
       redo: () => {
-        for (const [slideId, state] of after) applySlide(slideId, state);
+        applySlides(after);
+        applyFocus(focusAfter);
       },
     });
   }
@@ -128,7 +183,12 @@ export const useHistoryStore = defineStore("history", () => {
   ): T {
     if (open) return fn();
 
-    open = { label, mergeKey: opts.mergeKey, before: new Map() };
+    open = {
+      label,
+      mergeKey: opts.mergeKey,
+      before: new Map(),
+      focus: readFocus(),
+    };
     captureCurrent();
 
     try {
@@ -138,13 +198,18 @@ export const useHistoryStore = defineStore("history", () => {
     }
   }
 
+  // A gesture started during a slower one (a drag while an upload is still
+  // running) must not commit the outer transaction when it ends.
+  let depth = 0;
+
   function begin(label: string): () => void {
-    if (!open) open = { label, before: new Map() };
-    else open.label = label;
+    if (!open) open = { label, before: new Map(), focus: readFocus() };
+    else if (!depth) open.label = label;
 
     if (autoClose) clearTimeout(autoClose);
     autoClose = null;
 
+    depth++;
     captureCurrent();
 
     let done = false;
@@ -152,13 +217,16 @@ export const useHistoryStore = defineStore("history", () => {
     return () => {
       if (done) return;
       done = true;
+
+      depth = Math.max(0, depth - 1);
+
+      if (depth) return;
+
       commit();
     };
   }
 
-  function push(entry: Omit<HistoryEntry, "at">) {
-    if (replaying.value) return;
-
+  function record(entry: Omit<HistoryEntry, "at">) {
     const now = Date.now();
     const top = undoStack.value[undoStack.value.length - 1];
     const merged = top ? mergeInto(top, entry, now) : null;
@@ -172,6 +240,17 @@ export const useHistoryStore = defineStore("history", () => {
     redoStack.value = [];
   }
 
+  // Sampled when an operation starts, not when it finishes: a replay beginning
+  // mid-flight would otherwise swallow the entry. The only way to record, so an
+  // async producer cannot get this wrong by reaching for a simpler call.
+  function pushLater() {
+    const wasReplaying = replaying.value;
+
+    return (entry: Omit<HistoryEntry, "at">) => {
+      if (!wasReplaying) record(entry);
+    };
+  }
+
   function enqueue(run: () => Promise<void>): Promise<void> {
     queue = queue.then(run, run);
     return queue;
@@ -182,18 +261,28 @@ export const useHistoryStore = defineStore("history", () => {
     to: Ref<HistoryEntry[]>,
     dir: "undo" | "redo",
   ) {
-    const entry = from.value.pop();
-    if (!entry) return;
-
     replaying.value = true;
 
     try {
-      await entry[dir]();
-      to.value.push(entry);
-    } catch (error) {
-      if (!(error instanceof HistoryUnreachable)) from.value.push(entry);
+      for (;;) {
+        const entry = from.value.pop();
+        if (!entry) return;
 
-      console.error(`History ${dir} failed:`, error);
+        try {
+          await entry[dir]();
+          to.value.push(entry);
+          return;
+        } catch (error) {
+          console.error(`History ${dir} failed:`, error);
+
+          // An unreachable entry is dropped, but the keypress should still do
+          // something: fall through to the next one.
+          if (error instanceof HistoryUnreachable) continue;
+
+          from.value.push(entry);
+          return;
+        }
+      }
     } finally {
       replaying.value = false;
     }
@@ -212,9 +301,11 @@ export const useHistoryStore = defineStore("history", () => {
     canUndo,
     canRedo,
     replaying,
-    push,
+    pushLater,
     capture,
-    applySlide,
+    captureCurrent,
+    readSlide,
+    applySlides,
     remapNode,
     transact,
     begin,

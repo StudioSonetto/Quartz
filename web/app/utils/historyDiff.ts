@@ -3,8 +3,6 @@ export interface SlideState {
   components: ComponentModel[];
 }
 
-export type ComponentRef = DeleteComponent;
-
 export interface NodeDeletion extends DeleteNode {
   id: string;
 }
@@ -12,8 +10,8 @@ export interface NodeDeletion extends DeleteNode {
 export interface OutboxOps {
   nodes: string[];
   deletes: NodeDeletion[];
-  components: ComponentRef[];
-  componentDeletes: ComponentRef[];
+  components: DeleteComponent[];
+  componentDeletes: DeleteComponent[];
 }
 
 export function remapSlideState(
@@ -41,13 +39,7 @@ export function remapSlideState(
 }
 
 const sameNode = (a: NodeModel, b: NodeModel) =>
-  a.name === b.name &&
-  a.path === b.path &&
-  a.type === b.type &&
-  a.locked === b.locked &&
-  a.sort_order === b.sort_order &&
-  a.reference === b.reference &&
-  JSON.stringify(a.unsynced) === JSON.stringify(b.unsynced);
+  JSON.stringify(a) === JSON.stringify(b);
 
 export function diffSlideState(
   current: SlideState,

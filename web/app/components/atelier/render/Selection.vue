@@ -100,9 +100,6 @@ watch(selectedNodes, scheduleBox, { deep: false });
 onMounted(() => nextTick(computeBox));
 onUnmounted(() => {
   if (rafId) cancelAnimationFrame(rafId);
-
-  endMove?.();
-  endMove = null;
 });
 
 type DragEntry = {
@@ -119,8 +116,7 @@ type DragState = {
   s: { x: number; y: number };
 };
 
-const history = useHistoryStore();
-let endMove: (() => void) | null = null;
+const move = useHistoryGesture("Move");
 
 let drag: DragState | null = null;
 let moveRaf = 0;
@@ -131,7 +127,7 @@ function startMove(e: PointerEvent) {
 
   if (!nodes.length || !box.value) return;
 
-  endMove = history.begin("Move");
+  move.start();
 
   const s = scale();
   const starts = new Map<string, DragEntry>();
@@ -190,7 +186,7 @@ useEventListener(window, "pointermove", (e: PointerEvent) => {
   if (!moveRaf) moveRaf = requestAnimationFrame(flushMove);
 });
 
-useEventListener(window, "pointerup", () => {
+useEventListener(window, ["pointerup", "pointercancel"], () => {
   if (!drag) return;
 
   if (moveRaf) cancelAnimationFrame(moveRaf);
@@ -204,8 +200,7 @@ useEventListener(window, "pointerup", () => {
     deck.updateComponent(entry.t);
   }
 
-  endMove?.();
-  endMove = null;
+  move.stop();
 
   drag = null;
 

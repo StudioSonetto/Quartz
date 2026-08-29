@@ -73,7 +73,9 @@ const { canvasRect, scale } = useCanvasScale();
 const { begin, apply, end } = inject(snappingKey)!;
 
 const history = useHistoryStore();
-let endMove: (() => void) | null = null;
+const move = useHistoryGesture("Move");
+
+useEventListener(window, "pointercancel", () => move.stop());
 
 const element = useTemplateRef<HTMLElement>("element");
 
@@ -123,8 +125,6 @@ const { x, y, isDragging } = useDraggable(element, {
   onStart: (position, event) => {
     if (props.isLocked) return;
 
-    endMove = history.begin("Move");
-
     const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
 
     if (!drag) return;
@@ -144,6 +144,7 @@ const { x, y, isDragging } = useDraggable(element, {
       moved: false,
     };
 
+    move.start();
     begin([drag.node]);
   },
 });
@@ -200,6 +201,7 @@ watchThrottled(
         box,
       };
 
+      move.start();
       begin([props.node.id]);
 
       return;
@@ -238,9 +240,7 @@ watch(isDragging, (newState) => {
 
     dragStart.value = null;
 
-    endMove?.();
-    endMove = null;
-
+    move.stop();
     end();
   }
 });
@@ -362,9 +362,7 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
-  const slideId = deck.currentSlides?.id;
-
-  if (slideId) history.capture(slideId);
+  history.captureCurrent(`nudge:${props.node.id}`);
 
   transform.data.position.x += dx * step;
   transform.data.position.y += dy * step;
@@ -378,10 +376,5 @@ onMounted(() => {
   const def = getNodeType(props.node.type);
 
   if (def?.onMount) nextTick(() => def.onMount!(props.node.id));
-});
-
-onUnmounted(() => {
-  endMove?.();
-  endMove = null;
 });
 </script>
