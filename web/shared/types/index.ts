@@ -5,7 +5,7 @@ import type { Component } from "vue";
 import type { components, decks, nodes, slides } from "~~/server/db/schema";
 
 export type DeckModel = typeof decks.$inferSelect;
-export type SlidesModel = typeof slides.$inferSelect;
+export type SlidesModel = typeof slides.$inferSelect & { root?: string };
 export type NodeModel = typeof nodes.$inferSelect;
 export type ComponentModel = typeof components.$inferSelect;
 

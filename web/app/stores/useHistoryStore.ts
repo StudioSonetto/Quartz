@@ -17,6 +17,25 @@ export const useHistoryStore = defineStore("history", () => {
     null;
   let autoClose: ReturnType<typeof setTimeout> | null = null;
 
+  const remaps = new Map<string, string>();
+
+  function remapNode(from: string, to: string) {
+    const live = resolveId(from);
+
+    if (live === to) return;
+
+    remaps.set(live, to);
+  }
+
+  function resolveId(id: string): string {
+    let out = id;
+
+    for (let i = 0; i < remaps.size && remaps.has(out); i++)
+      out = remaps.get(out)!;
+
+    return out;
+  }
+
   function readSlide(slideId: string): SlideState {
     const deck = useDeckStore();
     const tree = deck.trees.get(slideId);
@@ -31,9 +50,10 @@ export const useHistoryStore = defineStore("history", () => {
     };
   }
 
-  function applySlide(slideId: string, target: SlideState) {
+  function applySlide(slideId: string, snapshot: SlideState) {
     const deck = useDeckStore();
     const sync = useDeckSync();
+    const target = remapSlideState(snapshot, resolveId);
     const ops = diffSlideState(readSlide(slideId), target);
 
     deck.trees.set(slideId, buildTree(target.nodes));
@@ -171,7 +191,7 @@ export const useHistoryStore = defineStore("history", () => {
       await entry[dir]();
       to.value.push(entry);
     } catch (error) {
-      from.value.push(entry);
+      if (!(error instanceof HistoryUnreachable)) from.value.push(entry);
 
       console.error(`History ${dir} failed:`, error);
     } finally {
@@ -185,6 +205,7 @@ export const useHistoryStore = defineStore("history", () => {
   function clear() {
     undoStack.value = [];
     redoStack.value = [];
+    remaps.clear();
   }
 
   return {
@@ -193,6 +214,8 @@ export const useHistoryStore = defineStore("history", () => {
     replaying,
     push,
     capture,
+    applySlide,
+    remapNode,
     transact,
     begin,
     undo,

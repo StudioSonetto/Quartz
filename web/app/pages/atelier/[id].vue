@@ -5,7 +5,7 @@
     <NuxtLink to="/atelier">Return</NuxtLink>
   </div>
   <div @contextmenu.prevent v-else class="flex flex-col h-screen select-none">
-    <AtelierHeader :title="deck.title" />
+    <AtelierHeader :title="deckTitle" />
     <div class="flex flex-1 overflow-hidden">
       <AtelierToolbar />
       <AtelierInspector />
@@ -33,7 +33,7 @@ const client = useSupabaseClient();
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
-const { slides } = storeToRefs(useDeckStore());
+const { slides, deckTitle } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const sync = useDeckSync();
 const atelier = useAtelierStore();

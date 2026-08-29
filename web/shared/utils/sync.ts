@@ -1,6 +1,6 @@
 export type SyncChannel = "name" | ComponentType;
 
-const ROOT = "root";
+export const ROOT_NODE_PATH = "root";
 
 export interface SyncTarget {
   path: string;
@@ -8,7 +8,7 @@ export interface SyncTarget {
 }
 
 export function unsyncedOf(node: SyncTarget): string[] {
-  return node.unsynced ?? (node.path === ROOT ? ["name"] : []);
+  return node.unsynced ?? (node.path === ROOT_NODE_PATH ? ["name"] : []);
 }
 
 export function syncs(node: SyncTarget, channel: SyncChannel): boolean {

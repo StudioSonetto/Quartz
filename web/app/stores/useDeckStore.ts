@@ -290,7 +290,23 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function updateDeckTitle(title: string) {
-    await apiFetch(`/api/decks/${useRoute().params.id}`, {
+    const previous = deckTitle.value;
+    const id = useRoute().params.id?.toString() ?? "";
+
+    await writeDeckTitle(id, title);
+
+    if (previous === title) return;
+
+    history.push({
+      label: "Rename Deck",
+      mergeKey: "deck:title",
+      undo: () => writeDeckTitle(id, previous),
+      redo: () => writeDeckTitle(id, title),
+    });
+  }
+
+  async function writeDeckTitle(id: string, title: string) {
+    await apiFetch(`/api/decks/${id}`, {
       method: "PATCH",
       body: { title },
     });
@@ -328,7 +344,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   const insertingSlides = ref(false);
 
-  async function insertNewSlides(deck: string) {
+  async function insertNewSlides(deck: string, id?: string) {
     if (insertingSlides.value) return;
 
     insertingSlides.value = true;
@@ -336,10 +352,37 @@ export const useDeckStore = defineStore("deck", () => {
     try {
       const slide = await apiFetch<SlidesModel>("/api/slides", {
         method: "POST",
-        body: { deck, index: slides.value.length },
+        body: { deck, index: slides.value.length, ...(id ? { id } : {}) },
       });
 
-      if (slide) slides.value = [...slides.value, slide];
+      if (slide) {
+        slides.value = [...slides.value, slide];
+
+        history.push({
+          label: "Add Slide",
+          undo: async () => {
+            await deleteSlides(slide.id);
+
+            if (slides.value.some((s) => s.id === slide.id)) {
+              if (slides.value.length <= 1)
+                throw new HistoryUnreachable(
+                  "Add Slide undo cannot remove the only slide",
+                );
+
+              throw new Error("Add Slide undo did not remove the slide");
+            }
+          },
+          redo: async () => {
+            const again = await insertNewSlides(deck, slide.id);
+
+            if (!again)
+              throw new Error("Add Slide redo did not create the slide");
+
+            if (slide.root && again.root)
+              history.remapNode(slide.root, again.root);
+          },
+        });
+      }
 
       return slide;
     } finally {
@@ -355,9 +398,19 @@ export const useDeckStore = defineStore("deck", () => {
     const deck = slides.value[index]!.deck;
     const previousSlideId = currentSlideId.value;
 
-    // Pending component deletes carry raw node ids and can't resolve away like
-    // dirty keys do, so the server would 403 on rows this slide takes with it.
+    if (!trees.value.get(id)?.id) await fetchAllNodes(index).catch(() => {});
+
     const tree = trees.value.get(id);
+
+    const snapshot: SlideSnapshot = {
+      deck,
+      order: slides.value.map((s) => s.id),
+      nodes: tree?.id
+        ? flattenTree(tree).map(({ children, parent, ...n }) => n)
+        : [],
+      components: JSON.parse(JSON.stringify(components.value.get(id) ?? [])),
+    };
+
     if (tree?.id) for (const n of flattenTree(tree)) sync.dropNode(n.id);
 
     sync.dropSlide(id);
@@ -373,8 +426,24 @@ export const useDeckStore = defineStore("deck", () => {
 
     try {
       await apiFetch(`/api/slides/${id}`, { method: "DELETE" });
+
+      if (tree?.id)
+        history.push({
+          label: "Delete Slide",
+          undo: () => restoreSlide(id, snapshot),
+          redo: async () => {
+            if (slides.value.length <= 1)
+              throw new HistoryUnreachable(
+                "Delete Slide redo cannot remove the only slide",
+              );
+
+            await deleteSlides(id);
+
+            if (slides.value.some((s) => s.id === id))
+              throw new Error("Delete Slide redo did not remove the slide");
+          },
+        });
     } catch {
-      // Nothing was deleted, so the user must not be left on a different slide.
       currentSlideId.value = previousSlideId;
 
       await fetchAllSlides(deck).catch(() => {});
@@ -382,10 +451,29 @@ export const useDeckStore = defineStore("deck", () => {
     }
   }
 
+  type SlideSnapshot = SlideState & { deck: string; order: string[] };
+
+  async function restoreSlide(id: string, snap: SlideSnapshot) {
+    const slide = await insertNewSlides(snap.deck, id);
+
+    if (!slide) throw new Error("Could not recreate the slide");
+
+    const oldRoot = snap.nodes.find((n) => n.path === ROOT_PATH);
+
+    if (oldRoot && slide.root) history.remapNode(oldRoot.id, slide.root);
+
+    history.applySlide(id, { nodes: snap.nodes, components: snap.components });
+
+    await sync.flush();
+    await applySlideOrder(snap.order);
+
+    currentSlideId.value = id;
+  }
+
   const reorderingSlides = ref(false);
   let resaveWanted = false;
 
-  async function reorderSlides() {
+  async function reorderSlides(previousOrder?: string[]) {
     const deck = slides.value[0]?.deck;
 
     if (!deck) return;
@@ -400,23 +488,50 @@ export const useDeckStore = defineStore("deck", () => {
 
     reorderingSlides.value = true;
 
+    const intended = slides.value.map((s) => s.id).join();
+
+    let submitted: string[] = [];
+
     try {
       do {
         resaveWanted = false;
+        submitted = slides.value.map((s) => s.id);
+
         await apiFetch(`/api/decks/${deck}/slides`, {
           method: "PATCH",
-          body: { order: slides.value.map((s) => s.id) },
+          body: { order: submitted },
         });
       } while (resaveWanted);
+
+      if (
+        previousOrder &&
+        submitted.join() === intended &&
+        submitted.join() !== previousOrder.join()
+      )
+        history.push({
+          label: "Reorder Slides",
+          undo: () => applySlideOrder(previousOrder),
+          redo: () => applySlideOrder(submitted),
+        });
     } catch (err) {
-      // Undoing by index cannot be right once another drag has landed, so
-      // take the server's order as truth instead.
       await fetchAllSlides(deck).catch(() => {});
 
       throw err;
     } finally {
       reorderingSlides.value = false;
     }
+  }
+
+  async function applySlideOrder(order: string[]) {
+    const byId = new Map(slides.value.map((s) => [s.id, s]));
+    const known = new Set(order);
+
+    slides.value = [
+      ...order.map((id) => byId.get(id)).filter((s): s is SlidesModel => !!s),
+      ...slides.value.filter((s) => !known.has(s.id)),
+    ];
+
+    await reorderSlides();
   }
 
   async function fetchAllNodes(
@@ -435,7 +550,6 @@ export const useDeckStore = defineStore("deck", () => {
     ]);
 
     if (data) {
-      // Write by id — a slide can be deleted while this fetch is in flight.
       if (!slides.value.some((s) => s.id === id)) return [];
 
       const slideComponents = normaliseComponents(

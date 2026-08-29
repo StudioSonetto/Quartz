@@ -1,5 +1,7 @@
 export const MERGE_WINDOW_MS = 500;
 
+export class HistoryUnreachable extends Error {}
+
 export interface HistoryEntry {
   label: string;
   mergeKey?: string;

@@ -52,6 +52,15 @@ describe("diffSlideState", () => {
     expect(ops.nodes).toEqual([]);
   });
 
+  it("never emits a delete for the root node", () => {
+    const ops = diffSlideState(
+      state([node("r", { path: "root" }), node("a")], []),
+      state([], []),
+    );
+
+    expect(ops.deletes).toEqual([{ path: "root.a", slides: SLIDE, id: "a" }]);
+  });
+
   it("compares component data by value, not reference", () => {
     const ops = diffSlideState(
       state([], [comp("a", { x: 1 })]),
@@ -76,5 +85,34 @@ describe("diffSlideState", () => {
     expect(ops.componentDeletes).toEqual([
       { node: "a", type: "core.transform" },
     ]);
+  });
+});
+
+describe("remapSlideState", () => {
+  const remap = (map: Record<string, string>) => (id: string) => map[id] ?? id;
+
+  it("rewrites a node id and the components pointing at it", () => {
+    const out = remapSlideState(
+      state([node("old", { path: "root" })], [comp("old", { x: 1 })]),
+      remap({ old: "new" }),
+    );
+
+    expect(out.nodes[0]!.id).toBe("new");
+    expect(out.components[0]!.node).toBe("new");
+  });
+
+  it("leaves child paths alone", () => {
+    const out = remapSlideState(
+      state([node("old", { path: "root" }), node("child")], []),
+      remap({ old: "new" }),
+    );
+
+    expect(out.nodes.map((n) => n.path)).toEqual(["root", "root.child"]);
+  });
+
+  it("returns the input unchanged when no id resolves differently", () => {
+    const input = state([node("a")], [comp("a", { x: 1 })]);
+
+    expect(remapSlideState(input, remap({}))).toBe(input);
   });
 });
