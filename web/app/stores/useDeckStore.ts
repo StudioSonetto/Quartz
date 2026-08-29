@@ -348,7 +348,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   type CreatedSlide = SlidesModel & { root?: string };
 
-  async function insertNewSlides(deck: string, id?: string) {
+  async function insertNewSlides(deck: string, id?: string, root?: string) {
     if (insertingSlides.value) return;
 
     insertingSlides.value = true;
@@ -358,7 +358,12 @@ export const useDeckStore = defineStore("deck", () => {
     try {
       const slide = await apiFetch<CreatedSlide>("/api/slides", {
         method: "POST",
-        body: { deck, index: slides.value.length, ...(id ? { id } : {}) },
+        body: {
+          deck,
+          index: slides.value.length,
+          ...(id ? { id } : {}),
+          ...(root ? { root } : {}),
+        },
       });
 
       if (slide) {
@@ -377,15 +382,18 @@ export const useDeckStore = defineStore("deck", () => {
               throw new Error("Add Slide undo did not remove the slide");
           },
           redo: async () => {
-            const again = await insertNewSlides(deck, slide.id);
+            if (!slide.root)
+              throw new Error("Add Slide redo does not know the slide root");
+
+            const again = await insertNewSlides(deck, slide.id, slide.root);
 
             if (!again)
               throw new Error("Add Slide redo did not create the slide");
 
-            if (!slide.root || !again.root)
-              throw new Error("Add Slide redo could not resolve the new root");
-
-            history.remapNode(slide.root, again.root);
+            // Snapshots taken before the undo name this id; a different one
+            // would leave the slide with a second root.
+            if (again.root !== slide.root)
+              throw new Error("Add Slide redo did not restore the slide root");
 
             await fetchAllNodes(
               slides.value.findIndex((s) => s.id === again.id),
@@ -411,19 +419,22 @@ export const useDeckStore = defineStore("deck", () => {
     const previousSlideId = currentSlideId.value;
     const record = history.pushLater();
 
-    if (!trees.value.get(id)?.id) await fetchAllNodes(index).catch(() => {});
+    const recording = !history.replaying;
 
-    const loaded = history.readSlide(id);
+    if (recording && !trees.value.get(id)?.id)
+      await fetchAllNodes(index).catch(() => {});
 
-    // No snapshot means no undo: restoring from a slide we never read would
-    // bring it back empty.
+    const loaded = recording ? history.readSlide(id) : null;
+
     const snapshot: SlideSnapshot | null = loaded && {
       deck,
       order: slides.value.map((s) => s.id),
       ...loaded,
     };
 
-    for (const n of snapshot?.nodes ?? []) sync.dropNode(n.id);
+    const tree = trees.value.get(id);
+
+    if (tree?.id) for (const n of flattenTree(tree)) sync.dropNode(n.id);
 
     sync.dropSlide(id);
     forgetSlide(id);
@@ -468,16 +479,16 @@ export const useDeckStore = defineStore("deck", () => {
   type SlideSnapshot = SlideState & { deck: string; order: string[] };
 
   async function restoreSlide(id: string, snap: SlideSnapshot) {
-    const slide = await insertNewSlides(snap.deck, id);
+    const oldRoot = snap.nodes.find((n) => n.path === ROOT_PATH);
+
+    if (!oldRoot) throw new Error("The snapshot has no root node");
+
+    const slide = await insertNewSlides(snap.deck, id, oldRoot.id);
 
     if (!slide) throw new Error("Could not restore the slide yet; try again");
 
-    const oldRoot = snap.nodes.find((n) => n.path === ROOT_PATH);
-
-    if (!oldRoot || !slide.root)
-      throw new Error("Could not resolve the restored slide's root");
-
-    history.remapNode(oldRoot.id, slide.root);
+    if (slide.root !== oldRoot.id)
+      throw new Error("Restored slide did not keep its root");
 
     history.applySlides(new Map([[id, snap]]));
 
@@ -489,8 +500,6 @@ export const useDeckStore = defineStore("deck", () => {
 
   const reorderingSlides = ref(false);
   let resaveWanted = false;
-  let replayResave = false;
-  let earliestOrder: string[] | undefined;
   let inFlightReorder: Promise<void> | null = null;
 
   function reorderSlides(previousOrder?: string[]): Promise<void> {
@@ -498,19 +507,25 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!deck) return Promise.resolve();
 
+    const record = history.pushLater();
+
     slides.value = slides.value.map((s, i) => ({ ...s, index: i }));
+
+    const next = slides.value.map((s) => s.id);
+
+    if (previousOrder && previousOrder.join() !== next.join())
+      record({
+        label: "Reorder Slides",
+        undo: () => applySlideOrder(previousOrder),
+        redo: () => applySlideOrder(next),
+      });
 
     if (reorderingSlides.value) {
       resaveWanted = true;
 
-      if (previousOrder) earliestOrder ??= previousOrder;
-      else replayResave = true;
-
       return inFlightReorder ?? Promise.resolve();
     }
 
-    earliestOrder = previousOrder;
-    replayResave = false;
     inFlightReorder = runReorder(deck).finally(() => {
       inFlightReorder = null;
     });
@@ -521,41 +536,25 @@ export const useDeckStore = defineStore("deck", () => {
   async function runReorder(deck: string) {
     reorderingSlides.value = true;
 
-    const record = history.pushLater();
-
-    let submitted: string[] = [];
-
     try {
       do {
         resaveWanted = false;
-        submitted = slides.value.map((s) => s.id);
 
         await apiFetch(`/api/decks/${deck}/slides`, {
           method: "PATCH",
-          body: { order: submitted },
+          body: { order: slides.value.map((s) => s.id) },
         });
       } while (resaveWanted);
-
-      const previous = earliestOrder;
-
-      if (previous && !replayResave && submitted.join() !== previous.join())
-        record({
-          label: "Reorder Slides",
-          undo: () => applySlideOrder(previous),
-          redo: () => applySlideOrder(submitted),
-        });
     } catch (err) {
       await fetchAllSlides(deck).catch(() => {});
 
       throw err;
     } finally {
       reorderingSlides.value = false;
-      earliestOrder = undefined;
-      replayResave = false;
     }
   }
 
-  async function applySlideOrder(order: string[]) {
+  function applySlideOrder(order: string[]) {
     const byId = new Map(slides.value.map((s) => [s.id, s]));
     const known = new Set(order);
 
@@ -564,7 +563,7 @@ export const useDeckStore = defineStore("deck", () => {
       ...slides.value.filter((s) => !known.has(s.id)),
     ];
 
-    await reorderSlides();
+    reorderSlides().catch(() => {});
   }
 
   async function fetchAllNodes(

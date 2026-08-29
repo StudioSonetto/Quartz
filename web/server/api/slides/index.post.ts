@@ -8,20 +8,33 @@ const bodySchema = z.object({
   deck: z.string().uuid(),
   index: z.number().int().nonnegative(),
   id: z.string().uuid().optional(),
+  root: z.string().uuid().optional(),
 });
 
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
 
-  const { deck, index, id } = await validateBody(event, bodySchema);
+  const { deck, index, id, root } = await validateBody(event, bodySchema);
 
   await requireDeckOwner(deck, user.id);
 
-  let [slide] = await db
-    .insert(slides)
-    .values(id ? { id, deck, index } : { deck, index })
-    .onConflictDoNothing({ target: slides.id })
-    .returning();
+  let slide = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(slides)
+      .values(id ? { id, deck, index } : { deck, index })
+      .onConflictDoNothing({ target: slides.id })
+      .returning();
+
+    if (created && root)
+      await tx
+        .update(nodes)
+        .set({ id: root })
+        .where(
+          and(eq(nodes.slides, created.id), eq(nodes.path, ROOT_NODE_PATH)),
+        );
+
+    return created;
+  });
 
   if (slide) {
     await adoptFromPeers(slide);

@@ -22,27 +22,9 @@ export const useHistoryStore = defineStore("history", () => {
   } | null = null;
   let autoClose: ReturnType<typeof setTimeout> | null = null;
 
-  const remaps = new Map<string, string>();
-
-  function remapNode(from: string, to: string) {
-    const live = resolveId(from);
-
-    if (live === to) return;
-
-    remaps.set(live, to);
-  }
-
-  function resolveId(id: string): string {
-    let out = id;
-
-    for (let i = 0; i < remaps.size && remaps.has(out); i++)
-      out = remaps.get(out)!;
-
-    return out;
-  }
-
   const EMPTY_SLIDE: SlideState = { nodes: [], components: [] };
 
+  // Currently it clones whole slides per edit, may cause performance issues in future.
   function readSlide(slideId: string): SlideState | null {
     const deck = useDeckStore();
     const tree = deck.trees.get(slideId);
@@ -91,11 +73,7 @@ export const useHistoryStore = defineStore("history", () => {
 
     const sync = useDeckSync();
 
-    for (const [slideId, snapshot] of states) {
-      const target = remaps.size
-        ? remapSlideState(snapshot, resolveId)
-        : snapshot;
-
+    for (const [slideId, target] of states) {
       const ops = diffSlideState(readSlide(slideId) ?? EMPTY_SLIDE, target);
 
       deck.trees.set(slideId, buildTree(target.nodes));
@@ -289,7 +267,6 @@ export const useHistoryStore = defineStore("history", () => {
   function clear() {
     undoStack.value = [];
     redoStack.value = [];
-    remaps.clear();
   }
 
   return {
@@ -301,7 +278,6 @@ export const useHistoryStore = defineStore("history", () => {
     captureCurrent,
     readSlide,
     applySlides,
-    remapNode,
     transact,
     begin,
     undo,

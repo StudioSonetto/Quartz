@@ -14,30 +14,6 @@ export interface OutboxOps {
   componentDeletes: DeleteComponent[];
 }
 
-export function remapSlideState(
-  state: SlideState,
-  resolve: (id: string) => string,
-): SlideState {
-  const stale =
-    state.nodes.some((n) => resolve(n.id) !== n.id) ||
-    state.components.some((c) => resolve(c.node) !== c.node);
-
-  if (!stale) return state;
-
-  return {
-    nodes: state.nodes.map((n) => {
-      const id = resolve(n.id);
-
-      return id === n.id ? n : { ...n, id };
-    }),
-    components: state.components.map((c) => {
-      const node = resolve(c.node);
-
-      return node === c.node ? c : { ...c, node };
-    }),
-  };
-}
-
 const sameNode = (a: NodeModel, b: NodeModel) => deepEqual(a, b);
 
 export function diffSlideState(
