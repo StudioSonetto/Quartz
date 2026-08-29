@@ -217,4 +217,20 @@ describe("history: content", () => {
     await history.undo();
     expect(history.canUndo).toBe(false);
   });
+
+  it("appends slides created after the entry was recorded", () => {
+    const deck = useDeckStore();
+
+    deck.slides = [
+      { id: "a", deck: "d" },
+      { id: "b", deck: "d" },
+      { id: "c", deck: "d" },
+    ] as any;
+
+    deck.applySlideOrder(["b", "a"]);
+
+    const patch = hoisted.calls.find((c) => c.url.endsWith("/slides"));
+
+    expect(patch!.body.order).toEqual(["b", "a", "c"]);
+  });
 });

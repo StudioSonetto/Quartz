@@ -1,5 +1,5 @@
 <template>
-  <Title>{{ deck?.title ?? "404" }} | Quartz</Title>
+  <Title>{{ deck ? deckTitle : "404" }} | Quartz</Title>
   <div v-if="!deck">
     <p>Either the deck does not exist or you do not have access.</p>
     <NuxtLink to="/atelier">Return</NuxtLink>

@@ -38,8 +38,7 @@ export function remapSlideState(
   };
 }
 
-const sameNode = (a: NodeModel, b: NodeModel) =>
-  JSON.stringify(a) === JSON.stringify(b);
+const sameNode = (a: NodeModel, b: NodeModel) => deepEqual(a, b);
 
 export function diffSlideState(
   current: SlideState,
@@ -74,7 +73,7 @@ export function diffSlideState(
   for (const component of target.components) {
     const was = currentComponents.get(key(component));
 
-    if (!was || JSON.stringify(was.data) !== JSON.stringify(component.data))
+    if (!was || !deepEqual(was.data, component.data))
       ops.components.push({ node: component.node, type: component.type });
   }
 

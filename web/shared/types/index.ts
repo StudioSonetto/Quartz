@@ -152,6 +152,7 @@ export type AtelierFocus =
 export interface CommandContext {
   deck: any;
   atelier: any;
+  history: any;
   soleSelected: Tree | null;
   selectedNodes: Tree[];
   unlockedNodes: Tree[];

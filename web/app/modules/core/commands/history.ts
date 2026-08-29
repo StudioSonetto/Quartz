@@ -6,8 +6,8 @@ const undoCommand: Command = {
   category: "Edit",
   icon: "i-carbon-undo",
   undoable: false,
-  when: () => useHistoryStore().canUndo,
-  run: () => useHistoryStore().undo(),
+  when: (ctx) => ctx.history.canUndo,
+  run: (ctx) => ctx.history.undo(),
 };
 
 const redoCommand: Command = {
@@ -16,8 +16,8 @@ const redoCommand: Command = {
   category: "Edit",
   icon: "i-carbon-redo",
   undoable: false,
-  when: () => useHistoryStore().canRedo,
-  run: () => useHistoryStore().redo(),
+  when: (ctx) => ctx.history.canRedo,
+  run: (ctx) => ctx.history.redo(),
 };
 
 export default [undoCommand, redoCommand];

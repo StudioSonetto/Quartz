@@ -381,8 +381,12 @@ export const useDeckStore = defineStore("deck", () => {
             if (!again)
               throw new Error("Add Slide redo did not create the slide");
 
-            if (slide.root && again.root)
-              history.remapNode(slide.root, again.root);
+            if (!slide.root || !again.root)
+              throw new Error("Add Slide redo could not resolve the new root");
+
+            history.remapNode(slide.root, again.root);
+
+            await fetchAllNodes(slides.value.length - 1);
           },
         });
       }
@@ -463,7 +467,10 @@ export const useDeckStore = defineStore("deck", () => {
 
     const oldRoot = snap.nodes.find((n) => n.path === ROOT_PATH);
 
-    if (oldRoot && slide.root) history.remapNode(oldRoot.id, slide.root);
+    if (!oldRoot || !slide.root)
+      throw new Error("Could not resolve the restored slide's root");
+
+    history.remapNode(oldRoot.id, slide.root);
 
     history.applySlides(new Map([[id, snap]]));
 
@@ -1248,6 +1255,7 @@ export const useDeckStore = defineStore("deck", () => {
     fetchSlides,
     insertNewSlides,
     insertingSlides,
+    applySlideOrder,
     deleteSlides,
     reorderSlides,
     fetchAllNodes,
