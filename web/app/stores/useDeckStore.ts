@@ -362,7 +362,8 @@ export const useDeckStore = defineStore("deck", () => {
       });
 
       if (slide) {
-        slides.value = [...slides.value, slide];
+        if (!slides.value.some((s) => s.id === slide.id))
+          slides.value = [...slides.value, slide];
 
         record({
           label: "Add Slide",
@@ -386,7 +387,9 @@ export const useDeckStore = defineStore("deck", () => {
 
             history.remapNode(slide.root, again.root);
 
-            await fetchAllNodes(slides.value.length - 1);
+            await fetchAllNodes(
+              slides.value.findIndex((s) => s.id === again.id),
+            );
           },
         });
       }
@@ -410,13 +413,17 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!trees.value.get(id)?.id) await fetchAllNodes(index).catch(() => {});
 
-    const snapshot: SlideSnapshot = {
+    const loaded = history.readSlide(id);
+
+    // No snapshot means no undo: restoring from a slide we never read would
+    // bring it back empty.
+    const snapshot: SlideSnapshot | null = loaded && {
       deck,
       order: slides.value.map((s) => s.id),
-      ...history.readSlide(id),
+      ...loaded,
     };
 
-    for (const n of snapshot.nodes) sync.dropNode(n.id);
+    for (const n of snapshot?.nodes ?? []) sync.dropNode(n.id);
 
     sync.dropSlide(id);
     forgetSlide(id);
@@ -432,7 +439,7 @@ export const useDeckStore = defineStore("deck", () => {
     try {
       await apiFetch(`/api/slides/${id}`, { method: "DELETE" });
 
-      if (snapshot.nodes.length)
+      if (snapshot)
         record({
           label: "Delete Slide",
           undo: () => restoreSlide(id, snapshot),
@@ -482,24 +489,39 @@ export const useDeckStore = defineStore("deck", () => {
 
   const reorderingSlides = ref(false);
   let resaveWanted = false;
+  let replayResave = false;
+  let earliestOrder: string[] | undefined;
+  let inFlightReorder: Promise<void> | null = null;
 
-  async function reorderSlides(previousOrder?: string[]) {
+  function reorderSlides(previousOrder?: string[]): Promise<void> {
     const deck = slides.value[0]?.deck;
 
-    if (!deck) return;
+    if (!deck) return Promise.resolve();
 
     slides.value = slides.value.map((s, i) => ({ ...s, index: i }));
 
     if (reorderingSlides.value) {
       resaveWanted = true;
 
-      return;
+      if (previousOrder) earliestOrder ??= previousOrder;
+      else replayResave = true;
+
+      return inFlightReorder ?? Promise.resolve();
     }
 
+    earliestOrder = previousOrder;
+    replayResave = false;
+    inFlightReorder = runReorder(deck).finally(() => {
+      inFlightReorder = null;
+    });
+
+    return inFlightReorder;
+  }
+
+  async function runReorder(deck: string) {
     reorderingSlides.value = true;
 
     const record = history.pushLater();
-    const intended = slides.value.map((s) => s.id).join();
 
     let submitted: string[] = [];
 
@@ -514,14 +536,12 @@ export const useDeckStore = defineStore("deck", () => {
         });
       } while (resaveWanted);
 
-      if (
-        previousOrder &&
-        submitted.join() === intended &&
-        submitted.join() !== previousOrder.join()
-      )
+      const previous = earliestOrder;
+
+      if (previous && !replayResave && submitted.join() !== previous.join())
         record({
           label: "Reorder Slides",
-          undo: () => applySlideOrder(previousOrder),
+          undo: () => applySlideOrder(previous),
           redo: () => applySlideOrder(submitted),
         });
     } catch (err) {
@@ -530,6 +550,8 @@ export const useDeckStore = defineStore("deck", () => {
       throw err;
     } finally {
       reorderingSlides.value = false;
+      earliestOrder = undefined;
+      replayResave = false;
     }
   }
 

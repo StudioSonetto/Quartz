@@ -41,12 +41,16 @@ export const useHistoryStore = defineStore("history", () => {
     return out;
   }
 
-  function readSlide(slideId: string): SlideState {
+  const EMPTY_SLIDE: SlideState = { nodes: [], components: [] };
+
+  function readSlide(slideId: string): SlideState | null {
     const deck = useDeckStore();
     const tree = deck.trees.get(slideId);
 
+    if (!tree?.id) return null;
+
     return {
-      nodes: tree?.id ? stripTree(flattenTree(tree)) : [],
+      nodes: stripTree(flattenTree(tree)),
       components: JSON.parse(
         JSON.stringify(deck.components.get(slideId) ?? []),
       ),
@@ -68,14 +72,10 @@ export const useHistoryStore = defineStore("history", () => {
     if (focus.slideId && deck.slides.some((s) => s.id === focus.slideId))
       deck.currentSlideId = focus.slideId;
 
-    // A slide the background load has not reached yet has no tree, and
-    // filtering against nothing would silently deselect everything.
     const tree = focus.slideId ? deck.trees.get(focus.slideId) : undefined;
 
     if (!tree?.id) return;
 
-    // One flatten for the whole selection; getNodeById would rescan every
-    // loaded slide per id.
     const live = new Set(flattenTree(tree).map((n) => n.id));
 
     deck.selectedNodeIds = focus.selection.filter((id) => live.has(id));
@@ -85,8 +85,6 @@ export const useHistoryStore = defineStore("history", () => {
   function applySlides(states: Captured) {
     const deck = useDeckStore();
 
-    // Check every slide before touching any: a slide another client deleted is
-    // gone for good, and throwing part-way would leave the entry half-applied.
     for (const slideId of states.keys())
       if (!deck.slides.some((s) => s.id === slideId))
         throw new HistoryUnreachable("The slide no longer exists");
@@ -94,12 +92,11 @@ export const useHistoryStore = defineStore("history", () => {
     const sync = useDeckSync();
 
     for (const [slideId, snapshot] of states) {
-      // Ids are only ever remapped by a slide restore, so skip the two scans
-      // remapSlideState would otherwise make on every step.
       const target = remaps.size
         ? remapSlideState(snapshot, resolveId)
         : snapshot;
-      const ops = diffSlideState(readSlide(slideId), target);
+
+      const ops = diffSlideState(readSlide(slideId) ?? EMPTY_SLIDE, target);
 
       deck.trees.set(slideId, buildTree(target.nodes));
       deck.components.set(
@@ -121,17 +118,20 @@ export const useHistoryStore = defineStore("history", () => {
     if (slideId) capture(slideId, mergeKey);
   }
 
-  // mergeKey coalesces a burst of identical edits into one entry. Only set when
-  // this call opens the transaction: an edit already in progress owns the key.
   function capture(slideId: string, mergeKey?: string) {
     if (replaying.value) return;
+    if (open?.before.has(slideId)) return;
+
+    const before = readSlide(slideId);
+
+    if (!before) return;
 
     if (!open) {
       open = { label: "Edit", mergeKey, before: new Map(), focus: readFocus() };
       autoClose = setTimeout(() => commit(), 0);
     }
 
-    if (!open.before.has(slideId)) open.before.set(slideId, readSlide(slideId));
+    open.before.set(slideId, before);
   }
 
   function commit() {
@@ -145,8 +145,9 @@ export const useHistoryStore = defineStore("history", () => {
     if (!pending || !pending.before.size) return;
 
     const after: Captured = new Map();
+
     for (const slideId of pending.before.keys())
-      after.set(slideId, readSlide(slideId));
+      after.set(slideId, readSlide(slideId) ?? EMPTY_SLIDE);
 
     const changed = [...pending.before].some(([slideId, before]) => {
       const ops = diffSlideState(before, after.get(slideId)!);
@@ -198,8 +199,6 @@ export const useHistoryStore = defineStore("history", () => {
     }
   }
 
-  // A gesture started during a slower one (a drag while an upload is still
-  // running) must not commit the outer transaction when it ends.
   let depth = 0;
 
   function begin(label: string): () => void {
@@ -240,9 +239,6 @@ export const useHistoryStore = defineStore("history", () => {
     redoStack.value = [];
   }
 
-  // Sampled when an operation starts, not when it finishes: a replay beginning
-  // mid-flight would otherwise swallow the entry. The only way to record, so an
-  // async producer cannot get this wrong by reaching for a simpler call.
   function pushLater() {
     const wasReplaying = replaying.value;
 
@@ -275,11 +271,10 @@ export const useHistoryStore = defineStore("history", () => {
         } catch (error) {
           console.error(`History ${dir} failed:`, error);
 
-          // An unreachable entry is dropped, but the keypress should still do
-          // something: fall through to the next one.
           if (error instanceof HistoryUnreachable) continue;
 
           from.value.push(entry);
+
           return;
         }
       }
