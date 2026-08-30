@@ -1,5 +1,8 @@
 export const defaultKeymap: Record<string, string> = {
   "mod+k": "core.view.palette",
+  "mod+z": "core.edit.undo",
+  "mod+shift+z": "core.edit.redo",
+  "mod+y": "core.edit.redo",
   "mod+a": "core.selection.selectAll",
   "mod+g": "core.selection.group",
   "mod+shift+g": "core.selection.ungroup",

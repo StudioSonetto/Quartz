@@ -16,25 +16,26 @@
 
 <style scoped lang="postcss">
 .hero {
-  @apply flex relative h-[95vh];
+  @apply flex relative h-[95svh];
   @apply border-solid border-0 border-b-2 border-dark-200;
 
   .title {
     @apply absolute select-none opacity-90;
     @apply top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-    @apply w-full text-center;
+    @apply w-full px-6 text-center;
 
     h1 {
-      @apply text-6xl md:text-7xl lg:text-8xl font-400 tracking-tight;
+      @apply text-[12vw] sm:text-6xl md:text-7xl lg:text-8xl;
+      @apply font-400 tracking-tight;
     }
   }
 
   .scroll-down {
     @apply absolute bottom-8 left-1/2 -translate-x-1/2;
-    @apply select-none opacity-90;
+    @apply w-full px-6 select-none opacity-90;
 
     p {
-      @apply flex items-center gap-2 ui-text-3;
+      @apply flex items-center justify-center gap-2 ui-text-3;
     }
   }
 }

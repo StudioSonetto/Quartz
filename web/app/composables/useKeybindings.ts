@@ -1,6 +1,6 @@
-import { onKeyStroke } from "@vueuse/core";
-
 const ALWAYS_ALLOWED = new Set(["mod+k", "escape"]);
+
+const ALWAYS_CLAIMED = new Set(["core.edit.undo", "core.edit.redo"]);
 
 export function useKeybindings() {
   const { run } = useCommands();
@@ -19,6 +19,8 @@ export function useKeybindings() {
 
     const command = getCommand(id);
     if (!command) return;
+
+    if (ALWAYS_CLAIMED.has(id)) e.preventDefault();
 
     const ctx = buildCommandContext();
     if (command.when && !command.when(ctx)) return;

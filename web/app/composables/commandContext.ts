@@ -3,6 +3,7 @@ import type { CommandContext, Tree } from "#shared/types";
 export function buildCommandContext(): CommandContext {
   const deck = useDeckStore();
   const atelier = useAtelierStore();
+  const history = useHistoryStore();
   const route = useRoute();
 
   let alignable: Tree[] | undefined;
@@ -10,6 +11,7 @@ export function buildCommandContext(): CommandContext {
   return {
     deck,
     atelier,
+    history,
     get soleSelected() {
       return deck.soleSelected;
     },

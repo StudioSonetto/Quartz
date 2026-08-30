@@ -118,9 +118,20 @@ useDraggable(timeline, slides, {
   draggable: ".frame",
   animation: 200,
   onEnd: (event) => {
-    if (event.oldIndex === event.newIndex) return;
+    const { oldDraggableIndex, newDraggableIndex } = event;
 
-    deckStore.reorderSlides().catch(() => {});
+    if (oldDraggableIndex === undefined || newDraggableIndex === undefined)
+      return;
+    if (oldDraggableIndex === newDraggableIndex) return;
+
+    const previous = slides.value.map((s) => s.id);
+    const [moved] = previous.splice(newDraggableIndex, 1);
+
+    if (!moved) return;
+
+    previous.splice(oldDraggableIndex, 0, moved);
+
+    deckStore.reorderSlides(previous).catch(() => {});
   },
 });
 </script>

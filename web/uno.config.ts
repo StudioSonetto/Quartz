@@ -36,6 +36,8 @@ export default defineConfig({
     },
   },
   shortcuts: {
+    "ui-gutter": "px-6 sm:px-10 lg:px-20 xl:px-40 2xl:px-60 3xl:px-80",
+    "ui-section": "ui-gutter py-20 lg:py-30",
     "ui-text-3": "text-3 3xl:text-3.5",
     "ui-text-4": "text-4 3xl:text-4.5",
     "ui-text-5": "text-5 3xl:text-5.5",

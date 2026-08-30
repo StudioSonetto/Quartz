@@ -139,6 +139,7 @@ export interface Command {
   icon?: string;
   when?: (ctx: CommandContext) => boolean;
   run: (ctx: CommandContext) => void | Promise<void>;
+  undoable?: boolean;
 }
 
 export type AtelierFocus =
@@ -151,6 +152,7 @@ export type AtelierFocus =
 export interface CommandContext {
   deck: any;
   atelier: any;
+  history: any;
   soleSelected: Tree | null;
   selectedNodes: Tree[];
   unlockedNodes: Tree[];

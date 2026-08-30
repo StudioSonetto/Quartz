@@ -23,9 +23,6 @@ export function useSnapping() {
     const s = scale();
     const nodes = flattenTree(currentTree.value);
 
-    // A moving node drags its whole subtree with it, so neither its descendants
-    // nor its ancestors (which wrap it) are valid snap targets — only unrelated
-    // nodes and the canvas guides are.
     const excluded = relatedIds(nodes, movingIds);
 
     const others: Rect[] = [];
@@ -55,7 +52,6 @@ export function useSnapping() {
     });
   }
 
-  // `box` is in canvas units. Returns the snapped top-left; updates `guides`.
   function apply(box: Rect): { left: number; top: number } {
     const { left, top, matched } = resolveSnap(
       box,
@@ -68,10 +64,34 @@ export function useSnapping() {
     return { left, top };
   }
 
+  function applyEdges(
+    edges: { x?: number; y?: number },
+    box: Rect,
+  ): { x?: number; y?: number } {
+    const matched: SnapLine[] = [];
+    const out: { x?: number; y?: number } = {};
+
+    for (const axis of ["x", "y"] as const) {
+      const value = edges[axis];
+
+      if (value == null) continue;
+
+      const hit = snapValue(value, axis, candidates, snapThreshold.value);
+
+      out[axis] = hit.value;
+
+      if (hit.line) matched.push(extendLine(hit.line, axis, box));
+    }
+
+    guides.value = matched;
+
+    return out;
+  }
+
   function end() {
     guides.value = [];
     candidates = [];
   }
 
-  return { begin, apply, guides, end };
+  return { begin, apply, applyEdges, guides, end };
 }

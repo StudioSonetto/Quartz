@@ -27,6 +27,7 @@ export function useAssetDrag() {
   const { findRenderEl } = useCanvasScale();
   const assets = useAssetsStore();
   const { getNodeComponent } = useNodeComponents();
+  const history = useHistoryStore();
 
   function start(name: string) {
     const kind = assetKind(name);
@@ -153,65 +154,71 @@ export function useAssetDrag() {
 
     if (!planned.length) return;
 
-    const drops: {
-      file: File;
-      id: string;
-      def: NodeTypeDef;
-      at: { x: number; y: number };
-    }[] = [];
-    let from = target;
+    const endDrop = history.begin("Add Assets");
 
-    planned.forEach(({ file, kind }, i) => {
-      const hit = resolveDropTarget(from, kind);
+    try {
+      const drops: {
+        file: File;
+        id: string;
+        def: NodeTypeDef;
+        at: { x: number; y: number };
+      }[] = [];
+      let from = target;
 
-      if (!hit) return;
+      planned.forEach(({ file, kind }, i) => {
+        const hit = resolveDropTarget(from, kind);
 
-      const at = { x: point.x + i * CASCADE, y: point.y + i * CASCADE };
-      const position = dropPosition(
-        at,
-        rect,
-        canvasSize.value,
-        defaultNodeSize(hit.def.type),
+        if (!hit) return;
+
+        const at = { x: point.x + i * CASCADE, y: point.y + i * CASCADE };
+        const position = dropPosition(
+          at,
+          rect,
+          canvasSize.value,
+          defaultNodeSize(hit.def.type),
+        );
+
+        const id = deck.createNode(hit.def.label, hit.def.type, {
+          parentId: hit.parent.id,
+          position,
+          seed: true,
+        });
+
+        if (!id) return;
+
+        from = deck.getNodeAsTree(id) ?? from;
+
+        drops.push({ file, id, def: hit.def, at });
+      });
+
+      const uploaded = await assets
+        .uploadAssets(
+          deckId,
+          planned.map((p) => p.file),
+        )
+        .catch((error) => {
+          console.error(error);
+
+          return new Map<File, string | null>();
+        });
+
+      const failed = drops.filter((d) => !uploaded.get(d.file));
+      const created = drops.filter((d) => uploaded.get(d.file));
+
+      deck.deleteNodes(failed.flatMap((d) => deck.getNodeAsTree(d.id) ?? []));
+
+      await Promise.all(
+        created.map(async (d) => {
+          await d.def.asset!.apply(d.id, uploaded.get(d.file)!);
+
+          recentre(d.id, d.at, rect);
+        }),
       );
 
-      const id = deck.createNode(hit.def.label, hit.def.type, {
-        parentId: hit.parent.id,
-        position,
-        seed: true,
-      });
-
-      if (!id) return;
-
-      from = deck.getNodeAsTree(id) ?? from;
-
-      drops.push({ file, id, def: hit.def, at });
-    });
-
-    const uploaded = await assets
-      .uploadAssets(
-        deckId,
-        planned.map((p) => p.file),
-      )
-      .catch((error) => {
-        console.error(error);
-
-        return new Map<File, string | null>();
-      });
-
-    const failed = drops.filter((d) => !uploaded.get(d.file));
-    const created = drops.filter((d) => uploaded.get(d.file));
-
-    deck.deleteNodes(failed.flatMap((d) => deck.getNodeAsTree(d.id) ?? []));
-
-    await Promise.all(
-      created.map(async (d) => {
-        await d.def.asset!.apply(d.id, uploaded.get(d.file)!);
-
-        recentre(d.id, d.at, rect);
-      }),
-    );
-
-    deck.selectNodes(created.map((d) => d.id));
+      deck.selectNodes(created.map((d) => d.id));
+    } finally {
+      endDrop();
+    }
   }
 
   async function drop(event: DragEvent) {
@@ -231,20 +238,26 @@ export function useAssetDrag() {
 
     if (!p) return;
 
-    const id = deck.createNode(p.hit.def.label, p.hit.def.type, {
-      parentId: p.hit.parent.id,
-      position: p.position,
-      seed: true,
-    });
+    const endDrop = history.begin(`Add ${p.hit.def.label}`);
 
-    if (!id) return;
+    try {
+      const id = deck.createNode(p.hit.def.label, p.hit.def.type, {
+        parentId: p.hit.parent.id,
+        position: p.position,
+        seed: true,
+      });
 
-    await p.hit.def.asset!.apply(id, p.asset.name);
+      if (!id) return;
 
-    recentre(id, point, p.rect);
+      await p.hit.def.asset!.apply(id, p.asset.name);
 
-    deck.selectedNodeIds = [id];
-    deck.anchorId = id;
+      recentre(id, point, p.rect);
+
+      deck.selectedNodeIds = [id];
+      deck.anchorId = id;
+    } finally {
+      endDrop();
+    }
   }
 
   function recentre(

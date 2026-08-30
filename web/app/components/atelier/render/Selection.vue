@@ -98,7 +98,9 @@ useMutationObserver(renderRoot, scheduleBox, {
 useResizeObserver(renderRoot, scheduleBox);
 watch(selectedNodes, scheduleBox, { deep: false });
 onMounted(() => nextTick(computeBox));
-onUnmounted(() => rafId && cancelAnimationFrame(rafId));
+onUnmounted(() => {
+  if (rafId) cancelAnimationFrame(rafId);
+});
 
 type DragEntry = {
   t: NonNullable<ReturnType<typeof comps.getNodeComponent>>;
@@ -114,6 +116,8 @@ type DragState = {
   s: { x: number; y: number };
 };
 
+const move = useHistoryGesture("Move");
+
 let drag: DragState | null = null;
 let moveRaf = 0;
 let latest: PointerEvent | null = null;
@@ -122,6 +126,8 @@ function startMove(e: PointerEvent) {
   const nodes = movable.value;
 
   if (!nodes.length || !box.value) return;
+
+  move.start();
 
   const s = scale();
   const starts = new Map<string, DragEntry>();
@@ -180,7 +186,7 @@ useEventListener(window, "pointermove", (e: PointerEvent) => {
   if (!moveRaf) moveRaf = requestAnimationFrame(flushMove);
 });
 
-useEventListener(window, "pointerup", () => {
+useEventListener(window, ["pointerup", "pointercancel"], () => {
   if (!drag) return;
 
   if (moveRaf) cancelAnimationFrame(moveRaf);
@@ -193,6 +199,8 @@ useEventListener(window, "pointerup", () => {
   for (const entry of drag.starts.values()) {
     deck.updateComponent(entry.t);
   }
+
+  move.stop();
 
   drag = null;
 

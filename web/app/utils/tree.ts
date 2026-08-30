@@ -39,6 +39,10 @@ export function buildTree(nodes: NodeModel[]): Tree {
 
 const NONE: ReadonlySet<string> = new Set();
 
+export function stripTree(nodes: Tree[]): NodeModel[] {
+  return nodes.map(({ children, parent, ...n }) => n);
+}
+
 export function flattenTree(
   node: Tree,
   collapsedIds: ReadonlySet<string> = NONE,

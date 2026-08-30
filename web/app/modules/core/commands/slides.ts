@@ -1,11 +1,10 @@
-import type { Command } from "#shared/types";
-
 const next: Command = {
   id: "core.slide.next",
   title: "Next Slide",
   category: "Slide",
   icon: "i-carbon-chevron-right",
   when: (ctx) => ctx.deck.currentSlidesIndex < ctx.deck.slides.length - 1,
+  undoable: false,
   run: (ctx) => ctx.deck.nextSlides(),
 };
 
@@ -15,6 +14,7 @@ const prev: Command = {
   category: "Slide",
   icon: "i-carbon-chevron-left",
   when: (ctx) => ctx.deck.currentSlidesIndex > 0,
+  undoable: false,
   run: (ctx) => ctx.deck.prevSlides(),
 };
 

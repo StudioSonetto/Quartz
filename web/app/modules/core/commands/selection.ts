@@ -88,6 +88,7 @@ const copyCommand: Command = {
   category: "Edit",
   icon: "i-carbon-copy-file",
   when: (ctx) => ctx.selectedNodes.length >= 1,
+  undoable: false,
   run: (ctx) => ctx.deck.copySelection(),
 };
 
