@@ -34,6 +34,19 @@
     @keydown.left="nudge(-1, 0, $event)"
     @keydown.right="nudge(1, 0, $event)"
   >
+    <svg
+      v-if="render.paint"
+      class="element-paint"
+      :viewBox="render.paint.viewBox"
+      preserveAspectRatio="none"
+    >
+      <path
+        :d="render.paint.d"
+        :fill="render.paint.fill"
+        :stroke="render.paint.stroke"
+        :stroke-width="render.paint.strokeWidth"
+      />
+    </svg>
     {{ render.content
     }}<AtelierRenderElement
       v-for="child in props.node.children"
@@ -53,6 +66,10 @@
   &.element-hoverable {
     @apply hover:outline-accent;
   }
+}
+
+.element-paint {
+  @apply absolute inset-0 w-full h-full overflow-visible pointer-events-none;
 }
 </style>
 

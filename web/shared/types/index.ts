@@ -50,6 +50,13 @@ export interface RenderResult {
   content?: string;
   style?: Record<string, string | number>;
   component?: Component;
+  paint?: {
+    d: string;
+    fill: string;
+    stroke: string;
+    strokeWidth: number;
+    viewBox: string;
+  };
 }
 
 export interface RenderContext {
