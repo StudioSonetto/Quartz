@@ -48,7 +48,8 @@
 <script setup lang="ts">
 const { currentTree } = storeToRefs(useDeckStore());
 const { select, clear } = useNodeSelection();
-const { canvasSize } = storeToRefs(useAtelierStore());
+const atelier = useAtelierStore();
+const { canvasSize } = storeToRefs(atelier);
 const { getNodeComponent } = useNodeComponents();
 const { imageUrl } = useAssetsStore();
 const assetDrag = useAssetDrag();
@@ -78,6 +79,7 @@ const rootStyle = computed(() => {
 
 function onCanvasClick() {
   if (!pressedCanvas || !props.canEdit) return;
+  if (atelier.activeTool !== "select") return;
 
   const root = currentTree.value;
 

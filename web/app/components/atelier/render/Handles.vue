@@ -99,7 +99,6 @@ const RESIZE_WRITES = [
 const deck = useDeckStore();
 const { soleSelected } = storeToRefs(deck);
 const { updateComponent } = deck;
-const history = useHistoryStore();
 const snapping = inject(snappingKey)!;
 const { getNodeComponent, renderData } = useNodeComponents();
 const { renderRoot, scale } = useCanvasScale();
@@ -161,8 +160,6 @@ onMounted(() => nextTick(computeBox));
 
 onUnmounted(() => {
   if (rafId) cancelAnimationFrame(rafId);
-
-  activeDrag?.();
 });
 
 function transformOf(node: Tree) {
@@ -207,94 +204,36 @@ const canRotate = computed(() => {
   return !!data && !isBound(data, "rotation");
 });
 
-let activeDrag: (() => void) | null = null;
+const { start } = usePointerDrag();
 
-function startPointerDrag(
+const startPointerDrag = (
   label: string,
   onMove: (ev: PointerEvent) => void,
   onEnd?: () => void,
-) {
-  const end = history.begin(label);
-
-  let raf = 0;
-  let latest: PointerEvent | null = null;
-
-  function flush() {
-    raf = 0;
-
-    if (latest) onMove(latest);
-  }
-
-  function move(ev: PointerEvent) {
-    latest = ev;
-
-    if (!raf) raf = requestAnimationFrame(flush);
-  }
-
-  let trackRaf = requestAnimationFrame(function track() {
-    computeBox();
-
-    trackRaf = requestAnimationFrame(track);
-  });
-
-  function up() {
-    if (raf) cancelAnimationFrame(raf);
-
-    cancelAnimationFrame(trackRaf);
-
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", up);
-
-    onEnd?.();
-    end();
-
-    const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
-
-    window.addEventListener("click", swallowClick, {
-      capture: true,
-      once: true,
-    });
-    setTimeout(
-      () =>
-        window.removeEventListener("click", swallowClick, { capture: true }),
-      0,
-    );
-
-    activeDrag = null;
-  }
-
-  window.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", up);
-  window.addEventListener("pointercancel", up);
-
-  activeDrag = up;
-}
+) => start(label, onMove, onEnd, computeBox);
 
 function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const node = soleSelected.value;
 
   if (!node) return;
 
-  if (handles.value?.resize) {
-    if (!box.value) return;
-
+  if (handles.value?.resize && box.value) {
     const gesture = handles.value.resize(
       node,
       { x: h.dx, y: h.dy },
       { ...box.value },
     );
 
-    if (!gesture) return;
+    if (gesture) {
+      const originX = e.clientX;
+      const originY = e.clientY;
 
-    const originX = e.clientX;
-    const originY = e.clientY;
-
-    return startPointerDrag(
-      "Resize",
-      (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
-      () => gesture.end?.(),
-    );
+      return startPointerDrag(
+        "Resize",
+        (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
+        () => gesture.end?.(),
+      );
+    }
   }
 
   const transform = transformOf(node);

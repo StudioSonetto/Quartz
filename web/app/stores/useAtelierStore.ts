@@ -29,6 +29,15 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const recentCommands = ref<string[]>([]);
 
+  const activeTool = ref<"select" | "pen" | "point">("select");
+  const editingShapeId = ref<string | null>(null);
+  const selectedPoints = ref<Set<number>>(new Set());
+
+  function setActiveTool(tool: "select" | "pen" | "point") {
+    activeTool.value = tool;
+    selectedPoints.value = new Set();
+  }
+
   function setActiveTab(index: number) {
     activeTab.value = index;
   }
@@ -103,6 +112,10 @@ export const useAtelierStore = defineStore("atelier", () => {
     openComponentKeys,
     focus,
     recentCommands,
+    activeTool,
+    editingShapeId,
+    selectedPoints,
+    setActiveTool,
     setActiveTab,
     setIsDragging,
     closePalette,

@@ -68,3 +68,92 @@ export function parametricPath(
 
   return polygon(width, height, sides);
 }
+
+export type Point = {
+  x: number;
+  y: number;
+  in?: { x: number; y: number };
+  out?: { x: number; y: number };
+  mode: "corner" | "mirror" | "free";
+};
+
+const arm = (p: Point, key: "in" | "out") => ({
+  x: p.x + (p[key]?.x ?? 0),
+  y: p.y + (p[key]?.y ?? 0),
+});
+
+function segment(from: Point, to: Point) {
+  if (!from.out && !to.in) return `L ${round(to.x)} ${round(to.y)}`;
+
+  const c1 = arm(from, "out");
+  const c2 = arm(to, "in");
+
+  return `C ${round(c1.x)} ${round(c1.y)} ${round(c2.x)} ${round(c2.y)} ${round(to.x)} ${round(to.y)}`;
+}
+
+export function pointsToPath(points: Point[], closed: boolean): string {
+  if (points.length < 2) return "";
+
+  const first = points[0]!;
+  const parts = [`M ${round(first.x)} ${round(first.y)}`];
+
+  for (let i = 1; i < points.length; i++) {
+    parts.push(segment(points[i - 1]!, points[i]!));
+  }
+
+  if (closed) {
+    const last = points[points.length - 1]!;
+
+    if (last.out || first.in) parts.push(segment(last, first));
+
+    parts.push("Z");
+  }
+
+  return parts.join(" ");
+}
+
+export function pathBounds(points: Point[]) {
+  if (!points.length) return { left: 0, top: 0, width: 0, height: 0 };
+
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+
+  for (const p of points) {
+    for (const { x, y } of [p, arm(p, "in"), arm(p, "out")]) {
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+export function scalePoints(points: Point[], sx: number, sy: number): Point[] {
+  const scaleArm = (a?: { x: number; y: number }) =>
+    a ? { x: round(a.x * sx), y: round(a.y * sy) } : undefined;
+
+  return points.map((p) => {
+    const next: Point = { x: round(p.x * sx), y: round(p.y * sy), mode: p.mode };
+
+    if (p.in) next.in = scaleArm(p.in);
+    if (p.out) next.out = scaleArm(p.out);
+
+    return next;
+  });
+}
+
+export function refitPoints(points: Point[]) {
+  const { left, top } = pathBounds(points);
+
+  if (!left && !top) return { points, dx: 0, dy: 0 };
+
+  return {
+    points: points.map((p) => ({ ...p, x: round(p.x - left), y: round(p.y - top) })),
+    dx: left,
+    dy: top,
+  };
+}

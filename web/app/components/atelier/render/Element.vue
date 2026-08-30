@@ -138,7 +138,7 @@ let gesture: {
 
 const { x, y, isDragging } = useDraggable(element, {
   exact: true,
-  disabled: editing,
+  disabled: computed(() => editing.value || atelier.activeTool !== "select"),
   onStart: (position, event) => {
     if (props.isLocked) return;
 
@@ -295,6 +295,8 @@ const { soleSelected } = storeToRefs(deck);
 function onSelect(event: MouseEvent) {
   if (presenting.value) return;
 
+  if (atelier.activeTool !== "select") return;
+
   if (props.isLocked) return;
 
   if (editing.value) {
@@ -364,6 +366,7 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
   if (
     editing.value ||
     locked.value ||
+    atelier.activeTool !== "select" ||
     soleSelected.value?.id !== props.node.id ||
     isGridChild.value
   )

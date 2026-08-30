@@ -41,6 +41,7 @@ export const componentType = pgEnum("component_type", [
   "core.image",
   "core.event",
   "core.shape",
+  "core.path",
 ]);
 
 export const lapidaries = pgTable.withRLS(
