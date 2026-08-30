@@ -2,21 +2,23 @@
   <footer>
     <div>
       <h1 class="font-300">Quartz</h1>
-      <div class="whitespace"></div>
-      <p>© {{ new Date().getFullYear() }} Sonetto</p>
+      <p class="mt-6">© {{ new Date().getFullYear() }} Sonetto</p>
     </div>
-    <div class="flex items-center gap-12">
+    <nav class="links">
       <NuxtLink to="/">Privacy Policy</NuxtLink>
       <NuxtLink to="/">Terms of Service</NuxtLink>
-    </div>
+    </nav>
   </footer>
 </template>
 
 <style scoped lang="postcss">
 footer {
-  @apply flex items-center justify-between;
-  @apply bg-dark-800 select-none;
+  @apply ui-section select-none bg-dark-800;
+  @apply flex flex-col gap-12 sm:flex-row sm:items-center sm:justify-between;
   @apply border-solid border-0 border-t-2 border-dark-200;
-  @apply px-20 xl:px-40 2xl:px-60 3xl:px-80 py-30;
+
+  .links {
+    @apply flex items-center gap-6 sm:gap-12;
+  }
 }
 </style>
