@@ -4,7 +4,7 @@
       <NodeComponentRowFieldSelect
         :options="['rect', 'ellipse', 'line', 'polygon']"
         :value="value"
-        @update:value="update"
+        @update:value="(v) => setKind(v, update)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="fill">
@@ -75,6 +75,11 @@
         @update:value="update"
       />
     </NodeComponentRow>
+    <NodeComponentRow v-if="kind !== 'path'" name="convert">
+      <UIButton variant="ghost" @click="convertToPath"
+        >Convert to path</UIButton
+      >
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 
@@ -104,6 +109,20 @@ function setPaint(key: "fill" | "stroke", next: string | string[]) {
       ? { type: "colour", value: previous?.value ?? "#3B82F6" }
       : { type: "none", value: previous?.value },
   );
+
+  // Stroke width defaults to 0, which paints nothing however it is coloured.
+  if (key === "stroke" && type === "colour" && field(["strokeWidth"]) === 0)
+    set(["strokeWidth"], 1);
+}
+
+// A line encloses no area, so a fill can never show it — only a stroke can.
+function setKind(next: string | string[], update: (value: unknown) => void) {
+  const value = Array.isArray(next) ? next[0] : next;
+
+  update(value);
+
+  if (value === "line" && stroke.value.type !== "colour")
+    setPaint("stroke", "colour");
 }
 
 const kind = computed(() => field(["kind"]));
@@ -120,4 +139,46 @@ const mixedStroke = computed(
 
 const fill = computed(() => coerceBackground(rawFill.value));
 const stroke = computed(() => coerceBackground(rawStroke.value));
+
+const deck = useDeckStore();
+const history = useHistoryStore();
+const { getNodeComponent } = useNodeComponents();
+
+function pathFor(component: ComponentModel) {
+  const size = getNodeComponent(component.node, "core.transform")?.data.size;
+
+  if (typeof size?.width !== "number" || typeof size?.height !== "number")
+    return null;
+
+  return shapeToPoints(
+    component.data.kind,
+    size.width,
+    size.height,
+    component.data.sides,
+  );
+}
+
+function convertToPath() {
+  const end = history.begin("Convert to path");
+
+  for (const component of props.components) {
+    if (component.data.kind === "path") continue;
+
+    const shape = pathFor(component);
+
+    if (!shape) continue;
+
+    deck.updateComponent({
+      ...component,
+      data: { ...component.data, kind: "path" },
+    });
+    deck.addComponent(component.node, "core.path");
+
+    const path = getNodeComponent(component.node, "core.path");
+
+    if (path) deck.updateComponent({ ...path, data: shape });
+  }
+
+  end();
+}
 </script>

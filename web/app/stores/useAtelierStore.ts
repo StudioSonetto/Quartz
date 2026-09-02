@@ -35,6 +35,7 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   function setActiveTool(tool: "select" | "pen" | "point") {
     activeTool.value = tool;
+    editingShapeId.value = null;
     selectedPoints.value = new Set();
   }
 

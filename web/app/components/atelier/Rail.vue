@@ -1,5 +1,5 @@
 <template>
-  <aside class="toolbar border-r">
+  <aside class="rail border-r">
     <UIButton
       v-for="(tab, index) in tabs"
       :key="tab.name"

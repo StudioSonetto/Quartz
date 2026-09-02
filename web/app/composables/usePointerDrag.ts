@@ -74,5 +74,5 @@ export function usePointerDrag() {
 
   onScopeDispose(() => active?.());
 
-  return { start, cancel: () => active?.() };
+  return { start };
 }

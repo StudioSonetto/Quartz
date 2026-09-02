@@ -7,11 +7,11 @@
   <div @contextmenu.prevent v-else class="flex flex-col h-screen select-none">
     <AtelierHeader :title="deckTitle" />
     <div class="flex flex-1 overflow-hidden">
-      <AtelierToolbar />
+      <AtelierRail />
       <AtelierInspector />
       <div class="flex flex-1 flex-col min-w-0">
         <div class="render-container" @focusin="atelier.setFocus('canvas')">
-          <AtelierCanvasBar />
+          <AtelierCommandBar />
           <AtelierRender canEdit />
         </div>
         <AtelierTimeline />

@@ -4,13 +4,16 @@
     :style="rootStyle"
     @click="onCanvasClick"
     @click.right="onCanvasClick"
+    @pointerdown="onCanvasPointerDown"
     @dragenter="canEdit && assetDrag.over($event)"
     @dragover="canEdit && assetDrag.over($event)"
     @drop="canEdit && assetDrag.drop($event)"
     @dragleave="canEdit && assetDrag.leave($event)"
     class="render"
+    :class="{ 'render-drawing': canEdit && atelier.activeTool !== 'select' }"
   >
     <AtelierRenderHandles v-if="canEdit" />
+    <AtelierRenderPathOverlay v-if="canEdit" />
     <AtelierRenderMarquee v-if="canEdit" />
     <AtelierRenderSelection v-if="canEdit" />
     <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
@@ -34,6 +37,10 @@
   @apply w-full border-rd aspect-video;
   @apply bg-light-200 text-dark-900;
   @apply relative overflow-hidden;
+
+  &.render-drawing {
+    @apply cursor-crosshair;
+  }
 
   .root {
     @apply w-full h-full;
@@ -85,6 +92,14 @@ function onCanvasClick() {
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
   else clear();
+}
+
+const pathTool: { press?: (event: PointerEvent) => void } = {};
+
+provide(pathToolKey, pathTool);
+
+function onCanvasPointerDown(event: PointerEvent) {
+  if (props.canEdit) pathTool.press?.(event);
 }
 
 const props = defineProps<{

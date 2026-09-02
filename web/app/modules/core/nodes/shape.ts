@@ -5,6 +5,16 @@ export default {
   accepts: [],
   parents: ["core.group"],
   sizing: "free",
+  editing: (node) => {
+    const { activeTool } = useAtelierStore();
+
+    if (activeTool !== "pen" && activeTool !== "point") return false;
+
+    return (
+      useNodeComponents().getNodeComponent(node.id, "core.shape")?.data.kind ===
+      "path"
+    );
+  },
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 240, height: 240 } } },
@@ -50,7 +60,7 @@ export default {
     },
   },
   handles: {
-    resize: (node, direction, box) => {
+    scaleContents: (node) => {
       const { getNodeComponent } = useNodeComponents();
       const { updateComponent } = useDeckStore();
 
@@ -60,13 +70,9 @@ export default {
       if (!component || shape?.data.kind !== "path") return undefined;
 
       const start = component.data.points as Point[];
-      const { width, height } = box;
 
       return {
-        move: (dx, dy) => {
-          const sx = Math.max(1, width + dx * direction.x) / width;
-          const sy = Math.max(1, height + dy * direction.y) / height;
-
+        move: (sx, sy) => {
           component.data.points = scalePoints(start, sx, sy);
         },
         end: () => updateComponent(component),

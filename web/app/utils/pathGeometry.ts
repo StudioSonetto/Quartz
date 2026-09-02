@@ -2,6 +2,8 @@ export type ShapeKind = "rect" | "ellipse" | "line" | "polygon" | "path";
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
+const KAPPA = 0.5523;
+
 function rect(w: number, h: number, radius: number) {
   const r = Math.min(radius, w / 2, h / 2);
 
@@ -30,7 +32,7 @@ function ellipse(w: number, h: number) {
   return `M 0 ${ry} A ${rx} ${ry} 0 1 0 ${w} ${ry} A ${rx} ${ry} 0 1 0 0 ${ry} Z`;
 }
 
-function polygon(w: number, h: number, sides: number) {
+export function polygonPoints(w: number, h: number, sides: number) {
   const n = Math.min(64, Math.max(3, Math.floor(sides) || 3));
   const unit = Array.from({ length: n }, (_, i) => {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -43,14 +45,19 @@ function polygon(w: number, h: number, sides: number) {
   const minY = Math.min(...unit.map((p) => p.y));
   const maxY = Math.max(...unit.map((p) => p.y));
 
-  const points = unit.map((p) => {
-    const x = round(((p.x - minX) / (maxX - minX)) * w);
-    const y = round(((p.y - minY) / (maxY - minY)) * h);
+  return unit.map((p) => ({
+    x: round(((p.x - minX) / (maxX - minX)) * w),
+    y: round(((p.y - minY) / (maxY - minY)) * h),
+  }));
+}
 
-    return `${x} ${y}`;
-  });
+function polygon(w: number, h: number, sides: number) {
+  const points = polygonPoints(w, h, sides).map((p) => `${p.x} ${p.y}`);
 
-  return `M ${points[0]} ${points.slice(1).map((p) => `L ${p}`).join(" ")} Z`;
+  return `M ${points[0]} ${points
+    .slice(1)
+    .map((p) => `L ${p}`)
+    .join(" ")} Z`;
 }
 
 export function parametricPath(
@@ -60,11 +67,16 @@ export function parametricPath(
   radius: number,
   sides: number,
 ): string {
-  if (kind === "path" || width <= 0 || height <= 0) return "";
+  if (kind === "path") return "";
+
+  // A line is the one kind that stays drawable when an axis collapses.
+  if (kind === "line")
+    return width > 0 || height > 0 ? `M 0 0 L ${width} ${height}` : "";
+
+  if (width <= 0 || height <= 0) return "";
 
   if (kind === "rect") return rect(width, height, radius);
   if (kind === "ellipse") return ellipse(width, height);
-  if (kind === "line") return `M 0 0 L ${width} ${height}`;
 
   return polygon(width, height, sides);
 }
@@ -137,7 +149,11 @@ export function scalePoints(points: Point[], sx: number, sy: number): Point[] {
     a ? { x: round(a.x * sx), y: round(a.y * sy) } : undefined;
 
   return points.map((p) => {
-    const next: Point = { x: round(p.x * sx), y: round(p.y * sy), mode: p.mode };
+    const next: Point = {
+      x: round(p.x * sx),
+      y: round(p.y * sy),
+      mode: p.mode,
+    };
 
     if (p.in) next.in = scaleArm(p.in);
     if (p.out) next.out = scaleArm(p.out);
@@ -152,8 +168,66 @@ export function refitPoints(points: Point[]) {
   if (!left && !top) return { points, dx: 0, dy: 0 };
 
   return {
-    points: points.map((p) => ({ ...p, x: round(p.x - left), y: round(p.y - top) })),
+    points: points.map((p) => ({
+      ...p,
+      x: round(p.x - left),
+      y: round(p.y - top),
+    })),
     dx: left,
     dy: top,
+  };
+}
+
+const corner = (x: number, y: number): Point => ({ x, y, mode: "corner" });
+
+const mirror = (x: number, y: number, ax: number, ay: number): Point => ({
+  x,
+  y,
+  mode: "mirror",
+  in: { x: -ax, y: -ay },
+  out: { x: ax, y: ay },
+});
+
+export function shapeToPoints(
+  kind: ShapeKind,
+  width: number,
+  height: number,
+  sides: number,
+): { points: Point[]; closed: boolean } | null {
+  if (kind === "path") return null;
+
+  if (kind === "line")
+    return { points: [corner(0, 0), corner(width, height)], closed: false };
+
+  if (kind === "rect")
+    return {
+      points: [
+        corner(0, 0),
+        corner(width, 0),
+        corner(width, height),
+        corner(0, height),
+      ],
+      closed: true,
+    };
+
+  if (kind === "polygon")
+    return {
+      points: polygonPoints(width, height, sides).map((p) => corner(p.x, p.y)),
+      closed: true,
+    };
+
+  const rx = width / 2;
+  const ry = height / 2;
+  const kx = KAPPA * rx;
+  const ky = KAPPA * ry;
+
+  return {
+    points: [
+      mirror(rx, 0, kx, 0),
+      mirror(width, ry, 0, ky),
+      mirror(rx, height, -kx, 0),
+      mirror(0, ry, 0, -ky),
+    ],
+    closed: true,
   };
 }

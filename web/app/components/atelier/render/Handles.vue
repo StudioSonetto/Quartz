@@ -180,8 +180,10 @@ const handles = computed(() => {
 
 const locked = computed(() => isNodeLocked(soleSelected.value));
 
+const editingPath = computed(() => isNodeEditing(soleSelected.value));
+
 const canResize = computed(() => {
-  if (locked.value) return false;
+  if (locked.value || editingPath.value) return false;
 
   if (handles.value?.resize) return true;
 
@@ -195,7 +197,7 @@ const canResize = computed(() => {
 });
 
 const canRotate = computed(() => {
-  if (locked.value) return false;
+  if (locked.value || editingPath.value) return false;
 
   if (handles.value?.rotate) return true;
 
@@ -253,6 +255,8 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const rad = ((drawn.rotation ?? 0) * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
+
+  const contents = handles.value?.scaleContents?.(node);
 
   const startW = el.offsetWidth;
   const startH = el.offsetHeight;
@@ -325,8 +329,12 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
       transform.data.position.y = Math.round(cy - hc / 2);
 
       updateComponent(transform);
+      contents?.move(sizeW / startW, sizeH / startH);
     },
-    () => snapping.end(),
+    () => {
+      contents?.end?.();
+      snapping.end();
+    },
   );
 }
 

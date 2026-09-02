@@ -4,6 +4,7 @@
       v-for="tool in tools"
       :key="tool.id"
       variant="chip"
+      :title="tool.title"
       @click="run(tool.id)"
     >
       <div
@@ -13,15 +14,18 @@
         ]"
       ></div>
     </UIButton>
+    <div class="divider"></div>
     <AtelierSelectionActions />
   </div>
 </template>
 
 <style scoped lang="postcss">
 .bar {
-  @apply flex items-center gap-4;
-  @apply py-1;
-  @apply text-light-200;
+  @apply flex flex-wrap items-center gap-1;
+
+  .divider {
+    @apply w-px h-4 mx-1 bg-dark-200;
+  }
 }
 </style>
 

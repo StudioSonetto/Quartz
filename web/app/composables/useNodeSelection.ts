@@ -1,6 +1,10 @@
 export const marqueeKey: InjectionKey<{ begin?: (event: MouseEvent) => void }> =
   Symbol("marquee");
 
+export const pathToolKey: InjectionKey<{
+  press?: (event: PointerEvent) => void;
+}> = Symbol("pathTool");
+
 export function useNodeSelection() {
   const deck = useDeckStore();
   const { selectedNodeIds, anchorId, currentTree } = storeToRefs(deck);
