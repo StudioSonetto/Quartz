@@ -45,9 +45,8 @@
         :fill="render.paint.fill"
         :stroke="render.paint.stroke"
         :stroke-width="render.paint.strokeWidth"
-      />
-    </svg>
-    {{ render.content
+      /></svg
+    >{{ render.content
     }}<AtelierRenderElement
       v-for="child in props.node.children"
       :key="child.id"
