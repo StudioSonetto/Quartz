@@ -44,12 +44,27 @@ export const useAssetsStore = defineStore("assets", () => {
   const loadedDeck = ref("");
   const signedAt = ref(0);
 
-  function reusableUrls(deck: string) {
-    if (deck !== loadedDeck.value || signaturesStale(signedAt.value)) {
-      return new Map<string, string>();
+  const cached = useLocalStorage<{
+    deck: string;
+    at: number;
+    urls: Record<string, string>;
+  }>("quartz-asset-urls", { deck: "", at: 0, urls: {} });
+
+  function reusable(deck: string) {
+    if (deck === loadedDeck.value && !signaturesStale(signedAt.value)) {
+      const held = assets.value.map((a) => [a.name, a.url] as const);
+
+      return { at: signedAt.value, urls: new Map(held) };
     }
 
-    return new Map(assets.value.map((asset) => [asset.name, asset.url]));
+    if (cached.value.deck === deck && !signaturesStale(cached.value.at)) {
+      return {
+        at: cached.value.at,
+        urls: new Map(Object.entries(cached.value.urls)),
+      };
+    }
+
+    return { at: 0, urls: new Map<string, string>() };
   }
 
   async function resolveAssets(
@@ -83,20 +98,25 @@ export const useAssetsStore = defineStore("assets", () => {
 
     if (!data) return;
 
-    const reuse = reusableUrls(deck);
+    const { at, urls } = reusable(deck);
 
     const resolved = await resolveAssets(
       deck,
       data.map((asset) => asset.name),
-      reuse,
+      urls,
     );
 
     if (!resolved) return;
 
     loadedDeck.value = deck;
     assets.value = resolved;
+    signedAt.value = urls.size ? at : Date.now();
 
-    if (!reuse.size) signedAt.value = Date.now();
+    cached.value = {
+      deck,
+      at: signedAt.value,
+      urls: Object.fromEntries(resolved.map((a) => [a.name, a.url])),
+    };
 
     await serveFonts(deck);
   }
@@ -154,7 +174,7 @@ export const useAssetsStore = defineStore("assets", () => {
       planned.map(async ({ file, name }) => {
         const { error } = await client.storage
           .from("assets")
-          .upload(`${deck}/${name}`, file);
+          .upload(`${deck}/${name}`, file, { cacheControl: "31536000" });
 
         if (error) console.error(error);
 
