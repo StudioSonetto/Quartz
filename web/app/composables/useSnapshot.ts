@@ -3,6 +3,7 @@ import html2canvas from "html2canvas";
 // Crops the painted area out of the capture and rescales it to a thumbnail.
 function toPng(captured: HTMLCanvasElement, source: Size) {
   const output = document.createElement("canvas");
+
   output.width = SNAPSHOT_WIDTH;
   output.height = SNAPSHOT_HEIGHT;
 
@@ -93,14 +94,7 @@ export function useSnapshot() {
 
     if (!file) return;
 
-    const { url } = await getStorageObject(
-      "snapshots",
-      deck,
-      file.name,
-      file.updated_at ?? file.id,
-    );
-
-    return url.toString();
+    return await signStorageObject("snapshots", deck, file.name);
   };
 
   return {
