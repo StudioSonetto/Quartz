@@ -44,7 +44,7 @@
 }
 
 .group-border {
-  @apply absolute transform-origin-top-left;
+  @apply absolute transform-origin-top-left border-rd;
 
   &.group-border-locked {
     @apply pointer-events-none;

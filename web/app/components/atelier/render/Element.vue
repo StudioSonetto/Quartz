@@ -11,7 +11,7 @@
     :key="props.node.path"
     :style="[elementStyle]"
     :id="props.node.id"
-    :class="props.node.path === 'root' ? 'root' : 'element'"
+    :class="{ root: props.node.path === ROOT_PATH }"
     ref="element"
     class="element"
     :tabindex="0"
@@ -25,25 +25,9 @@
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
-    @keydown.esc="onEscape"
-    @keydown.up="nudge(0, -1, $event)"
-    @keydown.down="nudge(0, 1, $event)"
-    @keydown.left="nudge(-1, 0, $event)"
-    @keydown.right="nudge(1, 0, $event)"
-  >
-    <svg
-      v-if="render.paint"
-      class="element-paint"
-      :viewBox="render.paint.viewBox"
-      preserveAspectRatio="none"
-    >
-      <path
-        :d="render.paint.d"
-        :fill="render.paint.fill"
-        :stroke="render.paint.stroke"
-        :stroke-width="render.paint.strokeWidth"
-      /></svg
-    >{{ render.content
+    @keydown="onKeydown"
+  ><AtelierRenderPaint v-if="render.paint" :paint="render.paint" />{{
+      render.content
     }}<AtelierRenderElement
       v-for="child in props.node.children"
       :key="child.id"
@@ -56,10 +40,6 @@
 <style scoped lang="postcss">
 .element {
   @apply absolute transform-origin-top-left border-rd;
-}
-
-.element-paint {
-  @apply absolute inset-0 w-full h-full overflow-visible pointer-events-none;
 }
 </style>
 
@@ -111,9 +91,24 @@ function onDoubleClick(event: MouseEvent) {
   if (!editing.value && editable()) startEditing(event);
 }
 
-function onEscape() {
-  if (editing.value) saveEditing();
-  else clear();
+const NUDGES: Record<string, [number, number]> = {
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+};
+
+function onKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape") {
+    if (editing.value) saveEditing();
+    else clear();
+
+    return;
+  }
+
+  const step = NUDGES[event.key];
+
+  if (step) nudge(step[0], step[1], event);
 }
 
 const isMounted = ref(false);
@@ -320,8 +315,10 @@ const picked = ref<string | null>(null);
 
 let pickFrame = 0;
 
+const hoverSelf = computed(() => (locked.value ? null : props.node.id));
+
 function onPointerMove(event: MouseEvent) {
-  if (presenting.value || locked.value || isDragging.value || pickFrame)
+  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
     return;
 
   const pick = getNodeType(props.node.type)?.pick;
@@ -333,16 +330,16 @@ function onPointerMove(event: MouseEvent) {
 
     picked.value = pick(props.node, event)?.id ?? null;
 
-    setHovered(picked.value ?? props.node.id);
+    setHovered(picked.value ?? hoverSelf.value);
   });
 }
 
 function onMouseOver(event: MouseEvent) {
-  if (presenting.value || locked.value) return;
+  if (presenting.value || props.isLocked) return;
 
   event.stopPropagation();
 
-  setHovered(picked.value ?? props.node.id);
+  setHovered(picked.value ?? hoverSelf.value);
 }
 
 function clearHover() {
