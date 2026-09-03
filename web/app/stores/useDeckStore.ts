@@ -756,12 +756,20 @@ export const useDeckStore = defineStore("deck", () => {
       return;
     }
 
-    if (patch.name === undefined) return;
+    if (patch.name !== undefined) {
+      for (const { node } of peersOf(id, "name")) {
+        history.capture(node.slides);
+        node.name = patch.name;
+        sync.enqueueNode(node.id);
+      }
+    }
 
-    for (const { node } of peersOf(id, "name")) {
-      history.capture(node.slides);
-      node.name = patch.name;
-      sync.enqueueNode(node.id);
+    if (patch.locked !== undefined) {
+      for (const { node } of peersOf(id, "locked")) {
+        history.capture(node.slides);
+        node.locked = patch.locked;
+        sync.enqueueNode(node.id);
+      }
     }
   }
 

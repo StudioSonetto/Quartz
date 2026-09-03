@@ -1,4 +1,4 @@
-export type SyncChannel = "name" | ComponentType;
+export type SyncChannel = "name" | "locked" | ComponentType;
 
 export const ROOT_NODE_PATH = "root";
 

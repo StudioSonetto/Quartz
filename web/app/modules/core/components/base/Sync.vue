@@ -27,6 +27,7 @@ const channels = computed(() => {
 
   return [
     { value: "name" as SyncChannel, label: "name", icon: "i-carbon-tag" },
+    { value: "locked" as SyncChannel, label: "lock", icon: "i-carbon-locked" },
     ...[...types].map((type) => ({
       value: type as SyncChannel,
       label: type.split(".").at(-1) ?? type,
