@@ -12,12 +12,7 @@
     class="render"
     :class="{ 'render-drawing': canEdit && atelier.activeTool !== 'select' }"
   >
-    <AtelierRenderHandles v-if="canEdit" />
-    <AtelierRenderPathOverlay v-if="canEdit" />
-    <AtelierRenderMarquee v-if="canEdit" />
-    <AtelierRenderSelection v-if="canEdit" />
-    <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
-    <AtelierRenderGhost v-if="canEdit" />
+    <AtelierRenderGizmo v-if="canEdit" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"

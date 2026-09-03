@@ -12,7 +12,7 @@
 </template>
 
 <style scoped lang="postcss">
-aside {
+.rail {
   @apply bg-dark-500 w-[80px];
   @apply flex flex-col flex-shrink-0;
 

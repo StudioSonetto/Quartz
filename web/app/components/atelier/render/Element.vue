@@ -11,11 +11,7 @@
     :key="props.node.path"
     :style="[elementStyle]"
     :id="props.node.id"
-    :class="[
-      props.node.path === 'root' ? 'root' : 'element',
-      isSelected(props.node.id) || isHovered ? 'outline-accent!' : '',
-      { 'element-hoverable': !presenting && !locked && !picked },
-    ]"
+    :class="props.node.path === 'root' ? 'root' : 'element'"
     ref="element"
     class="element"
     :tabindex="0"
@@ -23,8 +19,9 @@
     @click="onClick"
     @mousedown="onSelect"
     @mouseenter="onHover"
+    @mouseover="onMouseOver"
     @mousemove="onPointerMove"
-    @mouseleave="onPointerLeave"
+    @mouseleave="clearHover"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
@@ -58,13 +55,7 @@
 
 <style scoped lang="postcss">
 .element {
-  @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-accent/0;
-  @apply border-rd;
-
-  &.element-hoverable {
-    @apply hover:outline-accent;
-  }
+  @apply absolute transform-origin-top-left border-rd;
 }
 
 .element-paint {
@@ -75,7 +66,7 @@
 <script setup lang="ts">
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
-const { isSelected, updateComponent } = deck;
+const { updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const atelier = useAtelierStore();
@@ -325,14 +316,12 @@ function onHover() {
   if (presenting.value) fire(props.node, "hover");
 }
 
-const isHovered = computed(() => hoveredNodeId.value === props.node.id);
-
 const picked = ref<string | null>(null);
 
 let pickFrame = 0;
 
 function onPointerMove(event: MouseEvent) {
-  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
+  if (presenting.value || locked.value || isDragging.value || pickFrame)
     return;
 
   const pick = getNodeType(props.node.type)?.pick;
@@ -344,21 +333,29 @@ function onPointerMove(event: MouseEvent) {
 
     picked.value = pick(props.node, event)?.id ?? null;
 
-    setHovered(picked.value);
+    setHovered(picked.value ?? props.node.id);
   });
 }
 
-function onPointerLeave() {
+function onMouseOver(event: MouseEvent) {
+  if (presenting.value || locked.value) return;
+
+  event.stopPropagation();
+
+  setHovered(picked.value ?? props.node.id);
+}
+
+function clearHover() {
   if (pickFrame) {
     cancelAnimationFrame(pickFrame);
     pickFrame = 0;
   }
 
-  if (!picked.value) return;
+  const mine = picked.value ?? props.node.id;
 
   picked.value = null;
 
-  setHovered(null);
+  if (hoveredNodeId.value === mine) setHovered(null);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
@@ -388,6 +385,8 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   updateComponent(transform);
 }
+
+onUnmounted(clearHover);
 
 onMounted(() => {
   isMounted.value = true;

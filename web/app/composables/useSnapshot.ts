@@ -52,12 +52,8 @@ export function useSnapshot() {
     const captured = await html2canvas(render, {
       scale,
       useCORS: true,
-      onclone: (cloned, clone) => {
+      onclone: (_, clone) => {
         clone.style.borderRadius = "0px";
-
-        cloned
-          .querySelectorAll<HTMLElement>(".element")
-          .forEach((element) => (element.style.outline = "none"));
 
         painted = clone.getBoundingClientRect();
       },

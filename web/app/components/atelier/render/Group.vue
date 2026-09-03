@@ -11,14 +11,13 @@
       ref="border"
       :id="props.node.id"
       class="group-border"
-      :class="[
-        isSelected(props.node.id) ? 'outline-accent!' : '',
-        { 'group-border-locked': locked },
-      ]"
+      :class="{ 'group-border-locked': locked }"
       :style="borderStyle"
       :tabindex="0"
       @click="onSelect"
       @mousedown="onSelect"
+      @mouseover="onMouseOver"
+      @mouseleave="clearHover"
       @click.right="clear"
       @keydown.esc="clear"
     ></div>
@@ -46,8 +45,6 @@
 
 .group-border {
   @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-solid outline-accent/0 hover:outline-accent;
-  @apply border-rd;
 
   &.group-border-locked {
     @apply pointer-events-none;
@@ -56,14 +53,16 @@
 </style>
 
 <script setup lang="ts">
-const { isSelected, updateComponent } = useDeckStore();
+const { updateComponent } = useDeckStore();
 const {
   getNodeComponent,
   renderData,
   isGridChild: isNodeGridChild,
 } = useNodeComponents();
 
-const { setIsDragging } = useAtelierStore();
+const atelier = useAtelierStore();
+const { setIsDragging, setHovered } = atelier;
+const { hoveredNodeId } = storeToRefs(atelier);
 
 const presenting = inject(presentingKey, ref(false));
 const { fire } = useEventDispatch();
@@ -178,6 +177,8 @@ onMounted(() => nextTick(computeBounds));
 
 onUnmounted(() => {
   if (rafId) cancelAnimationFrame(rafId);
+
+  clearHover();
 });
 
 const { x, y, isDragging } = useDraggable(border, { exact: true });
@@ -290,5 +291,17 @@ function onClick(event: MouseEvent) {
 
 function onHover() {
   if (presenting.value) fire(props.node, "hover");
+}
+
+function onMouseOver(event: MouseEvent) {
+  if (presenting.value || locked.value) return;
+
+  event.stopPropagation();
+
+  setHovered(props.node.id);
+}
+
+function clearHover() {
+  if (hoveredNodeId.value === props.node.id) setHovered(null);
 }
 </script>

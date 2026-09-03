@@ -15,7 +15,7 @@
 
 <style scoped lang="postcss">
 .selection {
-  @apply absolute z-45 outline outline-3 outline-solid outline-accent;
+  @apply absolute z-45 outline outline-2 outline-accent;
   @apply cursor-move;
 }
 </style>
@@ -24,7 +24,7 @@
 const deck = useDeckStore();
 const { selectedNodes, unlockedSelection } = storeToRefs(deck);
 const comps = useNodeComponents();
-const { renderRoot, scale } = useCanvasScale();
+const { scale } = useCanvasScale();
 const snapping = inject(snappingKey)!;
 const { arm } = useSuppressClickAfterDrag();
 
@@ -41,65 +41,23 @@ const movable = computed(() =>
   ),
 );
 
-const box = ref<Rect | null>(null);
+const { rects } = inject(nodeRectsKey)!;
 
-function computeBox() {
-  const container = renderRoot.value;
+const box = computed<Rect | null>(() => {
+  if (selectedNodes.value.length < 2) return null;
 
-  if (!container || selectedNodes.value.length < 2) {
-    box.value = null;
+  const boxes = selectedNodes.value
+    .map((n) => rects.value.get(n.id))
+    .filter((r) => !!r);
 
-    return;
-  }
+  if (!boxes.length) return null;
 
-  const c = container.getBoundingClientRect();
-  let minL = Infinity,
-    minT = Infinity,
-    maxR = -Infinity,
-    maxB = -Infinity;
+  const left = Math.min(...boxes.map((r) => r.left));
+  const top = Math.min(...boxes.map((r) => r.top));
+  const right = Math.max(...boxes.map((r) => r.left + r.width));
+  const bottom = Math.max(...boxes.map((r) => r.top + r.height));
 
-  for (const n of selectedNodes.value) {
-    const el = document.getElementById(n.id);
-
-    if (!el) continue;
-
-    const r = el.getBoundingClientRect();
-
-    if (r.width === 0 && r.height === 0) continue;
-
-    minL = Math.min(minL, r.left - c.left);
-    minT = Math.min(minT, r.top - c.top);
-    maxR = Math.max(maxR, r.right - c.left);
-    maxB = Math.max(maxB, r.bottom - c.top);
-  }
-
-  box.value =
-    minL === Infinity
-      ? null
-      : { left: minL, top: minT, width: maxR - minL, height: maxB - minT };
-}
-
-let rafId = 0;
-
-function scheduleBox() {
-  if (rafId) return;
-
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    computeBox();
-  });
-}
-
-useMutationObserver(renderRoot, scheduleBox, {
-  subtree: true,
-  attributes: true,
-  attributeFilter: ["style"],
-});
-useResizeObserver(renderRoot, scheduleBox);
-watch(selectedNodes, scheduleBox, { deep: false });
-onMounted(() => nextTick(computeBox));
-onUnmounted(() => {
-  if (rafId) cancelAnimationFrame(rafId);
+  return { left, top, width: right - left, height: bottom - top };
 });
 
 type DragEntry = {

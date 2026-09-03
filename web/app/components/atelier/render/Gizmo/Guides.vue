@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import type { SnapLine } from "~/utils/snapping";
 
-const props = defineProps<{ guides: SnapLine[] }>();
+const { guides } = inject(snappingKey)!;
 const { canvasSize } = storeToRefs(useAtelierStore());
 
 // Guide positions are in canvas units; convert to % of the canvas box. When a
