@@ -11,11 +11,7 @@
     :key="props.node.path"
     :style="[elementStyle]"
     :id="props.node.id"
-    :class="[
-      props.node.path === 'root' ? 'root' : 'element',
-      isSelected(props.node.id) || isHovered ? 'outline-accent!' : '',
-      { 'element-hoverable': !presenting && !locked && !picked },
-    ]"
+    :class="{ root: props.node.path === ROOT_PATH }"
     ref="element"
     class="element"
     :tabindex="0"
@@ -23,18 +19,15 @@
     @click="onClick"
     @mousedown="onSelect"
     @mouseenter="onHover"
+    @mouseover="onMouseOver"
     @mousemove="onPointerMove"
-    @mouseleave="onPointerLeave"
+    @mouseleave="clearHover"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
     @click.right="clear"
-    @keydown.esc="onEscape"
-    @keydown.up="nudge(0, -1, $event)"
-    @keydown.down="nudge(0, 1, $event)"
-    @keydown.left="nudge(-1, 0, $event)"
-    @keydown.right="nudge(1, 0, $event)"
-  >
-    {{ render.content
+    @keydown="onKeydown"
+  ><AtelierRenderPaint v-if="render.paint" :paint="render.paint" />{{
+      render.content
     }}<AtelierRenderElement
       v-for="child in props.node.children"
       :key="child.id"
@@ -46,20 +39,14 @@
 
 <style scoped lang="postcss">
 .element {
-  @apply absolute transform-origin-top-left;
-  @apply outline outline-3 outline-accent/0;
-  @apply border-rd;
-
-  &.element-hoverable {
-    @apply hover:outline-accent;
-  }
+  @apply absolute transform-origin-top-left border-rd;
 }
 </style>
 
 <script setup lang="ts">
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
-const { isSelected, updateComponent } = deck;
+const { updateComponent } = deck;
 const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
 
 const atelier = useAtelierStore();
@@ -104,9 +91,22 @@ function onDoubleClick(event: MouseEvent) {
   if (!editing.value && editable()) startEditing(event);
 }
 
-function onEscape() {
-  if (editing.value) saveEditing();
-  else clear();
+function onKeydown(event: KeyboardEvent) {
+  switch (event.key) {
+    case "Escape":
+      if (editing.value) saveEditing();
+      else clear();
+
+      return;
+    case "ArrowUp":
+      return nudge(0, -1, event);
+    case "ArrowDown":
+      return nudge(0, 1, event);
+    case "ArrowLeft":
+      return nudge(-1, 0, event);
+    case "ArrowRight":
+      return nudge(1, 0, event);
+  }
 }
 
 const isMounted = ref(false);
@@ -121,7 +121,7 @@ let gesture: {
 
 const { x, y, isDragging } = useDraggable(element, {
   exact: true,
-  disabled: editing,
+  disabled: computed(() => editing.value || atelier.activeTool !== "select"),
   onStart: (position, event) => {
     if (props.isLocked) return;
 
@@ -278,6 +278,8 @@ const { soleSelected } = storeToRefs(deck);
 function onSelect(event: MouseEvent) {
   if (presenting.value) return;
 
+  if (atelier.activeTool !== "select") return;
+
   if (props.isLocked) return;
 
   if (editing.value) {
@@ -307,11 +309,14 @@ function onHover() {
   if (presenting.value) fire(props.node, "hover");
 }
 
-const isHovered = computed(() => hoveredNodeId.value === props.node.id);
-
 const picked = ref<string | null>(null);
 
 let pickFrame = 0;
+
+// A locked node still resolves a pick; only the node itself is unhoverable.
+function hoverTarget() {
+  return picked.value ?? (locked.value ? null : props.node.id);
+}
 
 function onPointerMove(event: MouseEvent) {
   if (presenting.value || props.isLocked || isDragging.value || pickFrame)
@@ -326,27 +331,38 @@ function onPointerMove(event: MouseEvent) {
 
     picked.value = pick(props.node, event)?.id ?? null;
 
-    setHovered(picked.value);
+    setHovered(hoverTarget());
   });
 }
 
-function onPointerLeave() {
+function onMouseOver(event: MouseEvent) {
+  if (presenting.value || props.isLocked) return;
+
+  event.stopPropagation();
+
+  setHovered(hoverTarget());
+}
+
+function clearHover() {
   if (pickFrame) {
     cancelAnimationFrame(pickFrame);
     pickFrame = 0;
   }
 
-  if (!picked.value) return;
+  // Clears whatever this element could have set, lock or not: locking mid-hover
+  // would otherwise strand the outline on the node.
+  const mine = picked.value ?? props.node.id;
 
   picked.value = null;
 
-  setHovered(null);
+  if (hoveredNodeId.value === mine) setHovered(null);
 }
 
 function nudge(dx: number, dy: number, event: KeyboardEvent) {
   if (
     editing.value ||
     locked.value ||
+    atelier.activeTool !== "select" ||
     soleSelected.value?.id !== props.node.id ||
     isGridChild.value
   )
@@ -369,6 +385,8 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   updateComponent(transform);
 }
+
+onUnmounted(clearHover);
 
 onMounted(() => {
   isMounted.value = true;

@@ -4,10 +4,12 @@
     data-html2canvas-ignore
     class="handles"
     :style="{
-      left: `${box.left}px`,
-      top: `${box.top}px`,
-      width: `${box.width}px`,
-      height: `${box.height}px`,
+      left: `${box.left + box.width / 2}px`,
+      top: `${box.top + box.height / 2}px`,
+      width: `${box.size.width}px`,
+      height: `${box.size.height}px`,
+      transform: `translate(-50%, -50%) rotate(${box.angle}deg)`,
+      '--angle': `${box.angle}deg`,
     }"
   >
     <template v-if="canResize">
@@ -30,11 +32,12 @@
 <style scoped lang="postcss">
 .handles {
   @apply absolute z-50 pointer-events-none;
-  @apply outline outline-1 outline-accent;
 
   .handle {
     @apply absolute w-2.5 h-2.5 bg-light-200 outline outline-1 outline-accent;
     @apply pointer-events-auto -translate-x-1/2 -translate-y-1/2;
+
+    rotate: calc(-1 * var(--angle, 0deg));
   }
 
   .h-nw {
@@ -99,70 +102,18 @@ const RESIZE_WRITES = [
 const deck = useDeckStore();
 const { soleSelected } = storeToRefs(deck);
 const { updateComponent } = deck;
-const history = useHistoryStore();
 const snapping = inject(snappingKey)!;
 const { getNodeComponent, renderData } = useNodeComponents();
-const { renderRoot, scale } = useCanvasScale();
+const { scale } = useCanvasScale();
 
-const box = ref<Rect | null>(null);
+const { rects, measure: computeBox } = inject(nodeRectsKey)!;
 
-function computeBox() {
+const box = computed(() => {
   const node = soleSelected.value;
 
-  if (!node || node.path === "root") {
-    box.value = null;
+  if (!node || node.path === "root") return null;
 
-    return;
-  }
-
-  const el = document.getElementById(node.id);
-  const container = renderRoot.value;
-
-  if (!el || !container) {
-    box.value = null;
-
-    return;
-  }
-
-  const r = el.getBoundingClientRect();
-  const c = container.getBoundingClientRect();
-
-  box.value = {
-    left: r.left - c.left,
-    top: r.top - c.top,
-    width: r.width,
-    height: r.height,
-  };
-}
-
-let rafId = 0;
-
-function scheduleBounds() {
-  if (rafId) return;
-
-  rafId = requestAnimationFrame(() => {
-    rafId = 0;
-    computeBox();
-  });
-}
-
-useMutationObserver(renderRoot, scheduleBounds, {
-  subtree: true,
-  attributes: true,
-  attributeFilter: ["style"],
-  characterData: true,
-});
-
-useResizeObserver(renderRoot, scheduleBounds);
-
-watch(soleSelected, () => nextTick(computeBox));
-
-onMounted(() => nextTick(computeBox));
-
-onUnmounted(() => {
-  if (rafId) cancelAnimationFrame(rafId);
-
-  activeDrag?.();
+  return rects.value.get(node.id) ?? null;
 });
 
 function transformOf(node: Tree) {
@@ -183,8 +134,10 @@ const handles = computed(() => {
 
 const locked = computed(() => isNodeLocked(soleSelected.value));
 
+const editingPath = computed(() => isNodeEditing(soleSelected.value));
+
 const canResize = computed(() => {
-  if (locked.value) return false;
+  if (locked.value || editingPath.value) return false;
 
   if (handles.value?.resize) return true;
 
@@ -198,7 +151,7 @@ const canResize = computed(() => {
 });
 
 const canRotate = computed(() => {
-  if (locked.value) return false;
+  if (locked.value || editingPath.value) return false;
 
   if (handles.value?.rotate) return true;
 
@@ -207,94 +160,36 @@ const canRotate = computed(() => {
   return !!data && !isBound(data, "rotation");
 });
 
-let activeDrag: (() => void) | null = null;
+const { start } = usePointerDrag();
 
-function startPointerDrag(
+const startPointerDrag = (
   label: string,
   onMove: (ev: PointerEvent) => void,
   onEnd?: () => void,
-) {
-  const end = history.begin(label);
-
-  let raf = 0;
-  let latest: PointerEvent | null = null;
-
-  function flush() {
-    raf = 0;
-
-    if (latest) onMove(latest);
-  }
-
-  function move(ev: PointerEvent) {
-    latest = ev;
-
-    if (!raf) raf = requestAnimationFrame(flush);
-  }
-
-  let trackRaf = requestAnimationFrame(function track() {
-    computeBox();
-
-    trackRaf = requestAnimationFrame(track);
-  });
-
-  function up() {
-    if (raf) cancelAnimationFrame(raf);
-
-    cancelAnimationFrame(trackRaf);
-
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", up);
-
-    onEnd?.();
-    end();
-
-    const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
-
-    window.addEventListener("click", swallowClick, {
-      capture: true,
-      once: true,
-    });
-    setTimeout(
-      () =>
-        window.removeEventListener("click", swallowClick, { capture: true }),
-      0,
-    );
-
-    activeDrag = null;
-  }
-
-  window.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", up);
-  window.addEventListener("pointercancel", up);
-
-  activeDrag = up;
-}
+) => start(label, onMove, onEnd, computeBox);
 
 function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const node = soleSelected.value;
 
   if (!node) return;
 
-  if (handles.value?.resize) {
-    if (!box.value) return;
-
+  if (handles.value?.resize && box.value) {
     const gesture = handles.value.resize(
       node,
       { x: h.dx, y: h.dy },
       { ...box.value },
     );
 
-    if (!gesture) return;
+    if (gesture) {
+      const originX = e.clientX;
+      const originY = e.clientY;
 
-    const originX = e.clientX;
-    const originY = e.clientY;
-
-    return startPointerDrag(
-      "Resize",
-      (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
-      () => gesture.end?.(),
-    );
+      return startPointerDrag(
+        "Resize",
+        (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
+        () => gesture.end?.(),
+      );
+    }
   }
 
   const transform = transformOf(node);
@@ -314,6 +209,8 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const rad = ((drawn.rotation ?? 0) * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
+
+  const contents = handles.value?.scaleContents?.(node);
 
   const startW = el.offsetWidth;
   const startH = el.offsetHeight;
@@ -386,8 +283,12 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
       transform.data.position.y = Math.round(cy - hc / 2);
 
       updateComponent(transform);
+      contents?.move(sizeW / startW, sizeH / startH);
     },
-    () => snapping.end(),
+    () => {
+      contents?.end?.();
+      snapping.end();
+    },
   );
 }
 

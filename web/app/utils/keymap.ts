@@ -12,6 +12,8 @@ export const defaultKeymap: Record<string, string> = {
   "mod+x": "core.selection.cut",
   "mod+v": "core.selection.paste",
   escape: "core.selection.clear",
+  p: "core.tool.pen",
+  a: "core.tool.point",
   backspace: "core.node.delete",
   delete: "core.node.delete",
   arrowright: "core.slide.next",

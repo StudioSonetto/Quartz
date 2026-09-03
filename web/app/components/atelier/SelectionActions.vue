@@ -1,29 +1,15 @@
 <template>
-  <div class="actions" @contextmenu.prevent>
-    <div class="buttons">
-      <UIButton
-        v-for="a in buttons"
-        :key="a.id"
-        variant="chip"
-        :title="a.title"
-        :disabled="!a.enabled"
-        @click="run(a.id)"
-      >
-        <div :class="a.icon"></div>
-      </UIButton>
-    </div>
-  </div>
+  <UIButton
+    v-for="a in buttons"
+    :key="a.id"
+    variant="chip"
+    :title="a.title"
+    :disabled="!a.enabled"
+    @click="run(a.id)"
+  >
+    <div :class="a.icon"></div>
+  </UIButton>
 </template>
-
-<style scoped lang="postcss">
-.actions {
-  @apply flex items-center gap-3;
-
-  .buttons {
-    @apply flex flex-wrap gap-1;
-  }
-}
-</style>
 
 <script setup lang="ts">
 const { enabledCommands, run } = useCommands();

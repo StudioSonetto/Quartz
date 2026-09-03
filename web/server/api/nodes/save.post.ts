@@ -21,7 +21,7 @@ const bodySchema = z.object({
         path: z.string(),
         reference: z.string().nullable().optional(),
         unsynced: z
-          .array(z.enum(["name", ...componentType.enumValues]))
+          .array(z.enum(["name", "locked", ...componentType.enumValues]))
           .nullable()
           .optional(),
         locked: z.boolean().default(false),
@@ -106,11 +106,11 @@ export default defineEventHandler(async (event) => {
 
   await db.transaction(async (tx) => {
     const keyedUpserts = nodesToUpsert.filter((node) => !!node.reference);
-    const storedNames = new Map<string, string>();
+    const storedNodes = new Map<string, { name: string; locked: boolean }>();
 
     if (keyedUpserts.length) {
       const stored = await tx
-        .select({ id: nodes.id, name: nodes.name })
+        .select({ id: nodes.id, name: nodes.name, locked: nodes.locked })
         .from(nodes)
         .where(
           inArray(
@@ -119,12 +119,18 @@ export default defineEventHandler(async (event) => {
           ),
         );
 
-      for (const node of stored) storedNames.set(node.id, node.name);
+      for (const node of stored) storedNodes.set(node.id, node);
     }
 
     const renamed = keyedUpserts.filter(
-      (node) => storedNames.get(node.id) !== node.name,
+      (node) => storedNodes.get(node.id)?.name !== node.name,
     );
+
+    const relocked = keyedUpserts.filter((node) => {
+      const stored = storedNodes.get(node.id);
+
+      return stored && stored.locked !== node.locked;
+    });
 
     if (nodesToUpsert.length) {
       await tx
@@ -156,7 +162,11 @@ export default defineEventHandler(async (event) => {
     }
 
     const peerLookupIds = [
-      ...new Set([...componentNodeIds, ...renamed.map((node) => node.id)]),
+      ...new Set([
+        ...componentNodeIds,
+        ...renamed.map((node) => node.id),
+        ...relocked.map((node) => node.id),
+      ]),
     ];
     const peerIds = new Map<string, string[]>();
     const unsynced = new Map<string, string[]>();
@@ -231,6 +241,27 @@ export default defineEventHandler(async (event) => {
       await tx
         .update(nodes)
         .set({ name })
+        .where(inArray(nodes.id, [...targets]));
+    }
+
+    const lockPushes = new Map<boolean, Set<string>>();
+
+    for (const node of relocked) {
+      const peers = peersFor(node.id, "locked");
+
+      if (!peers.length) continue;
+
+      const targets = lockPushes.get(node.locked) ?? new Set<string>();
+
+      for (const peer of peers) targets.add(peer);
+
+      lockPushes.set(node.locked, targets);
+    }
+
+    for (const [locked, targets] of lockPushes) {
+      await tx
+        .update(nodes)
+        .set({ locked })
         .where(inArray(nodes.id, [...targets]));
     }
 

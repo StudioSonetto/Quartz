@@ -1,9 +1,9 @@
-import type { FileObject } from "@supabase/storage-js";
+export type Asset = { name: string; url: string };
 
 export const useAssetsStore = defineStore("assets", () => {
   const client = useSupabaseClient();
 
-  const assets = ref<(FileObject & { url: URL })[]>([]);
+  const assets = ref<Asset[]>([]);
 
   const LIST_LIMIT = 1000;
 
@@ -14,7 +14,7 @@ export const useAssetsStore = defineStore("assets", () => {
   const imageNames = computed(() => images.value.map((a) => a.name));
 
   const imageUrls = computed(
-    () => new Map(images.value.map((a) => [a.name, a.url.toString()])),
+    () => new Map(images.value.map((a) => [a.name, a.url])),
   );
 
   function imageUrl(name: string) {
@@ -30,7 +30,7 @@ export const useAssetsStore = defineStore("assets", () => {
   });
 
   const modelUrls = computed(
-    () => new Map(models.value.map((a) => [a.name, a.url.toString()])),
+    () => new Map(models.value.map((a) => [a.name, a.url])),
   );
 
   function modelUrl(name: string) {
@@ -41,32 +41,50 @@ export const useAssetsStore = defineStore("assets", () => {
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
 
-  const blobUrls = new Set<string>();
+  const loadedDeck = ref("");
+  const signedAt = ref(0);
 
-  async function resolveAsset(deck: string, asset: FileObject) {
-    const { url, response } = await getStorageObject(
-      "assets",
-      deck,
-      asset.name,
-      asset.updated_at ?? asset.id,
-    );
+  const cached = useLocalStorage<{
+    deck: string;
+    at: number;
+    urls: Record<string, string>;
+  }>("quartz-asset-urls", { deck: "", at: 0, urls: {} });
 
-    if (!response.ok) return null;
+  function reusable(deck: string) {
+    if (deck === loadedDeck.value && !signaturesStale(signedAt.value)) {
+      const held = assets.value.map((a) => [a.name, a.url] as const);
 
-    if (isModel(asset.name)) {
-      const blob = URL.createObjectURL(await response.blob());
-
-      blobUrls.add(blob);
-
-      return { ...asset, url: new URL(blob) };
+      return { at: signedAt.value, urls: new Map(held) };
     }
 
-    return { ...asset, url };
+    if (cached.value.deck === deck && !signaturesStale(cached.value.at)) {
+      return {
+        at: cached.value.at,
+        urls: new Map(Object.entries(cached.value.urls)),
+      };
+    }
+
+    return { at: 0, urls: new Map<string, string>() };
   }
 
-  function releaseBlobUrls() {
-    blobUrls.forEach((url) => URL.revokeObjectURL(url));
-    blobUrls.clear();
+  async function resolveAssets(
+    deck: string,
+    names: string[],
+    reuse = new Map<string, string>(),
+  ) {
+    const missing = names.filter((name) => !reuse.has(name));
+
+    const signed = missing.length
+      ? await signStorageObjects("assets", deck, missing)
+      : new Map<string, string>();
+
+    if (!signed) return null;
+
+    return names.flatMap((name) => {
+      const url = reuse.get(name) ?? signed.get(name);
+
+      return url ? [{ name, url }] : [];
+    });
   }
 
   async function fetchAssets(deck: string) {
@@ -80,18 +98,57 @@ export const useAssetsStore = defineStore("assets", () => {
 
     if (!data) return;
 
-    releaseBlobUrls();
+    const { at, urls } = reusable(deck);
 
-    // One round trip per asset, run together — a deck of twenty used to cost
-    // twenty sequential fetches before anything appeared.
-    const resolved = await Promise.all(
-      data.map((asset) => resolveAsset(deck, asset as FileObject)),
+    const resolved = await resolveAssets(
+      deck,
+      data.map((asset) => asset.name),
+      urls,
     );
 
-    assets.value = resolved.filter((asset) => asset !== null);
+    if (!resolved) return;
 
-    await serveFonts();
+    loadedDeck.value = deck;
+    assets.value = resolved;
+    signedAt.value = urls.size ? at : Date.now();
+
+    cached.value = {
+      deck,
+      at: signedAt.value,
+      urls: Object.fromEntries(resolved.map((a) => [a.name, a.url])),
+    };
+
+    await serveFonts(deck);
   }
+
+  let resigning = false;
+
+  async function resign() {
+    const deck = loadedDeck.value;
+
+    if (resigning || !deck || !assets.value.length) return;
+    if (!signaturesStale(signedAt.value)) return;
+
+    resigning = true;
+
+    const resolved = await resolveAssets(
+      deck,
+      assets.value.map((asset) => asset.name),
+    );
+
+    if (resolved && loadedDeck.value === deck) {
+      assets.value = resolved;
+      signedAt.value = Date.now();
+    }
+
+    resigning = false;
+  }
+
+  watch(useDocumentVisibility(), (state) => {
+    if (state === "visible") resign();
+  });
+
+  useEventListener(["focus", "online"], resign);
 
   async function uploadAssets(deck: string, files: File[]) {
     const { data: stored } = await client.storage
@@ -117,7 +174,7 @@ export const useAssetsStore = defineStore("assets", () => {
       planned.map(async ({ file, name }) => {
         const { error } = await client.storage
           .from("assets")
-          .upload(`${deck}/${name}`, file);
+          .upload(`${deck}/${name}`, file, { cacheControl: "31536000" });
 
         if (error) console.error(error);
 
@@ -128,24 +185,19 @@ export const useAssetsStore = defineStore("assets", () => {
     const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));
 
     if (names.size) {
-      const { data } = await client.storage
-        .from("assets")
-        .list(deck, { limit: LIST_LIMIT });
-      const added = await Promise.all(
-        (data ?? [])
-          .filter((asset) => names.has(asset.name))
-          .map((asset) => resolveAsset(deck, asset as FileObject)),
-      );
+      const added = await resolveAssets(deck, [...names]);
 
-      assets.value = [...assets.value, ...added.filter((a) => a !== null)];
+      if (added) {
+        assets.value = [...assets.value, ...added];
 
-      await serveFonts();
+        await serveFonts(deck);
+      }
     }
 
     return new Map(entries);
   }
 
-  async function deleteSelectedAsset(deck: string, asset: FileObject) {
+  async function deleteSelectedAsset(deck: string, asset: Asset) {
     const { error } = await client.storage
       .from("assets")
       .remove([`${deck}/${asset.name}`]);
@@ -159,8 +211,10 @@ export const useAssetsStore = defineStore("assets", () => {
 
   const served = new Set<string>();
 
-  async function serveFonts() {
-    const pending = fonts.value.filter((f) => !served.has(f.url.toString()));
+  async function serveFonts(deck: string) {
+    const key = (name: string) => `${deck}/${name}`;
+
+    const pending = fonts.value.filter((f) => !served.has(key(f.name)));
 
     await Promise.all(
       pending.map(async (font) => {
@@ -171,7 +225,7 @@ export const useAssetsStore = defineStore("assets", () => {
           await fontFace.load();
 
           document.fonts.add(fontFace);
-          served.add(font.url.toString());
+          served.add(key(font.name));
         } catch (error) {
           console.error(error);
         }

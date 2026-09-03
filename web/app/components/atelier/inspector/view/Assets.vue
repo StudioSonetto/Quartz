@@ -36,7 +36,7 @@
             v-if="store.isImage(asset.name)"
             @click="openImageModal(asset)"
           >
-            <NuxtImg :src="asset.url.toString()" :alt="asset.name" />
+            <NuxtImg :src="asset.url" :alt="asset.name" />
           </button>
           <button
             v-else-if="store.isFont(asset.name)"
@@ -54,7 +54,7 @@
                 <UseLoader
                   v-slot="{ data }"
                   :loader="loaderFor(asset.name) as any"
-                  :url="asset.url.toString()"
+                  :url="asset.url"
                 >
                   <primitive :object="previewObject(data)" />
                 </UseLoader>
@@ -76,7 +76,7 @@
         v-if="selectedAsset"
         class="w-full h-full"
         @click="imagePreviewModal?.close()"
-        :src="selectedAsset.url.toString()"
+        :src="selectedAsset.url"
         alt="preview"
       />
     </Modal>
@@ -105,7 +105,7 @@
             <UseLoader
               v-slot="{ data }"
               :loader="loaderFor(selectedAsset.name) as any"
-              :url="selectedAsset?.url.toString()"
+              :url="selectedAsset?.url"
             >
               <primitive :object="previewObject(data)" />
             </UseLoader>
@@ -224,21 +224,21 @@ function previewObject(data: any) {
   return data.scene ?? data;
 }
 
-const selectedAsset = ref<{ name: string; url: URL }>();
+const selectedAsset = ref<{ name: string; url: string }>();
 
-function openImageModal(asset: { name: string; url: URL }) {
+function openImageModal(asset: { name: string; url: string }) {
   imagePreviewModal.value?.open();
 
   selectedAsset.value = asset;
 }
 
-function openFontModal(asset: { name: string; url: URL }) {
+function openFontModal(asset: { name: string; url: string }) {
   fontPreviewModal.value?.open();
 
   selectedAsset.value = asset;
 }
 
-function openModelModal(asset: { name: string; url: URL }) {
+function openModelModal(asset: { name: string; url: string }) {
   modelPreviewModal.value?.open();
 
   selectedAsset.value = asset;

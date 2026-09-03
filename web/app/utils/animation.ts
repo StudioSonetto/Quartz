@@ -4,6 +4,7 @@ const STATELESS: ComponentType[] = [
   "core.animation",
   "core.base",
   "core.event",
+  "core.path",
 ];
 
 export function isStateless(type: ComponentType) {

@@ -46,10 +46,19 @@ export const EMPTY_TREE: Tree = {
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
+export interface RenderPaint {
+  d: string;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  viewBox: string;
+}
+
 export interface RenderResult {
   content?: string;
   style?: Record<string, string | number>;
   component?: Component;
+  paint?: RenderPaint;
 }
 
 export interface RenderContext {
@@ -106,6 +115,10 @@ export interface HandleDef {
     box: Rect,
   ) => HandleGesture | undefined;
   rotate?: (node: Tree) => HandleGesture<(degrees: number) => void> | undefined;
+  // Only fires on the default box resize; a type owning `resize` gets neither.
+  scaleContents?: (
+    node: Tree,
+  ) => HandleGesture<(sx: number, sy: number) => void> | undefined;
 }
 
 export interface DragGesture extends HandleGesture {
@@ -130,6 +143,7 @@ export interface NodeTypeDef {
   hitTest?: "element" | "contents";
   asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
+  editing?: (node: Tree) => boolean;
 }
 
 export interface Command {

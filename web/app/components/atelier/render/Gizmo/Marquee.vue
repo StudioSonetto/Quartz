@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 const deck = useDeckStore();
+const atelier = useAtelierStore();
 const { currentTree } = storeToRefs(deck);
 
 const { renderRoot } = useCanvasScale();
@@ -48,6 +49,8 @@ let origin: { x: number; y: number; c: DOMRect; additive: boolean } | null =
 let moved = false;
 
 function onDown(e: MouseEvent) {
+  if (atelier.activeTool !== "select") return;
+
   const container = renderRoot.value;
 
   if (!container) return;

@@ -4,17 +4,15 @@
     :style="rootStyle"
     @click="onCanvasClick"
     @click.right="onCanvasClick"
+    @pointerdown="onCanvasPointerDown"
     @dragenter="canEdit && assetDrag.over($event)"
     @dragover="canEdit && assetDrag.over($event)"
     @drop="canEdit && assetDrag.drop($event)"
     @dragleave="canEdit && assetDrag.leave($event)"
     class="render"
+    :class="{ 'render-drawing': canEdit && atelier.activeTool !== 'select' }"
   >
-    <AtelierRenderHandles v-if="canEdit" />
-    <AtelierRenderMarquee v-if="canEdit" />
-    <AtelierRenderSelection v-if="canEdit" />
-    <AtelierRenderGuides v-if="canEdit" :guides="snapping.guides.value" />
-    <AtelierRenderGhost v-if="canEdit" />
+    <AtelierRenderGizmo v-if="canEdit" />
     <template v-if="currentTree && !isEmptyTree(currentTree)">
       <AtelierRenderElement
         v-for="node in currentTree.children"
@@ -35,6 +33,10 @@
   @apply bg-light-200 text-dark-900;
   @apply relative overflow-hidden;
 
+  &.render-drawing {
+    @apply cursor-crosshair;
+  }
+
   .root {
     @apply w-full h-full;
   }
@@ -48,7 +50,8 @@
 <script setup lang="ts">
 const { currentTree } = storeToRefs(useDeckStore());
 const { select, clear } = useNodeSelection();
-const { canvasSize } = storeToRefs(useAtelierStore());
+const atelier = useAtelierStore();
+const { canvasSize } = storeToRefs(atelier);
 const { getNodeComponent } = useNodeComponents();
 const { imageUrl } = useAssetsStore();
 const assetDrag = useAssetDrag();
@@ -78,11 +81,20 @@ const rootStyle = computed(() => {
 
 function onCanvasClick() {
   if (!pressedCanvas || !props.canEdit) return;
+  if (atelier.activeTool !== "select") return;
 
   const root = currentTree.value;
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
   else clear();
+}
+
+const pathTool: { press?: (event: PointerEvent) => void } = {};
+
+provide(pathToolKey, pathTool);
+
+function onCanvasPointerDown(event: PointerEvent) {
+  if (props.canEdit) pathTool.press?.(event);
 }
 
 const props = defineProps<{

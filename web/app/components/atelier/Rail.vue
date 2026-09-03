@@ -1,5 +1,5 @@
 <template>
-  <aside class="toolbar border-r">
+  <aside class="rail border-r">
     <UIButton
       v-for="(tab, index) in tabs"
       :key="tab.name"
@@ -12,13 +12,13 @@
 </template>
 
 <style scoped lang="postcss">
-aside {
+.rail {
   @apply bg-dark-500 w-[80px];
   @apply flex flex-col flex-shrink-0;
 
   button {
     [class*="i-"] {
-      @apply transition-opacity! duration-200;
+      @apply transition-opacity duration-200!;
     }
   }
 }
