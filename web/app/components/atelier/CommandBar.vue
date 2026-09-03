@@ -23,6 +23,12 @@
 .bar {
   @apply flex flex-wrap items-center gap-1;
 
+  button {
+    [class*="i-"] {
+      @apply transition-opacity duration-200!;
+    }
+  }
+
   .divider {
     @apply w-px h-4 mx-1 bg-dark-200;
   }

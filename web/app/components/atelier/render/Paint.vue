@@ -20,5 +20,5 @@
 </style>
 
 <script setup lang="ts">
-const props = defineProps<{ paint: NonNullable<RenderResult["paint"]> }>();
+const props = defineProps<{ paint: RenderPaint }>();
 </script>

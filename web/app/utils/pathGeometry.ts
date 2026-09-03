@@ -1,8 +1,8 @@
-export type ShapeKind = "rect" | "ellipse" | "line" | "polygon" | "path";
+export const SHAPE_KINDS = ["rect", "ellipse", "line", "polygon"] as const;
+
+export type ShapeKind = (typeof SHAPE_KINDS)[number] | "path";
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
-
-const KAPPA = 0.5523;
 
 function rect(w: number, h: number, radius: number) {
   const r = Math.min(radius, w / 2, h / 2);
@@ -32,7 +32,7 @@ function ellipse(w: number, h: number) {
   return `M 0 ${ry} A ${rx} ${ry} 0 1 0 ${w} ${ry} A ${rx} ${ry} 0 1 0 0 ${ry} Z`;
 }
 
-export function polygonPoints(w: number, h: number, sides: number) {
+function polygonPoints(w: number, h: number, sides: number) {
   const n = Math.min(64, Math.max(3, Math.floor(sides) || 3));
   const unit = Array.from({ length: n }, (_, i) => {
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -175,59 +175,5 @@ export function refitPoints(points: Point[]) {
     })),
     dx: left,
     dy: top,
-  };
-}
-
-const corner = (x: number, y: number): Point => ({ x, y, mode: "corner" });
-
-const mirror = (x: number, y: number, ax: number, ay: number): Point => ({
-  x,
-  y,
-  mode: "mirror",
-  in: { x: -ax, y: -ay },
-  out: { x: ax, y: ay },
-});
-
-export function shapeToPoints(
-  kind: ShapeKind,
-  width: number,
-  height: number,
-  sides: number,
-): { points: Point[]; closed: boolean } | null {
-  if (kind === "path") return null;
-
-  if (kind === "line")
-    return { points: [corner(0, 0), corner(width, height)], closed: false };
-
-  if (kind === "rect")
-    return {
-      points: [
-        corner(0, 0),
-        corner(width, 0),
-        corner(width, height),
-        corner(0, height),
-      ],
-      closed: true,
-    };
-
-  if (kind === "polygon")
-    return {
-      points: polygonPoints(width, height, sides).map((p) => corner(p.x, p.y)),
-      closed: true,
-    };
-
-  const rx = width / 2;
-  const ry = height / 2;
-  const kx = KAPPA * rx;
-  const ky = KAPPA * ry;
-
-  return {
-    points: [
-      mirror(rx, 0, kx, 0),
-      mirror(width, ry, 0, ky),
-      mirror(rx, height, -kx, 0),
-      mirror(0, ry, 0, -ky),
-    ],
-    closed: true,
   };
 }

@@ -46,17 +46,19 @@ export const EMPTY_TREE: Tree = {
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
+export interface RenderPaint {
+  d: string;
+  fill: string;
+  stroke: string;
+  strokeWidth: number;
+  viewBox: string;
+}
+
 export interface RenderResult {
   content?: string;
   style?: Record<string, string | number>;
   component?: Component;
-  paint?: {
-    d: string;
-    fill: string;
-    stroke: string;
-    strokeWidth: number;
-    viewBox: string;
-  };
+  paint?: RenderPaint;
 }
 
 export interface RenderContext {

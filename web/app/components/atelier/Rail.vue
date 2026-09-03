@@ -18,7 +18,7 @@
 
   button {
     [class*="i-"] {
-      @apply transition-opacity! duration-200;
+      @apply transition-opacity duration-200!;
     }
   }
 }

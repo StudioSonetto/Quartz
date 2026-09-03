@@ -1,7 +1,7 @@
 <template>
   <NodeComponent name="path" :icon="props.icon" :components="props.components">
     <NodeComponentRow name="points">
-      <span class="ui-text-4 opacity-60">{{ count }}</span>
+      <p>{{ count }}</p>
     </NodeComponentRow>
     <NodeComponentRow name="closed" path="closed" v-slot="{ value, update }">
       <NodeComponentRowFieldRadio
