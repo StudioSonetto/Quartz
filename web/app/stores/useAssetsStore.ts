@@ -41,20 +41,36 @@ export const useAssetsStore = defineStore("assets", () => {
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
 
-  async function resolveAssets(deck: string, names: string[]) {
-    const signed = await signStorageObjects("assets", deck, names);
+  const loadedDeck = ref("");
+  const signedAt = ref(0);
+
+  function reusableUrls(deck: string) {
+    if (deck !== loadedDeck.value || signaturesStale(signedAt.value)) {
+      return new Map<string, string>();
+    }
+
+    return new Map(assets.value.map((asset) => [asset.name, asset.url]));
+  }
+
+  async function resolveAssets(
+    deck: string,
+    names: string[],
+    reuse = new Map<string, string>(),
+  ) {
+    const missing = names.filter((name) => !reuse.has(name));
+
+    const signed = missing.length
+      ? await signStorageObjects("assets", deck, missing)
+      : new Map<string, string>();
 
     if (!signed) return null;
 
     return names.flatMap((name) => {
-      const url = signed.get(name);
+      const url = reuse.get(name) ?? signed.get(name);
 
       return url ? [{ name, url }] : [];
     });
   }
-
-  const loadedDeck = ref("");
-  const signedAt = ref(0);
 
   async function fetchAssets(deck: string) {
     const { data, error } = await client.storage
@@ -67,16 +83,20 @@ export const useAssetsStore = defineStore("assets", () => {
 
     if (!data) return;
 
+    const reuse = reusableUrls(deck);
+
     const resolved = await resolveAssets(
       deck,
       data.map((asset) => asset.name),
+      reuse,
     );
 
     if (!resolved) return;
 
     loadedDeck.value = deck;
     assets.value = resolved;
-    signedAt.value = Date.now();
+
+    if (!reuse.size) signedAt.value = Date.now();
 
     await serveFonts(deck);
   }
