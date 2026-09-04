@@ -311,7 +311,7 @@ export interface EvalError {
   error: string;
 }
 
-export function isEvalError(v: Value | EvalError): v is EvalError {
+function isEvalError(v: Value | EvalError): v is EvalError {
   return typeof v === "object" && v !== null && "error" in v;
 }
 

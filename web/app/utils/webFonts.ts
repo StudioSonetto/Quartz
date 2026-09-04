@@ -4,11 +4,11 @@ const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
 const served = new Set<string>();
 
-export function fontSlug(family: string): string {
+function fontSlug(family: string): string {
   return family.toLowerCase().replace(/\s+/g, "-");
 }
 
-export function unservedFonts(
+function unservedFonts(
   families: readonly (string | null | undefined)[],
   alreadyServed: ReadonlySet<string>,
 ): string[] {
@@ -18,7 +18,7 @@ export function unservedFonts(
   );
 }
 
-export function fontshareCssUrl(families: readonly string[]): string {
+function fontshareCssUrl(families: readonly string[]): string {
   const query = families.map((f) => `f[]=${fontSlug(f)}@1`).join("&");
 
   return `https://api.fontshare.com/v2/css?${query}&display=swap`;

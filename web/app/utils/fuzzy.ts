@@ -1,4 +1,4 @@
-export function fuzzyMatch(query: string, target: string): number | null {
+function fuzzyMatch(query: string, target: string): number | null {
   if (query === "") return 0;
 
   const q = query.toLowerCase();

@@ -1,4 +1,4 @@
-export function transformStyle(
+function transformStyle(
   transform: { scale: number; rotation: number },
   scale: number,
 ) {

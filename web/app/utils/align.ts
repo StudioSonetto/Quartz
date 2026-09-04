@@ -6,7 +6,7 @@ export type AlignOp =
   | "middleV"
   | "bottom";
 
-export interface NodeRect {
+export interface AlignRect {
   id: string;
   left: number;
   top: number;
@@ -22,7 +22,7 @@ export interface Frame {
 }
 
 export function alignPositions(
-  rects: NodeRect[],
+  rects: AlignRect[],
   op: AlignOp,
   frame: Frame,
 ): Record<string, { left: number; top: number }> {
@@ -60,7 +60,7 @@ export function alignPositions(
 }
 
 export function distributePositions(
-  rects: NodeRect[],
+  rects: AlignRect[],
   axis: "h" | "v",
 ): Record<string, { left: number; top: number }> {
   const out: Record<string, { left: number; top: number }> = {};
@@ -70,7 +70,7 @@ export function distributePositions(
   }
   const key = axis === "h" ? "left" : "top";
   const size = axis === "h" ? "width" : "height";
-  const centre = (r: NodeRect) => r[key] + r[size] / 2;
+  const centre = (r: AlignRect) => r[key] + r[size] / 2;
 
   const sorted = [...rects].sort((a, b) => centre(a) - centre(b));
   const first = centre(sorted[0]!);

@@ -36,7 +36,7 @@ export function useAlignment() {
     return new Map(nodes.map((n) => [n.id, comps.groupOffset(n)]));
   }
 
-  function rectsFor(nodes: Tree[], offsets: Offsets): NodeRect[] {
+  function rectsFor(nodes: Tree[], offsets: Offsets): AlignRect[] {
     const s = scale();
 
     return nodes.map((n) => {
@@ -65,7 +65,7 @@ export function useAlignment() {
   const canAlign = computed(() => alignable.value.length >= 1);
   const canDistribute = computed(() => alignable.value.length >= 3);
 
-  function bbox(rects: NodeRect[]): Frame {
+  function bbox(rects: AlignRect[]): Frame {
     const left = Math.min(...rects.map((r) => r.left));
     const top = Math.min(...rects.map((r) => r.top));
     const right = Math.max(...rects.map((r) => r.left + r.width));

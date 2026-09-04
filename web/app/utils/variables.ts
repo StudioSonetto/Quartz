@@ -1,6 +1,6 @@
 export const BIND_KEY = "$bind";
 
-export const BUILTIN_NAMES = [
+const BUILTIN_NAMES = [
   "slides.index",
   "slides.count",
   "deck.title",

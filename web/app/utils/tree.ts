@@ -6,8 +6,7 @@ export function buildTree(nodes: NodeModel[]): Tree {
   }
 
   for (const treeNode of Object.values(lookup)) {
-    const parentPath = treeNode.path.split(".").slice(0, -1).join(".");
-    const parent = lookup[parentPath];
+    const parent = lookup[parentPath(treeNode.path)];
     if (parent) {
       treeNode.parent = parent;
       parent.children.push(treeNode);

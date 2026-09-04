@@ -1,4 +1,4 @@
-export const defaultKeymap: Record<string, string> = {
+const defaultKeymap: Record<string, string> = {
   "mod+k": "core.view.palette",
   "mod+z": "core.edit.undo",
   "mod+shift+z": "core.edit.redo",
