@@ -1,5 +1,3 @@
-<!-- Kinda ugly, might refactor in future. -->
-
 <template>
   <AtelierInspectorView
     name="Assets"
@@ -12,10 +10,12 @@
     ]"
   >
     <div ref="dropZone" class="asset-drop" :class="{ over: isOverDropZone }">
-      <div v-if="assets.length" class="list">
+      <div ref="listEl" class="list" :style="{ height: `${layout.height}px` }">
         <div
-          v-for="asset in assets"
+          v-for="asset in placed"
+          :key="asset.name"
           class="item"
+          :style="layout.boxes[asset.name]"
           draggable="true"
           @dragstart="onDragStart($event, asset.name)"
           @dragend="assetDrag.end()"
@@ -36,10 +36,15 @@
             v-if="store.isImage(asset.name)"
             @click="openImageModal(asset)"
           >
-            <NuxtImg :src="asset.url" :alt="asset.name" />
+            <NuxtImg
+              :src="asset.url"
+              :alt="asset.name"
+              @load="onImageLoad($event, asset.name)"
+            />
           </button>
           <button
             v-else-if="store.isFont(asset.name)"
+            class="px-3"
             @click="openFontModal(asset)"
           >
             <p>{{ asset.name }}</p>
@@ -73,7 +78,7 @@
       @close="closeModal"
     >
       <NuxtImg
-        v-if="selectedAsset"
+        v-if="openModal === 'image' && selectedAsset"
         class="w-full h-full"
         @click="imagePreviewModal?.close()"
         :src="selectedAsset.url"
@@ -86,7 +91,7 @@
       @close="closeModal"
     >
       <p
-        v-if="selectedAsset"
+        v-if="openModal === 'font' && selectedAsset"
         class="text-3xl"
         :style="{ fontFamily: selectedAsset.name }"
       >
@@ -99,7 +104,7 @@
       @close="closeModal"
     >
       <div class="w-[50vh] h-[50vh]">
-        <TresCanvas v-if="selectedAsset">
+        <TresCanvas v-if="openModal === 'model' && selectedAsset">
           <TresPerspectiveCamera :position="[0, 0, 5]" />
           <Suspense>
             <UseLoader
@@ -128,11 +133,11 @@
 }
 
 .list {
-  @apply grid grid-cols-4 gap-6;
+  @apply relative;
 
   .item {
-    @apply w-full h-30;
-    @apply border-solid border-2 rounded-lg;
+    @apply absolute;
+    @apply border-solid border-1 border-rd;
     @apply border-dark-200 hover:border-light-200;
     @apply overflow-hidden transition-colors;
 
@@ -141,7 +146,7 @@
       @apply break-words;
 
       img {
-        @apply w-full h-full object-cover;
+        @apply w-full h-full object-cover block;
       }
     }
   }
@@ -187,6 +192,86 @@ function onDragStart(event: DragEvent, name: string) {
 const { deleteSelectedAsset, uploadAssets } = store;
 const { assets } = storeToRefs(store);
 
+const GAP = 12;
+const TARGET_HEIGHT = 120;
+const DEFAULT_RATIO = 1.4;
+
+const listEl = useTemplateRef<HTMLElement>("listEl");
+
+const { width } = useElementSize(listEl);
+
+const panelWidth = computed(() => Math.round(width.value));
+
+const ratios = ref<Record<string, number>>({});
+
+const ratio = (name: string) => ratios.value[name] ?? DEFAULT_RATIO;
+
+let pending: Record<string, number> = {};
+let flushing = false;
+
+function onImageLoad(event: Event, name: string) {
+  const img = event.target as HTMLImageElement | null;
+
+  if (!img?.naturalWidth || !img.naturalHeight) return;
+
+  pending[name] = img.naturalWidth / img.naturalHeight;
+
+  if (flushing) return;
+
+  flushing = true;
+
+  requestAnimationFrame(() => {
+    ratios.value = { ...ratios.value, ...pending };
+
+    pending = {};
+    flushing = false;
+  });
+}
+
+const placed = computed(() => (panelWidth.value ? assets.value : []));
+
+const layout = computed(() => {
+  const boxes: Record<string, Record<string, string>> = {};
+
+  let row: Asset[] = [];
+  let sum = 0;
+  let top = 0;
+
+  const place = (height: number) => {
+    let left = 0;
+
+    for (const asset of row) {
+      const boxWidth = ratio(asset.name) * height;
+
+      boxes[asset.name] = {
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${boxWidth}px`,
+        height: `${height}px`,
+      };
+
+      left += boxWidth + GAP;
+    }
+
+    top += height + GAP;
+    row = [];
+    sum = 0;
+  };
+
+  for (const asset of placed.value) {
+    row.push(asset);
+    sum += ratio(asset.name);
+
+    const height = (panelWidth.value - GAP * (row.length - 1)) / sum;
+
+    if (height <= TARGET_HEIGHT) place(height);
+  }
+
+  if (row.length) place(TARGET_HEIGHT);
+
+  return { boxes, height: Math.max(0, top - GAP) };
+});
+
 const { open, onChange } = useFileDialog({ accept: ASSET_ACCEPT });
 
 const imagePreviewModal = useTemplateRef<typeof Modal>("imagePreviewModal");
@@ -224,27 +309,32 @@ function previewObject(data: any) {
   return data.scene ?? data;
 }
 
-const selectedAsset = ref<{ name: string; url: string }>();
+const selectedAsset = ref<Asset>();
 
-function openImageModal(asset: { name: string; url: string }) {
+const openModal = ref<"image" | "font" | "model">();
+
+function openImageModal(asset: Asset) {
+  selectedAsset.value = asset;
+  openModal.value = "image";
+
   imagePreviewModal.value?.open();
-
-  selectedAsset.value = asset;
 }
 
-function openFontModal(asset: { name: string; url: string }) {
+function openFontModal(asset: Asset) {
+  selectedAsset.value = asset;
+  openModal.value = "font";
+
   fontPreviewModal.value?.open();
-
-  selectedAsset.value = asset;
 }
 
-function openModelModal(asset: { name: string; url: string }) {
-  modelPreviewModal.value?.open();
-
+function openModelModal(asset: Asset) {
   selectedAsset.value = asset;
+  openModal.value = "model";
+
+  modelPreviewModal.value?.open();
 }
 
 function closeModal() {
-  selectedAsset.value = undefined;
+  openModal.value = undefined;
 }
 </script>
