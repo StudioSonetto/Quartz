@@ -1,5 +1,9 @@
 <template>
-  <TresCanvas render-mode="manual" @ready="onReady">
+  <TresCanvas
+    render-mode="manual"
+    :style="{ touchAction: 'auto', pointerEvents: 'none' }"
+    @ready="onReady"
+  >
     <TresPerspectiveCamera
       :args="[45, 1, 0.001, 1000]"
       :position="[0, 0, 0.1]"
@@ -31,8 +35,6 @@
 <script setup lang="ts">
 import vertexShader from "~/assets/shaders/hero/vertex.glsl?raw";
 import fragmentShader from "~/assets/shaders/hero/fragment.glsl?raw";
-
-import { TresCanvas } from "@tresjs/core";
 
 import {
   Color,
