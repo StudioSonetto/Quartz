@@ -61,7 +61,10 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :value="value"
+        @update:value="(v) => update(wrapAngle(v))"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="scale"

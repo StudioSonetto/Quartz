@@ -401,7 +401,9 @@ function startRotate(e: PointerEvent) {
   startPointerDrag(
     "Rotate",
     () => {
-      transform.data.rotation = Math.round(startRotation + degrees());
+      transform.data.rotation = wrapAngle(
+        Math.round(startRotation + degrees()),
+      );
 
       readout.value = `${transform.data.rotation}°`;
 
