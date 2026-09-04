@@ -106,6 +106,7 @@ export interface Rect {
 export interface HandleGesture<M = (dx: number, dy: number) => void> {
   move: M;
   end?: () => void;
+  readout?: () => string | null;
 }
 
 export interface HandleDef {
@@ -115,7 +116,6 @@ export interface HandleDef {
     box: Rect,
   ) => HandleGesture | undefined;
   rotate?: (node: Tree) => HandleGesture<(degrees: number) => void> | undefined;
-  // Only fires on the default box resize; a type owning `resize` gets neither.
   scaleContents?: (
     node: Tree,
   ) => HandleGesture<(sx: number, sy: number) => void> | undefined;

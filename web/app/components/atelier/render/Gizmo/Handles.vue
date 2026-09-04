@@ -26,6 +26,9 @@
       class="handle rotate"
       @pointerdown.stop.prevent="startRotate($event)"
     ></div>
+    <Transition name="readout-fade">
+      <div v-if="readout" class="readout">{{ readout }}</div>
+    </Transition>
   </div>
 </template>
 
@@ -74,6 +77,25 @@
 
   .rotate {
     @apply left-1/2 -top-6 rounded-full;
+  }
+
+  .readout {
+    @apply absolute left-1/2 top-full;
+    @apply px-1.5 py-0.5 border-rd bg-accent text-light-200 ui-text-3;
+    @apply translate-x-[-50%] translate-y-[12px];
+    @apply whitespace-nowrap;
+
+    rotate: calc(-1 * var(--angle, 0deg));
+  }
+
+  .readout-fade-enter-active,
+  .readout-fade-leave-active {
+    @apply transition-opacity;
+  }
+
+  .readout-fade-enter-from,
+  .readout-fade-leave-to {
+    @apply opacity-0;
   }
 }
 </style>
@@ -160,13 +182,24 @@ const canRotate = computed(() => {
   return !!data && !isBound(data, "rotation");
 });
 
+const readout = ref<string | null>(null);
+
 const { start } = usePointerDrag();
 
 const startPointerDrag = (
   label: string,
   onMove: (ev: PointerEvent) => void,
   onEnd?: () => void,
-) => start(label, onMove, onEnd, computeBox);
+) =>
+  start(
+    label,
+    onMove,
+    () => {
+      readout.value = null;
+      onEnd?.();
+    },
+    computeBox,
+  );
 
 function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
   const node = soleSelected.value;
@@ -186,7 +219,11 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
 
       return startPointerDrag(
         "Resize",
-        (ev) => gesture.move(ev.clientX - originX, ev.clientY - originY),
+        (ev) => {
+          gesture.move(ev.clientX - originX, ev.clientY - originY);
+
+          readout.value = gesture.readout?.() ?? null;
+        },
         () => gesture.end?.(),
       );
     }
@@ -282,6 +319,10 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
       transform.data.position.x = Math.round(cx - wc / 2);
       transform.data.position.y = Math.round(cy - hc / 2);
 
+      readout.value = [h.dx && sizeW, h.dy && sizeH]
+        .filter(Boolean)
+        .join(" x ");
+
       updateComponent(transform);
       contents?.move(sizeW / startW, sizeH / startH);
     },
@@ -304,21 +345,46 @@ function startRotate(e: PointerEvent) {
   const rect = element.getBoundingClientRect();
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
-  const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
 
-  const degreesFrom = (ev: PointerEvent) =>
-    ((Math.atan2(ev.clientY - cy, ev.clientX - cx) - startAngle) * 180) /
-    Math.PI;
+  let previous = Math.atan2(e.clientY - cy, e.clientX - cx);
+  let total = 0;
+
+  const sample = (ev: PointerEvent) => {
+    const now = Math.atan2(ev.clientY - cy, ev.clientX - cx);
+    let step = now - previous;
+
+    if (step > Math.PI) step -= 2 * Math.PI;
+    else if (step < -Math.PI) step += 2 * Math.PI;
+
+    previous = now;
+    total += step;
+  };
+
+  const degrees = () => (total * 180) / Math.PI;
+
+  const listen = () => useEventListener(window, "pointermove", sample);
 
   if (handles.value?.rotate) {
     const gesture = handles.value.rotate(node);
 
     if (!gesture) return;
 
+    const stopSampling = listen();
+
     return startPointerDrag(
       "Rotate",
-      (ev) => gesture.move(degreesFrom(ev)),
-      () => gesture.end?.(),
+      () => {
+        gesture.move(degrees());
+
+        const delta = Math.round(degrees());
+
+        readout.value =
+          gesture.readout?.() ?? `${delta > 0 ? "+" : ""}${delta}°`;
+      },
+      () => {
+        stopSampling();
+        gesture.end?.();
+      },
     );
   }
 
@@ -330,10 +396,18 @@ function startRotate(e: PointerEvent) {
 
   const startRotation = transform.data.rotation ?? 0;
 
-  startPointerDrag("Rotate", (ev) => {
-    transform.data.rotation = Math.round(startRotation + degreesFrom(ev));
+  const stopSampling = listen();
 
-    updateComponent(transform);
-  });
+  startPointerDrag(
+    "Rotate",
+    () => {
+      transform.data.rotation = Math.round(startRotation + degrees());
+
+      readout.value = `${transform.data.rotation}°`;
+
+      updateComponent(transform);
+    },
+    stopSampling,
+  );
 }
 </script>
