@@ -2,12 +2,22 @@ export function useMergedFields(
   components: MaybeRefOrGetter<ComponentModel[]>,
 ) {
   const { updateComponent, addComponent, patchAnimation } = useDeckStore();
-  const { keyTime } = usePlayhead();
+  const { keyTime, nodeTime } = usePlayhead();
   const { getStoredComponent } = useNodeComponents();
   const comps = computed(() => toValue(components));
 
   function field(path: string[]) {
-    return mergedValue(comps.value, path);
+    return mergedValue(
+      comps.value.map((c) => {
+        const anim = getStoredComponent(c.node, "core.animation")?.data;
+
+        return {
+          ...c,
+          data: sampleTracks(anim?.tracks, nodeTime(anim), c.type, c.data),
+        };
+      }),
+      path,
+    );
   }
 
   function set(path: string[], value: unknown) {

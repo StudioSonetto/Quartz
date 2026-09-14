@@ -1,8 +1,4 @@
-import { animate } from "motion";
-import type { AnimationPlaybackControls } from "motion";
-
 const MIN_SPAN = 5000;
-const CLOCK_SPAN = 3_600_000;
 
 const time = ref(0);
 const playing = ref(false);
@@ -16,54 +12,34 @@ const duration = computed(() =>
 
 const playable = computed(() => end.value > 0);
 
-watch(time, (t) => {
-  if (playing.value && t >= end.value && !endless.value) seek(end.value);
-});
+let frame = 0;
 
-let controls: AnimationPlaybackControls | null = null;
-
-function dispose() {
-  controls?.stop();
-  controls = null;
-}
-
-function timeline() {
-  if (controls) return controls;
-
-  controls = animate(0, CLOCK_SPAN, {
-    duration: CLOCK_SPAN / 1000,
-    ease: "linear",
-    autoplay: false,
-    onUpdate: (ms) => (time.value = ms),
-    onComplete: () => (playing.value = false),
-  });
-
-  controls.time = time.value / 1000;
-
-  return controls;
+function stop() {
+  cancelAnimationFrame(frame);
+  playing.value = false;
 }
 
 function play() {
   if (playing.value || !playable.value) return;
-  if (time.value >= end.value) seek(0);
+  if (time.value >= end.value) time.value = 0;
 
-  timeline().play();
+  const startedAt = performance.now() - time.value;
+
   playing.value = true;
+
+  frame = requestAnimationFrame(function tick(now) {
+    const t = now - startedAt;
+
+    if (t >= end.value && !endless.value) return seek(end.value);
+
+    time.value = t;
+    frame = requestAnimationFrame(tick);
+  });
 }
 
 function seek(to: number) {
-  playing.value = false;
-
-  if (!canPlay.value) {
-    dispose();
-    time.value = 0;
-    return;
-  }
-
-  timeline();
-
-  controls!.pause();
-  controls!.time = Math.min(Math.max(to, 0), duration.value) / 1000;
+  stop();
+  time.value = canPlay.value ? Math.min(Math.max(to, 0), duration.value) : 0;
 }
 
 const nodeTime = (anim?: any) =>
@@ -80,9 +56,8 @@ function setLength(ms: number, hasKeys: boolean, loops = false) {
 
 export function usePlayhead() {
   function reset() {
-    dispose();
+    stop();
     time.value = 0;
-    playing.value = false;
   }
 
   return {
