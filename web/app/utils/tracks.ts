@@ -149,3 +149,16 @@ export function moveTrackKey(
 
   return upsertKey(cleared, type, path, to, key.value);
 }
+
+export function timeAtPointer(
+  box: DOMRect,
+  clientX: number,
+  duration: number,
+): number {
+  const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1);
+
+  return Math.round(ratio * duration);
+}
+
+export const timePercent = (t: number, duration: number) =>
+  `${duration ? (t / duration) * 100 : 0}%`;

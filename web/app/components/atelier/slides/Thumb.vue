@@ -1,12 +1,12 @@
 <template>
   <div
-    ref="frame"
+    ref="thumb"
     @click="!isSelected && (currentSlidesIndex = props.index)"
     @contextmenu.prevent="openMenu"
     :class="{
       'opacity-60 cursor-pointer': !isSelected,
     }"
-    class="frame"
+    class="slide-thumb"
   >
     <AtelierRenderSnapshot v-if="slide" :deck="slide.deck" :slides="slide.id" />
     <div class="overlay">
@@ -23,7 +23,7 @@
 </template>
 
 <style scoped lang="postcss">
-.frame {
+.slide-thumb {
   @apply bg-light-200 aspect-video min-w-[100px];
   @apply transition-opacity transform-gpu border-rd;
 
@@ -62,12 +62,12 @@ const slide = computed(() => slides.value[props.index]);
 
 const isSelected = computed(() => currentSlidesIndex.value === props.index);
 
-const frame = useTemplateRef<HTMLDivElement>("frame");
+const thumb = useTemplateRef<HTMLDivElement>("thumb");
 
 watch(isSelected, (selected) => {
   if (!selected) return;
 
-  frame.value?.scrollIntoView({
+  thumb.value?.scrollIntoView({
     behavior: "smooth",
     inline: "nearest",
     block: "nearest",

@@ -19,54 +19,52 @@
       </UIButton>
       <p class="dopesheet-readout">{{ (time / 1000).toFixed(2) }}s</p>
     </div>
-    <input
-      type="range"
-      min="0"
-      :max="duration"
-      :value="time"
-      :disabled="!canPlay"
-      @input="seek(Number(($event.target as HTMLInputElement).value))"
-    />
+    <div
+      class="dopesheet-scrub"
+      role="slider"
+      tabindex="0"
+      aria-label="Playhead"
+      :aria-valuemin="0"
+      :aria-valuemax="duration"
+      :aria-valuenow="Math.round(time)"
+      @pointerdown="startScrub"
+      @keydown.left.prevent="seek(time - step($event))"
+      @keydown.right.prevent="seek(time + step($event))"
+    >
+      <div
+        class="dopesheet-scrub-thumb"
+        :style="{ left: timePercent(time, duration) }"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped lang="postcss">
 .dopesheet-transport {
-  @apply flex items-center gap-3 px-[2.5ch] py-2;
+  @apply flex items-center gap-3 pt-6 pb-3 px-[var(--dopesheet-gutter)];
+  @apply overflow-hidden [scrollbar-gutter:stable];
 
   .dopesheet-transport-controls {
-    @apply flex items-center gap-2 shrink-0;
-
-    width: var(--dopesheet-label);
+    @apply flex items-center gap-2 shrink-0 w-[var(--dopesheet-label)];
   }
 
-  input[type="range"] {
-    @apply flex-1 h-4 appearance-none bg-transparent cursor-pointer border-none;
+  /* Same flex-1 track as a lane, so thumb, line and keys share one scale. */
+  .dopesheet-scrub {
+    @apply relative flex-1 h-4 cursor-pointer;
 
-    &:disabled {
-      @apply opacity-50 cursor-not-allowed;
+    &::before {
+      @apply content-[''] absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2;
+      @apply border-rd bg-dark-200;
     }
 
     &:focus-visible {
       @apply outline outline-1 outline-offset-2 outline-accent;
     }
+  }
 
-    &::-webkit-slider-runnable-track {
-      @apply h-0.5 border-rd bg-dark-200;
-    }
-
-    &::-moz-range-track {
-      @apply h-0.5 border-rd bg-dark-200;
-    }
-
-    &::-webkit-slider-thumb {
-      @apply appearance-none w-2.5 h-2.5 -mt-1;
-      @apply border-rd border-none bg-accent;
-    }
-
-    &::-moz-range-thumb {
-      @apply w-2.5 h-2.5 border-rd border-none bg-accent;
-    }
+  .dopesheet-scrub-thumb {
+    @apply absolute top-1/2 w-2.5 h-2.5 border-rd bg-accent;
+    @apply -translate-x-1/2 -translate-y-1/2;
   }
 
   .dopesheet-readout {
@@ -78,4 +76,18 @@
 <script setup lang="ts">
 const { time, playing, duration, canPlay, playable, toggle, seek, reset } =
   usePlayhead();
+
+const drag = usePointerDrag();
+
+function startScrub(event: PointerEvent) {
+  const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  const to = (e: PointerEvent) =>
+    seek(timeAtPointer(box, e.clientX, duration.value));
+
+  event.preventDefault();
+  drag.start(null, to);
+  to(event);
+}
+
+const step = (event: KeyboardEvent) => (event.shiftKey ? 1000 : 100);
 </script>

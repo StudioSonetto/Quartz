@@ -8,7 +8,7 @@
         v-for="key in props.keys"
         :key="key.t"
         :class="['dopesheet-lane-key', props.state && 'is-state']"
-        :style="{ left: `${(key.t / Math.max(props.duration, 1)) * 100}%` }"
+        :style="{ left: timePercent(key.t, props.duration) }"
         :title="props.state ? key.name || 'base' : undefined"
         @pointerdown="startDrag($event, key)"
         @dblclick="emit('remove', key.t)"
@@ -26,9 +26,7 @@
   @apply flex items-center gap-3 h-6;
 
   .dopesheet-lane-label {
-    @apply ui-text-5 opacity-60 truncate;
-
-    width: var(--dopesheet-label);
+    @apply ui-text-3 opacity-60 truncate w-[var(--dopesheet-label)];
   }
 
   .dopesheet-lane-track {

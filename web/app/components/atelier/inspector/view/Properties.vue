@@ -8,7 +8,7 @@
       @keydown="onKeydown"
       @contextmenu.prevent
     >
-      <template v-if="sameType">
+      <div v-if="sameType" ref="panels">
         <template v-for="{ type, def } in typePanels" :key="type">
           <Component
             v-if="def"
@@ -21,7 +21,7 @@
             Unavailable component: {{ type }}
           </div>
         </template>
-      </template>
+      </div>
       <div v-else class="placeholder">
         <div class="i-carbon-error"></div>
         <p>Can't edit nodes of different types</p>
@@ -82,6 +82,18 @@ const { clear } = useNodeSelection();
 
 const lockedSelection = computed(
   () => selectedNodes.value.length > 0 && !unlockedSelection.value.length,
+);
+
+const panels = useTemplateRef<HTMLElement>("panels");
+
+watch(
+  () => selectedNodes.value.map((n) => n.id).join(),
+  () =>
+    panels.value?.animate([{ opacity: 0 }, {}], {
+      duration: 100,
+      easing: "ease-out",
+    }),
+  { flush: "post" },
 );
 
 const sameType = computed(

@@ -16,9 +16,13 @@
         class="arrow"
       ></div>
     </button>
-    <div v-if="isOpen" class="rows">
-      <slot />
-    </div>
+    <Transition name="rows">
+      <div v-if="isOpen" class="rows">
+        <div class="rows-content">
+          <slot />
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -62,7 +66,22 @@
   }
 
   .rows {
-    @apply px-6 pb-6;
+    @apply grid grid-rows-[1fr] px-6 pb-6;
+
+    &.rows-enter-active,
+    &.rows-leave-active {
+      @apply overflow-hidden transition;
+      @apply [transition-property:grid-template-rows,padding-bottom];
+    }
+
+    &.rows-enter-from,
+    &.rows-leave-to {
+      @apply grid-rows-[0fr] pb-0;
+    }
+
+    .rows-content {
+      @apply min-h-0 min-w-0;
+    }
 
     &:deep(.row) {
       @apply flex ui-text-3;
@@ -110,9 +129,6 @@ const atelier = useAtelierStore();
 const deck = useDeckStore();
 const { soleSelected, selectedNodes } = storeToRefs(deck);
 
-// Guaranteed components are re-synthesised on load, so only optional ones can
-// actually be removed. Properties.vue only renders panels for one node type at
-// a time, so the anchor's type answers for the whole selection.
 const removable = computed(() => {
   const anchor = props.components[0];
   const nodeType = selectedNodes.value[0]?.type;

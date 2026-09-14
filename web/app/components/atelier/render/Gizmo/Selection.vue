@@ -1,16 +1,18 @@
 <template>
-  <div
-    v-if="box"
-    data-html2canvas-ignore
-    class="selection"
-    :style="{
-      left: `${box.left}px`,
-      top: `${box.top}px`,
-      width: `${box.width}px`,
-      height: `${box.height}px`,
-    }"
-    @pointerdown.stop.prevent="startMove"
-  ></div>
+  <Transition name="fade-fast">
+    <div
+      v-if="box"
+      data-html2canvas-ignore
+      class="selection"
+      :style="{
+        left: `${box.left}px`,
+        top: `${box.top}px`,
+        width: `${box.width}px`,
+        height: `${box.height}px`,
+      }"
+      @pointerdown.stop.prevent="startMove"
+    ></div>
+  </Transition>
 </template>
 
 <style scoped lang="postcss">

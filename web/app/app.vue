@@ -123,6 +123,16 @@ textarea {
   @apply transition-opacity duration-500;
 }
 
+.fade-fast-enter-active,
+.fade-fast-leave-active {
+  @apply transition-opacity duration-100;
+}
+
+.fade-fast-enter-from,
+.fade-fast-leave-to {
+  @apply opacity-0;
+}
+
 .sortable-ghost {
   @apply opacity-0;
 }

@@ -1,91 +1,83 @@
 <template>
-  <div v-if="canPlay" class="dopesheet">
+  <div class="dopesheet">
     <AtelierDopesheetTransport />
-    <div
-      v-if="rows.length"
-      :style="{ '--dopesheet-progress': duration ? time / duration : 0 }"
-      class="dopesheet-rows"
-    >
-      <div class="dopesheet-line" />
-      <template v-for="row in rows" :key="row.node">
-        <p class="dopesheet-node">{{ row.name }}</p>
-        <AtelierDopesheetLane
-          v-if="row.stateKeys.length"
-          state
-          label="state"
-          :keys="row.stateKeys"
-          :duration="duration"
-          @move="(from, to) => onMoveState(row.node, from, to)"
-          @remove="(t) => onRemoveState(row.node, t)"
-        />
-        <AtelierDopesheetLane
-          v-for="(track, i) in row.tracks"
-          :key="i"
-          :label="track.path.join('.')"
-          :keys="track.keys"
-          :duration="duration"
-          @move="(from, to) => onMoveKey(row.node, track, from, to)"
-          @remove="(t) => onRemoveKey(row.node, track, t)"
-        />
-      </template>
+    <div class="dopesheet-scroll">
+      <div class="dopesheet-rows">
+        <div class="dopesheet-playhead">
+          <div class="dopesheet-playhead-track">
+            <div
+              class="dopesheet-line"
+              :style="{ left: timePercent(time, duration) }"
+            />
+          </div>
+        </div>
+        <template v-for="row in rows" :key="row.node">
+          <p class="dopesheet-node">{{ row.name }}:</p>
+          <AtelierDopesheetLane
+            v-if="row.stateKeys.length"
+            state
+            label="state"
+            :keys="row.stateKeys"
+            :duration="duration"
+            @move="(from, to) => onMoveState(row.node, from, to)"
+            @remove="(t) => onRemoveState(row.node, t)"
+          />
+          <AtelierDopesheetLane
+            v-for="(track, i) in row.tracks"
+            :key="i"
+            :label="track.path.join('.')"
+            :keys="track.keys"
+            :duration="duration"
+            @move="(from, to) => onMoveKey(row.node, track, from, to)"
+            @remove="(t) => onRemoveKey(row.node, track, t)"
+          />
+        </template>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="postcss">
 .dopesheet {
-  @apply bg-dark-800 w-full;
-  @apply border-solid border-0 border-t-2 border-dark-200;
+  @apply flex flex-col flex-1 min-h-0;
+  @apply [--dopesheet-label:10rem] [--dopesheet-gutter:1.5rem];
 
-  /* Line up by the transport's scrub and every lane */
-  --dopesheet-label: 16ch;
-}
+  .dopesheet-scroll {
+    @apply flex-1 overflow-y-auto [scrollbar-gutter:stable];
+  }
 
-.dopesheet-rows {
-  @apply relative px-[2.5ch] pb-2 max-h-[20vh] overflow-y-auto;
-}
+  .dopesheet-rows {
+    @apply relative pb-2 px-[var(--dopesheet-gutter)];
+  }
 
-.dopesheet-node {
-  @apply ui-text-5 opacity-40 mt-2;
-}
+  .dopesheet-node {
+    @apply ui-text-3 my-3;
+  }
 
-.dopesheet-line {
-  @apply absolute top-0 bottom-0 w-px bg-accent pointer-events-none;
+  .dopesheet-playhead {
+    @apply absolute inset-0 flex gap-3 px-[var(--dopesheet-gutter)];
+    @apply pointer-events-none;
 
-  left: calc(
-    2.5ch + var(--dopesheet-label) + 0.75rem + var(--dopesheet-progress) *
-      (100% - 5ch - var(--dopesheet-label) - 0.75rem)
-  );
+    &::before {
+      @apply content-[''] w-[var(--dopesheet-label)];
+    }
+  }
+
+  .dopesheet-playhead-track {
+    @apply relative flex-1;
+  }
+
+  .dopesheet-line {
+    @apply absolute inset-y-0 w-px bg-accent;
+  }
 }
 </style>
 
 <script setup lang="ts">
-const { animatedComponents, currentTree, selectedNodeIds } =
-  storeToRefs(useDeckStore());
+defineProps<{ rows: DopesheetRow[] }>();
+
 const { patchAnimation } = useDeckStore();
-const { duration, time, canPlay } = usePlayhead();
-
-const rows = computed(() => {
-  const tree = currentTree.value;
-  const named = new Map(
-    (tree ? flattenTree(tree) : []).map((node) => [node.id, node]),
-  );
-
-  const selection = selectedNodeIds.value;
-
-  return animatedComponents.value
-    .filter(
-      (component) =>
-        (!selection.length || selection.includes(component.node)) &&
-        !isNodeLocked(named.get(component.node)),
-    )
-    .map((component) => ({
-      node: component.node,
-      name: named.get(component.node)?.name ?? "Node",
-      tracks: (component.data.tracks ?? []) as Track[],
-      stateKeys: (component.data.stateKeys ?? []) as StateKey[],
-    }));
-});
+const { duration, time } = usePlayhead();
 
 function onRemoveKey(node: string, track: Track, t: number) {
   patchAnimation(node, (data) => ({

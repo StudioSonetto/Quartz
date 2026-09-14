@@ -15,11 +15,7 @@ export function useKeyDrag(
     let current = key.t;
 
     start("Move key", (e) => {
-      const ratio = Math.min(
-        Math.max((e.clientX - box.left) / box.width, 0),
-        1,
-      );
-      const to = Math.round(ratio * duration());
+      const to = timeAtPointer(box, e.clientX, duration());
 
       if (to === current) return;
 

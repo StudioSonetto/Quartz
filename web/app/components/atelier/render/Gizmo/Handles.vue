@@ -1,49 +1,51 @@
 <template>
-  <div
-    v-if="box"
-    data-html2canvas-ignore
-    class="handles"
-    :style="{
-      left: `${box.left + box.width / 2}px`,
-      top: `${box.top + box.height / 2}px`,
-      width: `${box.size.width}px`,
-      height: `${box.size.height}px`,
-      transform: `translate(-50%, -50%) rotate(${box.angle}deg)`,
-      '--angle': `${box.angle}deg`,
-    }"
-  >
-    <template v-if="canResize">
-      <div
-        v-for="h in resizeHandles"
-        :key="h.pos"
-        class="handle"
-        :class="`h-${h.pos}`"
-        @pointerdown.stop.prevent="startResize(h, $event)"
-      ></div>
-    </template>
+  <Transition name="fade-fast">
     <div
-      v-if="canRotate"
-      class="handle rotate"
-      @pointerdown.stop.prevent="startRotate($event)"
-    ></div>
-    <svg
-      v-if="ratioGuide"
-      class="ratio-guide"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
+      v-if="box"
+      data-html2canvas-ignore
+      class="handles"
+      :style="{
+        left: `${box.left + box.width / 2}px`,
+        top: `${box.top + box.height / 2}px`,
+        width: `${box.size.width}px`,
+        height: `${box.size.height}px`,
+        transform: `translate(-50%, -50%) rotate(${box.angle}deg)`,
+        '--angle': `${box.angle}deg`,
+      }"
     >
-      <line
-        x1="0"
-        y1="0"
-        x2="100"
-        y2="100"
-        vector-effect="non-scaling-stroke"
-      />
-    </svg>
-    <Transition name="readout-fade">
-      <div v-if="readout" class="readout">{{ readout }}</div>
-    </Transition>
-  </div>
+      <template v-if="canResize">
+        <div
+          v-for="h in resizeHandles"
+          :key="h.pos"
+          class="handle"
+          :class="`h-${h.pos}`"
+          @pointerdown.stop.prevent="startResize(h, $event)"
+        ></div>
+      </template>
+      <div
+        v-if="canRotate"
+        class="handle rotate"
+        @pointerdown.stop.prevent="startRotate($event)"
+      ></div>
+      <svg
+        v-if="ratioGuide"
+        class="ratio-guide"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <line
+          x1="0"
+          y1="0"
+          x2="100"
+          y2="100"
+          vector-effect="non-scaling-stroke"
+        />
+      </svg>
+      <Transition name="readout-fade">
+        <div v-if="readout" class="readout">{{ readout }}</div>
+      </Transition>
+    </div>
+  </Transition>
 </template>
 
 <style scoped lang="postcss">

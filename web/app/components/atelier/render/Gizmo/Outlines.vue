@@ -1,5 +1,5 @@
 <template>
-  <TransitionGroup name="outline-fade">
+  <TransitionGroup name="fade-fast">
     <div
       v-for="[id, box] in rects"
       :key="id"
@@ -21,16 +21,6 @@
 .node-outline {
   @apply absolute z-40 pointer-events-none;
   @apply outline outline-2 outline-accent;
-}
-
-.outline-fade-enter-active,
-.outline-fade-leave-active {
-  @apply transition-opacity duration-100;
-}
-
-.outline-fade-enter-from,
-.outline-fade-leave-to {
-  @apply opacity-0;
 }
 </style>
 

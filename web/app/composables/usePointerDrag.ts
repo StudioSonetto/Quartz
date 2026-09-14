@@ -3,15 +3,16 @@ export function usePointerDrag() {
 
   let active: (() => void) | null = null;
 
+  // Null label means a drag that edits nothing.
   function start(
-    label: string,
+    label: string | null,
     onMove: (ev: PointerEvent) => void,
     onEnd?: () => void,
     onFrame?: () => void,
   ) {
     active?.();
 
-    const end = history.begin(label);
+    const end = label ? history.begin(label) : null;
 
     let raf = 0;
     let latest: PointerEvent | null = null;
@@ -46,7 +47,7 @@ export function usePointerDrag() {
       window.removeEventListener("pointercancel", up);
 
       onEnd?.();
-      end();
+      end?.();
 
       const swallowClick = (ev: MouseEvent) => ev.stopPropagation();
 
