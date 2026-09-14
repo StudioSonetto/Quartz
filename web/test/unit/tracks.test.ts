@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-describe("tracksDuration", () => {
-  it("is zero when there are no tracks, so an unanimated slide has an inert playhead", () => {
-    expect(tracksDuration(undefined)).toBe(0);
-    expect(tracksDuration([])).toBe(0);
-  });
-
+describe("animationDuration across tracks", () => {
   it("is the furthest key across every track, which is what makes a slide's length derived", () => {
     const tracks = [
       {
@@ -26,7 +21,7 @@ describe("tracksDuration", () => {
       },
     ];
 
-    expect(tracksDuration(tracks)).toBe(2000);
+    expect(animationDuration({ tracks })).toBe(2000);
   });
 
   it("ignores a track with no keys rather than counting it as zero-length", () => {
@@ -39,7 +34,7 @@ describe("tracksDuration", () => {
       },
     ];
 
-    expect(tracksDuration(tracks)).toBe(500);
+    expect(animationDuration({ tracks })).toBe(500);
   });
 });
 
@@ -72,6 +67,15 @@ describe("valueAt", () => {
     ];
 
     expect(valueAt(colours, 50)).toBe("#808080");
+  });
+
+  it("eases into a key using that key's own easing", () => {
+    const eased: TrackKey[] = [
+      { t: 0, value: 0 },
+      { t: 1000, value: 100, easing: "ease-in" },
+    ];
+
+    expect(valueAt(eased, 500)).toBeCloseTo(ease("ease-in", 0.5) * 100);
   });
 
   it("is undefined for an empty track rather than throwing", () => {
@@ -195,6 +199,27 @@ describe("upsertKey", () => {
     out = upsertKey(out, "core.transform", ["position", "x"], 500, 75);
 
     expect(out[0]!.keys).toEqual([{ t: 500, value: 75 }]);
+  });
+
+  it("keeps a key's easing when its value is re-keyed or it is dragged", () => {
+    let out = upsertKey(
+      undefined,
+      "core.transform",
+      ["position", "x"],
+      500,
+      40,
+    );
+    out = setKeyEasing(
+      out,
+      "core.transform",
+      ["position", "x"],
+      500,
+      "ease-in",
+    );
+    out = upsertKey(out, "core.transform", ["position", "x"], 500, 75);
+    out = moveTrackKey(out, "core.transform", ["position", "x"], 500, 900);
+
+    expect(out[0]!.keys).toEqual([{ t: 900, value: 75, easing: "ease-in" }]);
   });
 
   it("keys a second field into its own track, not the first one", () => {

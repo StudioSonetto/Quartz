@@ -105,6 +105,7 @@ export function renameState(
 export interface StateKey {
   t: number;
   name: string;
+  easing?: string;
 }
 
 const EASINGS: Record<string, (t: number) => number> = {
@@ -120,7 +121,9 @@ const EASINGS: Record<string, (t: number) => number> = {
   anticipate,
 };
 
-export function bezierPoints(
+export const EASING_OPTIONS = ["linear", ...Object.keys(EASINGS), "spring"];
+
+function bezierPoints(
   easing: string,
 ): [number, number, number, number] | undefined {
   const match = easing.match(/cubic-bezier\(([^)]+)\)/);
@@ -134,7 +137,7 @@ export function bezierPoints(
     : undefined;
 }
 
-export const SPRING_BOUNCE = 0.25;
+const SPRING_BOUNCE = 0.25;
 
 const springs = new Map<number, ReturnType<typeof spring>>();
 
@@ -164,11 +167,13 @@ export function ease(
   if (!easing) return t;
   if (easing === "spring") return springAt(t, duration);
 
+  const named = EASINGS[easing];
+
+  if (named) return named(t);
+
   const points = bezierPoints(easing);
 
-  if (points) return cubicBezier(...points)(t);
-
-  return EASINGS[easing]?.(t) ?? t;
+  return points ? cubicBezier(...points)(t) : t;
 }
 
 export function stateAt(keys: StateKey[] | undefined, time: number) {
@@ -195,6 +200,7 @@ export function stateAt(keys: StateKey[] | undefined, time: number) {
       to: b.name,
       t: span <= 0 ? 1 : (time - a.t) / span,
       span,
+      easing: b.easing,
     };
   }
 
@@ -223,7 +229,11 @@ export function scheduledData(
   return blendData(
     from,
     to,
-    ease(stateTiming(baseData, at.to || at.from).easing, at.t, at.span),
+    ease(
+      at.easing ?? stateTiming(baseData, at.to || at.from).easing,
+      at.t,
+      at.span,
+    ),
   );
 }
 
@@ -232,30 +242,49 @@ export function upsertStateKey(
   t: number,
   name: string,
 ): StateKey[] {
-  return [...(keys ?? []).filter((key) => key.t !== t), { t, name }].sort(
-    (a, b) => a.t - b.t,
-  );
+  const prior = keys?.find((key) => key.t === t);
+
+  return placeKey(keys, { ...prior, t, name });
 }
 
 export function animationDuration(data: any): number {
-  return (data?.stateKeys ?? []).reduce(
-    (last: number, key: StateKey) => Math.max(last, key.t),
-    tracksDuration(data?.tracks),
-  );
+  return Math.max(0, ...keyTimes(data));
 }
 
-export function moveStateKey(
-  keys: StateKey[] | undefined,
-  from: number,
-  to: number,
-): StateKey[] {
-  const key = keys?.find((k) => k.t === from);
+export function keyTimes(data: any): number[] {
+  return [
+    ...(data?.stateKeys ?? []),
+    ...(data?.tracks ?? []).flatMap((track: Track) => track.keys),
+  ].map((key) => key.t);
+}
 
-  if (!key || from === to) return keys ?? [];
+type KeyRange = { first: number; last: number; span: number } | undefined;
 
-  return upsertStateKey(
-    keys!.filter((k) => k.t !== from),
-    to,
-    key.name,
-  );
+const ranges = new WeakMap<object, KeyRange>();
+
+export function keyRange(data: any): KeyRange {
+  if (!data) return undefined;
+  if (ranges.has(data)) return ranges.get(data);
+
+  const times = keyTimes(data);
+  const first = Math.min(...times);
+  const last = Math.max(...times);
+  const range = last > first ? { first, last, span: last - first } : undefined;
+
+  ranges.set(data, range);
+
+  return range;
+}
+
+export function loopTime(data: any, time: number): number {
+  const range = data?.loop ? keyRange(data) : undefined;
+
+  if (!range || time <= range.last) return time;
+
+  const cycle = Math.floor((time - range.first) / range.span);
+  const along = (time - range.first) % range.span;
+
+  return data.loop === "mirror" && cycle % 2
+    ? range.last - along
+    : range.first + along;
 }

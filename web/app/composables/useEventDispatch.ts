@@ -73,7 +73,7 @@ export function useEventDispatch() {
           ran = true;
           break;
         case "seek":
-          usePlayhead().seek(Number(handler.time ?? 0));
+          usePlayhead().seek(roundTime(Number(handler.time ?? 0)));
           ran = true;
           break;
         case "nextSlide":

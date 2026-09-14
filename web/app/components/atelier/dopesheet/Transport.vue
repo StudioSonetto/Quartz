@@ -5,7 +5,7 @@
         variant="icon"
         :disabled="!playable"
         :aria-label="playing ? 'Pause' : 'Play'"
-        @click="toggle"
+        @click="playing ? emit('pause') : play()"
       >
         <div :class="playing ? 'i-carbon-pause' : 'i-carbon-play'"></div>
       </UIButton>
@@ -17,7 +17,9 @@
       >
         <div class="i-carbon-stop"></div>
       </UIButton>
-      <p class="dopesheet-readout">{{ (time / 1000).toFixed(2) }}s</p>
+      <p class="dopesheet-readout">
+        {{ props.overrun ? "looping" : formatSeconds(props.shownTime) }}
+      </p>
     </div>
     <div
       class="dopesheet-scrub"
@@ -26,14 +28,14 @@
       aria-label="Playhead"
       :aria-valuemin="0"
       :aria-valuemax="duration"
-      :aria-valuenow="Math.round(time)"
+      :aria-valuenow="Math.round(props.shownTime)"
       @pointerdown="startScrub"
-      @keydown.left.prevent="seek(time - step($event))"
-      @keydown.right.prevent="seek(time + step($event))"
+      @keydown.left.prevent="seek(roundTime(props.shownTime) - step($event))"
+      @keydown.right.prevent="seek(roundTime(props.shownTime) + step($event))"
     >
       <div
         class="dopesheet-scrub-thumb"
-        :style="{ left: timePercent(time, duration) }"
+        :style="{ left: timePercent(props.shownTime, duration) }"
       />
     </div>
   </div>
@@ -48,7 +50,6 @@
     @apply flex items-center gap-2 shrink-0 w-[var(--dopesheet-label)];
   }
 
-  /* Same flex-1 track as a lane, so thumb, line and keys share one scale. */
   .dopesheet-scrub {
     @apply relative flex-1 h-4 cursor-pointer;
 
@@ -74,15 +75,34 @@
 </style>
 
 <script setup lang="ts">
-const { time, playing, duration, canPlay, playable, toggle, seek, reset } =
+const props = defineProps<{
+  rows: DopesheetRow[];
+  shownTime: number;
+  overrun: boolean;
+}>();
+
+const emit = defineEmits<{ pause: [] }>();
+
+const { playing, duration, canPlay, playable, play, seek, reset } =
   usePlayhead();
 
 const drag = usePointerDrag();
 
+const SNAP_PX = 3;
+
+const snapTargets = computed(() => props.rows.flatMap((row) => keyTimes(row)));
+
 function startScrub(event: PointerEvent) {
   const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+
   const to = (e: PointerEvent) =>
-    seek(timeAtPointer(box, e.clientX, duration.value));
+    seek(
+      snapTime(
+        timeAtPointer(box, e.clientX, duration.value),
+        snapTargets.value,
+        (SNAP_PX / box.width) * duration.value,
+      ),
+    );
 
   event.preventDefault();
   drag.start(null, to);

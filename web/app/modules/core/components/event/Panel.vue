@@ -114,7 +114,8 @@ const title = (handler: EventHandler) =>
 
 function summary(handler: EventHandler) {
   if (handler.action === "goToSlide") return `goToSlide ${handler.slide ?? 0}`;
-  if (handler.action === "seek") return `seek ${handler.time ?? 0}ms`;
+  if (handler.action === "seek")
+    return `seek ${formatSeconds(handler.time ?? 0)}`;
 
   if (isStateAction(handler.action))
     return `${handler.action} ${handler.state || "base"}`;

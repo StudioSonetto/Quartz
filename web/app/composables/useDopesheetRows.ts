@@ -3,6 +3,7 @@ export type DopesheetRow = {
   name: string;
   tracks: Track[];
   stateKeys: StateKey[];
+  loop?: string;
 };
 
 export function useDopesheetRows() {
@@ -21,6 +22,7 @@ export function useDopesheetRows() {
         name: node.name ?? "Node",
         tracks: (component.data.tracks ?? []) as Track[],
         stateKeys: (component.data.stateKeys ?? []) as StateKey[],
+        loop: component.data.loop,
       };
     }),
   );

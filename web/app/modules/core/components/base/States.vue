@@ -60,7 +60,7 @@ const deck = useDeckStore();
 const { updateComponent } = deck;
 const { getNodeComponents, getStoredComponent } = useNodeComponents();
 const { activeState, setState, toggleState } = useAnimationState();
-const { time } = usePlayhead();
+const { keyTime } = usePlayhead();
 
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
@@ -71,8 +71,6 @@ const states = computed<Record<string, any>>(
 );
 
 const names = computed(() => Object.keys(states.value));
-
-const at = () => Math.round(time.value);
 
 function write(next: Record<string, any>) {
   const target = component.value;
@@ -147,9 +145,10 @@ function keyed(name: string) {
   if (!target) return false;
 
   const anim = getStoredComponent(target.node, "core.animation");
+  const now = keyTime(anim?.data);
 
   return (anim?.data.stateKeys ?? []).some(
-    (key: StateKey) => key.t === at() && key.name === name,
+    (key: StateKey) => key.t === now && key.name === name,
   );
 }
 
@@ -160,10 +159,12 @@ function keyState(name: string) {
 
   deck.addComponent(target.node, "core.animation");
 
+  const now = keyTime(getStoredComponent(target.node, "core.animation")?.data);
+
   deck.patchAnimation(target.node, (data) => ({
     stateKeys: keyed(name)
-      ? (data.stateKeys ?? []).filter((key: StateKey) => key.t !== at())
-      : upsertStateKey(data.stateKeys, at(), name),
+      ? (data.stateKeys ?? []).filter((key: StateKey) => key.t !== now)
+      : upsertStateKey(data.stateKeys, now, name),
   }));
 }
 

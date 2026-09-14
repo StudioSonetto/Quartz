@@ -13,35 +13,6 @@ const active = reactive(new Map<string, string>());
 const transitions = reactive(new Map<string, Transition>());
 const running = new Map<string, AnimationPlaybackControls>();
 
-export const EASING_OPTIONS = [
-  "linear",
-  "ease-in",
-  "ease-out",
-  "ease-in-out",
-  "back-in",
-  "back-out",
-  "back-in-out",
-  "circ-in",
-  "circ-out",
-  "circ-in-out",
-  "anticipate",
-  "spring",
-];
-
-const motionEase = (easing: string) =>
-  easing.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
-
-function easingOptions(easing?: string): Record<string, any> {
-  if (!easing) return {};
-  if (easing === "spring") return { type: "spring", bounce: SPRING_BOUNCE };
-
-  const points = bezierPoints(easing);
-
-  if (points) return { ease: points };
-
-  return { ease: motionEase(easing) };
-}
-
 function halt(nodeId: string) {
   running.get(nodeId)?.stop();
   running.delete(nodeId);
@@ -79,15 +50,12 @@ export function useAnimationState() {
 
     running.set(
       nodeId,
-      animate(
-        entry,
-        { t: 1 },
-        {
-          duration: duration / 1000,
-          ...easingOptions(easing),
-          onComplete: () => halt(nodeId),
-        },
-      ),
+      animate(0, 1, {
+        duration: duration / 1000,
+        ease: (p: number) => ease(easing, p, duration),
+        onUpdate: (t) => (entry.t = t),
+        onComplete: () => halt(nodeId),
+      }),
     );
   }
 

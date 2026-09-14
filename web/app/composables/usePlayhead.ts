@@ -2,12 +2,13 @@ import { animate } from "motion";
 import type { AnimationPlaybackControls } from "motion";
 
 const MIN_SPAN = 5000;
+const CLOCK_SPAN = 3_600_000;
 
-const state = reactive({ time: 0 });
-const time = toRef(state, "time");
+const time = ref(0);
 const playing = ref(false);
 const end = ref(0);
 const canPlay = ref(false);
+const endless = ref(false);
 
 const duration = computed(() =>
   canPlay.value ? Math.max(end.value, MIN_SPAN) : 0,
@@ -16,50 +17,35 @@ const duration = computed(() =>
 const playable = computed(() => end.value > 0);
 
 watch(time, (t) => {
-  if (playing.value && t >= end.value) pause();
+  if (playing.value && t >= end.value && !endless.value) seek(end.value);
 });
 
 let controls: AnimationPlaybackControls | null = null;
-let builtFor = -1;
 
 function dispose() {
   controls?.stop();
   controls = null;
-  builtFor = -1;
 }
 
 function timeline() {
-  if (controls && builtFor === duration.value) return controls;
+  if (controls) return controls;
 
-  const at = Math.min(state.time, duration.value);
+  controls = animate(0, CLOCK_SPAN, {
+    duration: CLOCK_SPAN / 1000,
+    ease: "linear",
+    autoplay: false,
+    onUpdate: (ms) => (time.value = ms),
+    onComplete: () => (playing.value = false),
+  });
 
-  dispose();
-
-  controls = animate(
-    state,
-    { time: [0, duration.value] },
-    {
-      duration: duration.value / 1000,
-      ease: "linear",
-      autoplay: false,
-      onComplete: () => (playing.value = false),
-    },
-  );
-
-  builtFor = duration.value;
-  controls.time = at / 1000;
+  controls.time = time.value / 1000;
 
   return controls;
 }
 
-function pause() {
-  controls?.pause();
-  playing.value = false;
-}
-
 function play() {
   if (playing.value || !playable.value) return;
-  if (state.time >= end.value) seek(0);
+  if (time.value >= end.value) seek(0);
 
   timeline().play();
   playing.value = true;
@@ -70,7 +56,7 @@ function seek(to: number) {
 
   if (!canPlay.value) {
     dispose();
-    state.time = 0;
+    time.value = 0;
     return;
   }
 
@@ -80,32 +66,37 @@ function seek(to: number) {
   controls!.time = Math.min(Math.max(to, 0), duration.value) / 1000;
 }
 
-function setLength(ms: number, hasKeys: boolean) {
+const nodeTime = (anim?: any) =>
+  playing.value ? loopTime(anim, time.value) : time.value;
+
+const keyTime = (anim?: any) =>
+  playing.value ? roundTime(nodeTime(anim)) : Math.round(time.value);
+
+function setLength(ms: number, hasKeys: boolean, loops = false) {
   end.value = ms;
   canPlay.value = hasKeys;
+  endless.value = loops;
 }
 
 export function usePlayhead() {
-  function toggle() {
-    playing.value ? pause() : play();
-  }
-
   function reset() {
     dispose();
-    state.time = 0;
+    time.value = 0;
     playing.value = false;
   }
 
   return {
     time,
     playing,
+    end: readonly(end),
+    endless: readonly(endless),
     duration,
     canPlay,
     playable,
+    nodeTime,
+    keyTime,
     setLength,
     play,
-    pause,
-    toggle,
     seek,
     reset,
   };

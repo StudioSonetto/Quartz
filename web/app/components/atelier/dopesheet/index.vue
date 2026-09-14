@@ -1,13 +1,18 @@
 <template>
   <div class="dopesheet">
-    <AtelierDopesheetTransport />
+    <AtelierDopesheetTransport
+      :rows="rows"
+      :shown-time="shownTime"
+      :overrun="overrun"
+      @pause="pauseHere"
+    />
     <div class="dopesheet-scroll">
       <div class="dopesheet-rows">
         <div class="dopesheet-playhead">
           <div class="dopesheet-playhead-track">
             <div
               class="dopesheet-line"
-              :style="{ left: timePercent(time, duration) }"
+              :style="{ left: timePercent(shownTime, duration) }"
             />
           </div>
         </div>
@@ -74,10 +79,11 @@
 </style>
 
 <script setup lang="ts">
-defineProps<{ rows: DopesheetRow[] }>();
+const props = defineProps<{ rows: DopesheetRow[] }>();
 
 const { patchAnimation } = useDeckStore();
-const { duration, time } = usePlayhead();
+const { duration } = usePlayhead();
+const { shownTime, overrun, pauseHere } = usePlayheadDisplay(() => props.rows);
 
 function onRemoveKey(node: string, track: Track, t: number) {
   patchAnimation(node, (data) => ({
@@ -99,7 +105,7 @@ function onMoveKey(node: string, track: Track, from: number, to: number) {
 
 function onMoveState(node: string, from: number, to: number) {
   patchAnimation(node, (data) => ({
-    stateKeys: moveStateKey(data.stateKeys, from, to),
+    stateKeys: moveKey(data.stateKeys, from, to),
   }));
 }
 </script>

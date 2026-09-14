@@ -2,7 +2,7 @@ export function useNodeComponents() {
   const { currentComponents, componentIndex } = storeToRefs(useDeckStore());
   const { scopeFor } = useVariableScope();
   const { activeState, transition } = useAnimationState();
-  const { time } = usePlayhead();
+  const { nodeTime } = usePlayhead();
 
   function getStoredComponent(node: string, type: ComponentType) {
     return componentIndex.value.get(componentKey(node, type));
@@ -26,10 +26,11 @@ export function useNodeComponents() {
 
   function stagedData(node: Tree, type: ComponentType) {
     const anim = getStoredComponent(node.id, "core.animation")?.data;
+    const t = nodeTime(anim);
 
     const sampled = sampleTracks(
       anim?.tracks,
-      time.value,
+      t,
       type,
       getStoredComponent(node.id, type)?.data ??
         effectiveDefaults(node.type, type),
@@ -42,7 +43,7 @@ export function useNodeComponents() {
 
     const base = getStoredComponent(node.id, "core.base")?.data;
 
-    const raw = scheduledData(base, anim?.stateKeys, time.value, type, sampled);
+    const raw = scheduledData(base, anim?.stateKeys, t, type, sampled);
 
     if (!move && !state) return raw;
 

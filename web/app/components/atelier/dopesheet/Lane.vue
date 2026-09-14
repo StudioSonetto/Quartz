@@ -1,17 +1,25 @@
 <template>
   <div class="dopesheet-lane">
-    <p class="dopesheet-lane-label" title="Double-click a key to remove it">
+    <p
+      class="dopesheet-lane-label"
+      title="Click a key to edit it in the animation panel"
+    >
       {{ props.label }}
     </p>
     <div ref="lane" class="dopesheet-lane-track">
       <div
         v-for="key in props.keys"
         :key="key.t"
-        :class="['dopesheet-lane-key', props.state && 'is-state']"
+        :class="[
+          'dopesheet-lane-key',
+          props.state && 'is-state',
+          key.easing && key.easing !== 'linear' && 'is-eased',
+        ]"
         :style="{ left: timePercent(key.t, props.duration) }"
         :title="props.state ? key.name || 'base' : undefined"
         @pointerdown="startDrag($event, key)"
         @dblclick="emit('remove', key.t)"
+        @contextmenu.prevent="openMenu($event, key)"
       >
         <span v-if="props.state" class="dopesheet-lane-key-name">
           {{ key.name || "base" }}
@@ -41,6 +49,10 @@
       @apply rotate-0 bg-light-200;
     }
 
+    &.is-eased {
+      @apply border-rd-full;
+    }
+
     .dopesheet-lane-key-name {
       @apply absolute left-3 top-1/2 -translate-y-1/2;
       @apply ui-text-5 opacity-60 whitespace-nowrap pointer-events-none;
@@ -52,7 +64,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   label: string;
-  keys: { t: number; name?: string }[];
+  keys: { t: number; name?: string; easing?: string }[];
   duration: number;
   state?: boolean;
 }>();
@@ -61,6 +73,17 @@ const emit = defineEmits<{
   move: [from: number, to: number];
   remove: [t: number];
 }>();
+
+function openMenu(event: MouseEvent, key: { t: number }) {
+  useContextMenu().open(event, [
+    {
+      label: "Remove",
+      icon: "i-carbon-trash-can",
+      danger: true,
+      action: () => emit("remove", key.t),
+    },
+  ]);
+}
 
 const lane = useTemplateRef<HTMLElement>("lane");
 

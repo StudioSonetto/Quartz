@@ -7,7 +7,8 @@ function blendHex(from: string, to: string, t: number): string {
     const a = parseInt(from.slice(i, i + 2), 16);
     const b = parseInt(to.slice(i, i + 2), 16);
 
-    out += Math.round(a + (b - a) * t)
+    // Spring and back easings overshoots.
+    out += Math.min(255, Math.max(0, Math.round(a + (b - a) * t)))
       .toString(16)
       .padStart(2, "0");
   }

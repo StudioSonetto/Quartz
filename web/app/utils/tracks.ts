@@ -3,22 +3,47 @@ import type { ComponentType } from "#shared/types";
 export interface TrackKey {
   t: number;
   value: number | string;
+  easing?: string;
 }
 
 export interface Track {
   type: ComponentType;
   path: string[];
-  easing?: string;
   keys: TrackKey[];
 }
 
-export function tracksDuration(tracks: Track[] | undefined): number {
-  let last = 0;
+export function placeKey<K extends { t: number }>(
+  keys: K[] | undefined,
+  key: K,
+): K[] {
+  return [...(keys ?? []).filter((k) => k.t !== key.t), key].sort(
+    (a, b) => a.t - b.t,
+  );
+}
 
-  for (const track of tracks ?? [])
-    for (const key of track.keys) if (key.t > last) last = key.t;
+export function moveKey<K extends { t: number }>(
+  keys: K[] | undefined,
+  from: number,
+  to: number,
+): K[] {
+  const key = keys?.find((k) => k.t === from);
 
-  return last;
+  if (!key || from === to) return keys ?? [];
+
+  return placeKey(
+    keys!.filter((k) => k.t !== from),
+    { ...key, t: to },
+  );
+}
+
+export function setEasingAt<K extends { t: number; easing?: string }>(
+  keys: K[] | undefined,
+  t: number,
+  easing: string | undefined,
+): K[] {
+  const key = keys?.find((k) => k.t === t);
+
+  return key ? placeKey(keys, { ...key, easing }) : (keys ?? []);
 }
 
 export function valueAt(
@@ -43,7 +68,7 @@ export function valueAt(
 
     return span <= 0
       ? b.value
-      : blendValue(a.value, b.value, (time - a.t) / span);
+      : blendValue(a.value, b.value, ease(b.easing, (time - a.t) / span, span));
   }
 
   return last.value;
@@ -68,10 +93,9 @@ export function upsertKey(
 ): Track[] {
   const existing = findTrack(tracks, type, path);
 
-  const keys = [
-    ...(existing?.keys ?? []).filter((key) => key.t !== t),
-    { t, value },
-  ].sort((a, b) => a.t - b.t);
+  // Re-keying a value must not drop the key's easing.
+  const prior = existing?.keys.find((key) => key.t === t);
+  const keys = placeKey(existing?.keys, { ...prior, t, value });
 
   const next: Track = { ...(existing ?? { type, path }), keys };
 
@@ -130,6 +154,21 @@ export function keyedAt(
   return !!findTrack(tracks, type, path)?.keys.some((key) => key.t === t);
 }
 
+function editTrackKeys(
+  tracks: Track[] | undefined,
+  type: ComponentType,
+  path: string[],
+  edit: (keys: TrackKey[]) => TrackKey[],
+): Track[] {
+  const existing = findTrack(tracks, type, path);
+
+  if (!existing) return tracks ?? [];
+
+  return tracks!.map((track) =>
+    track === existing ? { ...track, keys: edit(track.keys) } : track,
+  );
+}
+
 export function moveTrackKey(
   tracks: Track[] | undefined,
   type: ComponentType,
@@ -137,17 +176,19 @@ export function moveTrackKey(
   from: number,
   to: number,
 ): Track[] {
-  const key = findTrack(tracks, type, path)?.keys.find((k) => k.t === from);
+  return editTrackKeys(tracks, type, path, (keys) => moveKey(keys, from, to));
+}
 
-  if (!key || from === to) return tracks ?? [];
-
-  const cleared = (tracks ?? []).map((track) =>
-    track.type === type && track.path.join(".") === path.join(".")
-      ? { ...track, keys: track.keys.filter((k) => k.t !== from) }
-      : track,
+export function setKeyEasing(
+  tracks: Track[] | undefined,
+  type: ComponentType,
+  path: string[],
+  t: number,
+  easing: string | undefined,
+): Track[] {
+  return editTrackKeys(tracks, type, path, (keys) =>
+    setEasingAt(keys, t, easing),
   );
-
-  return upsertKey(cleared, type, path, to, key.value);
 }
 
 export function timeAtPointer(
@@ -157,7 +198,24 @@ export function timeAtPointer(
 ): number {
   const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1);
 
-  return Math.round(ratio * duration);
+  return roundTime(ratio * duration);
+}
+
+// Matches the 0.00s readout, so a time you can see is a time a key can sit on.
+const TIME_STEP = 10;
+
+export const roundTime = (ms: number) => Math.round(ms / TIME_STEP) * TIME_STEP;
+
+export const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
+
+export function snapTime(t: number, targets: number[], within: number) {
+  const nearest = targets.reduce(
+    (best, target) =>
+      Math.abs(target - t) < Math.abs(best - t) ? target : best,
+    Infinity,
+  );
+
+  return Math.abs(nearest - t) <= within ? nearest : t;
 }
 
 export const timePercent = (t: number, duration: number) =>

@@ -103,8 +103,16 @@ export const useDeckStore = defineStore("deck", () => {
   );
 
   watch(
-    [slideDuration, () => animatedComponents.value.length > 0],
-    ([ms, armed]) => usePlayhead().setLength(ms as number, armed as boolean),
+    [
+      slideDuration,
+      () => animatedComponents.value.length > 0,
+      () =>
+        animatedComponents.value.some(
+          (component) => component.data.loop && keyRange(component.data),
+        ),
+    ],
+    ([ms, armed, loops]) =>
+      usePlayhead().setLength(ms as number, armed as boolean, loops as boolean),
     { immediate: true, flush: "sync" },
   );
 
@@ -1232,7 +1240,7 @@ export const useDeckStore = defineStore("deck", () => {
     );
 
     if (keyed.length) {
-      const now = Math.round(usePlayhead().time.value);
+      const now = usePlayhead().keyTime(animated!.data);
 
       let tracks = animated!.data.tracks;
 

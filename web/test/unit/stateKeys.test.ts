@@ -94,6 +94,21 @@ describe("scheduledData", () => {
     expect(out.padding).toBe(5);
   });
 
+  it("a key's own easing beats its state's", () => {
+    const out = scheduledData(
+      base,
+      [
+        { t: 0, name: "" },
+        { t: 1000, name: "hot", easing: "ease-in" },
+      ],
+      500,
+      "core.layout" as any,
+      { padding: 0, gap: 4 },
+    );
+
+    expect(out.padding).toBeCloseTo(ease("ease-in", 0.5) * 10);
+  });
+
   it("leaves the sampled data alone when nothing is scheduled", () => {
     const raw = { padding: 0 };
 
@@ -190,5 +205,37 @@ describe("animationDuration", () => {
     };
 
     expect(animationDuration(data)).toBe(2800);
+  });
+});
+
+describe("loopTime", () => {
+  const keyed = (loop?: string) => ({
+    loop,
+    tracks: [
+      {
+        type: "core.transform",
+        path: ["position", "x"],
+        keys: [
+          { t: 1000, value: 0 },
+          { t: 3000, value: 10 },
+        ],
+      },
+    ],
+  });
+
+  it("leaves time alone until the last key, so an intro before the first key plays once", () => {
+    expect(loopTime(keyed("on"), 500)).toBe(500);
+    expect(loopTime(keyed("on"), 3000)).toBe(3000);
+    expect(loopTime(keyed(), 9000)).toBe(9000);
+  });
+
+  it("on wraps back to the first key", () => {
+    expect(loopTime(keyed("on"), 3500)).toBe(1500);
+    expect(loopTime(keyed("on"), 5500)).toBe(1500);
+  });
+
+  it("mirror runs backwards on odd cycles, so there is no jump at the wrap", () => {
+    expect(loopTime(keyed("mirror"), 3500)).toBe(2500);
+    expect(loopTime(keyed("mirror"), 5500)).toBe(1500);
   });
 });
