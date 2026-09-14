@@ -1,3 +1,5 @@
+export const draggedKeyTime = ref<number | null>(null);
+
 export function useKeyDrag(
   lane: () => HTMLElement | null,
   duration: () => number,
@@ -16,6 +18,8 @@ export function useKeyDrag(
 
     let current = key.t;
 
+    draggedKeyTime.value = current;
+
     start(
       "Move key",
       (e) => {
@@ -24,9 +28,11 @@ export function useKeyDrag(
         if (to === current) return;
 
         emit("move", current, to);
-        current = to;
+        current = draggedKeyTime.value = to;
       },
       () => {
+        draggedKeyTime.value = null;
+
         if (current === key.t) usePlayhead().seek(key.t);
       },
     );

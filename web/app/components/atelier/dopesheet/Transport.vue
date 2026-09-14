@@ -18,7 +18,7 @@
         <div class="i-carbon-stop"></div>
       </UIButton>
       <p class="dopesheet-readout">
-        {{ props.overrun ? "looping" : formatSeconds(props.shownTime) }}
+        {{ readout }}
       </p>
     </div>
     <div
@@ -85,6 +85,12 @@ const emit = defineEmits<{ pause: [] }>();
 
 const { playing, duration, canPlay, playable, play, seek, reset } =
   usePlayhead();
+
+const readout = computed(() => {
+  if (draggedKeyTime.value !== null) return formatSeconds(draggedKeyTime.value);
+
+  return props.overrun ? "looping" : formatSeconds(props.shownTime);
+});
 
 const drag = usePointerDrag();
 
