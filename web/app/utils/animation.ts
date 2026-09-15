@@ -36,6 +36,9 @@ export function overridesFor(
   return baseData?.states?.[state]?.overrides?.[type];
 }
 
+export const stateNames = (baseData: any): string[] =>
+  Object.keys(baseData?.states ?? {});
+
 export function stateTiming(baseData: any, state: string): Timing {
   return { easing: baseData?.states?.[state]?.easing };
 }
@@ -242,6 +245,9 @@ export function upsertStateKey(
 
   return placeKey(keys, { ...prior, t, name });
 }
+
+export const removeStateKey = (keys: StateKey[] | undefined, t: number) =>
+  (keys ?? []).filter((key) => key.t !== t);
 
 export function animationDuration(data: any): number {
   return Math.max(0, ...keyTimes(data));

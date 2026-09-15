@@ -33,6 +33,13 @@
           </UIButton>
         </div>
       </NodeComponentRow>
+      <NodeComponentRow v-if="names.length" name="state">
+        <NodeComponentRowFieldSelect
+          :options="stateOptions"
+          :value="stateKeyValue"
+          @update:value="setStateKey"
+        />
+      </NodeComponentRow>
       <NodeComponentRow v-for="row in rows" :key="row.id" :name="row.label">
         <p v-if="row.from === undefined" class="animation-muted">first key</p>
         <div v-else class="animation-key">
@@ -86,12 +93,48 @@ const props = defineProps<{
 
 const { patchAnimation } = useDeckStore();
 const { keyTime, seek } = usePlayhead();
+const { getStoredComponent } = useNodeComponents();
 
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
 );
 
 const now = computed(() => keyTime(component.value?.data));
+
+const names = computed(() => {
+  const node = component.value?.node;
+
+  return stateNames(node && getStoredComponent(node, "core.base")?.data);
+});
+
+const stateKey = computed(() =>
+  (component.value?.data.stateKeys as StateKey[] | undefined)?.find(
+    (k) => k.t === now.value,
+  ),
+);
+
+const stateOptions = computed(() => [
+  { value: "", label: "no key" },
+  { value: "key:", label: "base" },
+  ...names.value.map((name) => ({ value: `key:${name}`, label: name })),
+]);
+
+const stateKeyValue = computed(() =>
+  stateKey.value ? `key:${stateKey.value.name}` : "",
+);
+
+function setStateKey(value: string) {
+  const target = component.value;
+  const t = now.value;
+
+  if (!target) return;
+
+  patchAnimation(target.node, (data) => ({
+    stateKeys: value
+      ? upsertStateKey(data.stateKeys, t, value.slice("key:".length))
+      : removeStateKey(data.stateKeys, t),
+  }));
+}
 
 function setLoop(loop: string) {
   const target = component.value;
@@ -121,13 +164,13 @@ const rows = computed(() => {
 
   const t = now.value;
   const stateKeys: StateKey[] = target.data.stateKeys ?? [];
-  const state = stateKeys.find((key) => key.t === t);
+  const state = stateKey.value;
 
   const stateRows = state
     ? [
         {
           id: "state",
-          label: `state: ${state.name || "base"}`,
+          label: "state easing",
           from: lastBefore(
             stateKeys.map((k) => k.t),
             t,

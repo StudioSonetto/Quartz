@@ -44,7 +44,7 @@
           </NodeComponentRow>
           <NodeComponentRow v-if="isStateAction(handler.action)" name="state">
             <NodeComponentRowFieldDropdown
-              :options="stateNames"
+              :options="names"
               :value="handler.state"
               @update:value="(state: string) => patch(index, { state })"
             />
@@ -99,11 +99,10 @@ const handlers = computed<EventHandler[]>(() => {
   return Array.isArray(value) ? value : [];
 });
 
-const stateNames = computed(() => {
+const names = computed(() => {
   const node = component.value?.node;
-  const base = node ? getNodeComponent(node, "core.base")?.data : undefined;
 
-  return Object.keys(base?.states ?? {});
+  return stateNames(node && getNodeComponent(node, "core.base")?.data);
 });
 
 const isStateAction = (action: string) =>

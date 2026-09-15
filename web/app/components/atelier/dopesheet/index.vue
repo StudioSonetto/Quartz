@@ -93,7 +93,7 @@ function onRemoveKey(node: string, track: Track, t: number) {
 
 function onRemoveState(node: string, t: number) {
   patchAnimation(node, (data) => ({
-    stateKeys: (data.stateKeys ?? []).filter((k: StateKey) => k.t !== t),
+    stateKeys: removeStateKey(data.stateKeys, t),
   }));
 }
 

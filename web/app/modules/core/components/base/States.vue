@@ -14,37 +14,11 @@
       :name="name"
       :state="states[name]!"
       :active="activeState(component.node) === name"
-      :keyed="keyed(name)"
       @rename="(to) => rename(name, to)"
       @patch="(changes) => patch(name, changes)"
-      @key="keyState(name)"
     />
   </NodeComponentList>
-  <p v-else class="base-states-empty">Select one node to edit states.</p>
-  <NodeComponentRow v-if="component" name="base">
-    <UIButton
-      class="base-states-key"
-      variant="ghost"
-      @click="keyState(BASE_STATE)"
-    >
-      {{
-        keyed(BASE_STATE)
-          ? "remove base key at playhead"
-          : "key base at playhead"
-      }}
-    </UIButton>
-  </NodeComponentRow>
 </template>
-
-<style scoped lang="postcss">
-.base-states-empty {
-  @apply m-0 opacity-60;
-}
-
-.base-states-key {
-  @apply -ml-3;
-}
-</style>
 
 <script setup lang="ts">
 // Not auto-imported:
@@ -58,9 +32,8 @@ const PREVIEW_DURATION = 200;
 
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { getNodeComponents, getStoredComponent } = useNodeComponents();
+const { getNodeComponents } = useNodeComponents();
 const { activeState, setState, toggleState } = useAnimationState();
-const { keyTime } = usePlayhead();
 
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
@@ -137,35 +110,6 @@ function rename(from: string, to: string) {
   for (const updated of renameState(deck.componentsOf(target.node), from, to)) {
     updateComponent(updated);
   }
-}
-
-function keyed(name: string) {
-  const target = component.value;
-
-  if (!target) return false;
-
-  const anim = getStoredComponent(target.node, "core.animation");
-  const now = keyTime(anim?.data);
-
-  return (anim?.data.stateKeys ?? []).some(
-    (key: StateKey) => key.t === now && key.name === name,
-  );
-}
-
-function keyState(name: string) {
-  const target = component.value;
-
-  if (!target) return;
-
-  deck.addComponent(target.node, "core.animation");
-
-  const now = keyTime(getStoredComponent(target.node, "core.animation")?.data);
-
-  deck.patchAnimation(target.node, (data) => ({
-    stateKeys: keyed(name)
-      ? (data.stateKeys ?? []).filter((key: StateKey) => key.t !== now)
-      : upsertStateKey(data.stateKeys, now, name),
-  }));
 }
 
 function pick(index: number) {

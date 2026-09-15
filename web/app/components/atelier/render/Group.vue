@@ -25,7 +25,6 @@
       v-for="child in props.node.children"
       :key="child.id"
       :node="child"
-      :isLocked="props.isLocked"
     />
   </div>
 </template>
@@ -76,10 +75,9 @@ useEventListener(window, "pointercancel", () => move.stop());
 
 const props = defineProps<{
   node: Tree;
-  isLocked?: boolean;
 }>();
 
-const locked = computed(() => props.isLocked || isNodeLocked(props.node));
+const locked = computed(() => isNodeLocked(props.node));
 
 const container = useTemplateRef<HTMLElement>("container");
 const border = useTemplateRef<HTMLElement>("border");

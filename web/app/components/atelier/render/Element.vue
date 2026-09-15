@@ -3,7 +3,6 @@
     v-if="render?.component"
     :is="render.component"
     :node="props.node"
-    :isLocked="props.isLocked"
   />
   <Component
     v-else-if="render?.element"
@@ -43,7 +42,6 @@
       v-for="child in props.node.children"
       :key="child.id"
       :node="child"
-      :isLocked="props.isLocked"
     />
   </Component>
 </template>
@@ -87,12 +85,11 @@ const element = useTemplateRef<HTMLElement>("element");
 
 const props = defineProps<{
   node: Tree;
-  isLocked?: boolean;
 }>();
 
 const isGridChild = computed(() => isNodeGridChild(props.node));
 
-const locked = computed(() => props.isLocked || isNodeLocked(props.node));
+const locked = computed(() => presenting.value || isNodeLocked(props.node));
 
 const {
   editing,
@@ -153,7 +150,7 @@ const { x, y, isDragging } = useDraggable(element, {
   exact: true,
   disabled: computed(() => editing.value || atelier.activeTool !== "select"),
   onStart: (position, event) => {
-    if (props.isLocked) return;
+    if (presenting.value) return;
 
     const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
 
@@ -310,8 +307,6 @@ function onSelect(event: MouseEvent) {
 
   if (atelier.activeTool !== "select") return;
 
-  if (props.isLocked) return;
-
   if (editing.value) {
     event.stopPropagation();
 
@@ -320,7 +315,7 @@ function onSelect(event: MouseEvent) {
 
   atelier.textSelection = null;
 
-  const picked = getNodeType(props.node.type)?.pick?.(props.node, event);
+  const picked = pickAt(event);
 
   const target =
     picked ??
@@ -334,8 +329,23 @@ function onSelect(event: MouseEvent) {
 function onClick(event: MouseEvent) {
   if (!presenting.value) return onSelect(event);
 
-  if (fire(props.node, "click")) event.stopPropagation();
+  const picked = pickAt(event);
+
+  if ((picked && fire(picked, "click")) || fire(props.node, "click"))
+    event.stopPropagation();
 }
+
+const pickAt = (event: MouseEvent) =>
+  getNodeType(props.node.type)?.pick?.(props.node, event);
+
+// Picking a 3D object is a raycast, so a slide with no hover events skips it.
+const hoverable = computed(() =>
+  flattenTree(props.node).some((n) =>
+    getNodeComponent(n.id, "core.event")?.data.handlers?.some(
+      (h: EventHandler) => h.on === "hover",
+    ),
+  ),
+);
 
 function onHover() {
   if (presenting.value) fire(props.node, "hover");
@@ -350,24 +360,26 @@ function hoverTarget() {
 }
 
 function onPointerMove(event: MouseEvent) {
-  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
-    return;
-
-  const pick = getNodeType(props.node.type)?.pick;
-
-  if (!pick) return;
+  if (isDragging.value || pickFrame) return;
+  if (!getNodeType(props.node.type)?.pick) return;
+  if (presenting.value && !hoverable.value) return;
 
   pickFrame = requestAnimationFrame(() => {
     pickFrame = 0;
 
-    picked.value = pick(props.node, event)?.id ?? null;
+    const hit = pickAt(event);
 
-    setHovered(hoverTarget());
+    // A picked node has no element to enter, so moving onto it is its hover.
+    if (presenting.value && hit && hit.id !== picked.value) fire(hit, "hover");
+
+    picked.value = hit?.id ?? null;
+
+    if (!presenting.value) setHovered(hoverTarget());
   });
 }
 
 function onMouseOver(event: MouseEvent) {
-  if (presenting.value || props.isLocked) return;
+  if (presenting.value) return;
 
   event.stopPropagation();
 

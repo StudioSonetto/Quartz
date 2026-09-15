@@ -3,7 +3,7 @@ export const EVENT_TRIGGERS = ["click", "hover", "key", "enter"] as const;
 export const EVENT_ACTIONS = [
   "setState",
   "toggleState",
-  "play",
+  "animate",
   "seek",
   "nextSlide",
   "prevSlide",
@@ -68,7 +68,7 @@ export function useEventDispatch() {
           ran = true;
           break;
         }
-        case "play":
+        case "animate":
           usePlayhead().play();
           ran = true;
           break;

@@ -18,7 +18,6 @@
         v-for="node in currentTree.children"
         :key="node.id"
         :node="node"
-        :isLocked="!props.canEdit"
       />
     </template>
     <div v-else class="loader">
