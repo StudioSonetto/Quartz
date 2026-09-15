@@ -287,25 +287,3 @@ describe("removeKey", () => {
     expect(removeKey(undefined, "core.transform" as any, ["x"], 0)).toEqual([]);
   });
 });
-
-describe("keyedAt", () => {
-  const tracks = [
-    {
-      type: "core.transform" as any,
-      path: ["position", "x"],
-      keys: [{ t: 800, value: 50 }],
-    },
-  ];
-
-  it("is true only where a key actually sits", () => {
-    expect(
-      keyedAt(tracks, "core.transform" as any, ["position", "x"], 800),
-    ).toBe(true);
-    expect(keyedAt(tracks, "core.transform" as any, ["position", "x"], 0)).toBe(
-      false,
-    );
-    expect(
-      keyedAt(undefined, "core.transform" as any, ["position", "x"], 800),
-    ).toBe(false);
-  });
-});

@@ -4,10 +4,7 @@
     :icon="props.icon"
     :components="props.components"
   >
-    <NodeComponentRow
-      name="position"
-      :paths="['position.x', 'position.y', 'position.z']"
-    >
+    <NodeComponentRow name="position">
       <NodeComponentRowFieldNumber
         :disabled="anyGridChild"
         :value="field(['position', 'x'])"
@@ -24,7 +21,7 @@
         @update:value="(v) => set(['position', 'z'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="width" :paths="['size.width']">
+    <NodeComponentRow name="width">
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'auto', icon: 'i-carbon-fit-to-width' },
@@ -41,7 +38,7 @@
         @update:value="(v) => set(['size', 'width'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="height" :paths="['size.height']">
+    <NodeComponentRow name="height">
       <NodeComponentRowFieldRadio
         :options="[
           { value: 'auto', icon: 'i-carbon-fit-to-height' },

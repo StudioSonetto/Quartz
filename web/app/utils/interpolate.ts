@@ -16,6 +16,9 @@ function blendHex(from: string, to: string, t: number): string {
   return out;
 }
 
+export const isBlendable = (value: unknown) =>
+  typeof value === "number" || (typeof value === "string" && HEX.test(value));
+
 export function blendValue(a: any, b: any, t: number): any {
   if (typeof a === "number" && typeof b === "number") return a + (b - a) * t;
   if (typeof a === "string" && HEX.test(a) && HEX.test(b ?? ""))

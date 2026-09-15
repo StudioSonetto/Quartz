@@ -145,15 +145,6 @@ export function removeKey(
     : (tracks ?? []).filter((track) => track !== existing);
 }
 
-export function keyedAt(
-  tracks: Track[] | undefined,
-  type: ComponentType,
-  path: string[],
-  t: number,
-): boolean {
-  return !!findTrack(tracks, type, path)?.keys.some((key) => key.t === t);
-}
-
 function editTrackKeys(
   tracks: Track[] | undefined,
   type: ComponentType,
@@ -189,6 +180,17 @@ export function setKeyEasing(
   return editTrackKeys(tracks, type, path, (keys) =>
     setEasingAt(keys, t, easing),
   );
+}
+
+export function changedPaths(a: any, b: any, path: string[] = []): string[][] {
+  if (a === b) return [];
+
+  if (isPlainObject(a) && isPlainObject(b))
+    return Object.keys(b).flatMap((k) =>
+      changedPaths(a[k], b[k], [...path, k]),
+    );
+
+  return [path];
 }
 
 export function timeAtPointer(

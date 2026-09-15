@@ -24,7 +24,7 @@
         @update:value="(v) => set(['direction'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="background" :paths="['background.value']">
+    <NodeComponentRow name="background">
       <NodeComponentRowFieldRadio
         :options="backgroundOptions"
         :value="mixed ? undefined : background.type"
@@ -60,7 +60,7 @@
         @update:value="(v) => setFit(v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="padding" :paths="['padding']">
+    <NodeComponentRow name="padding">
       <NodeComponentRowFieldNumber
         :value="field(['padding'])"
         @update:value="(v) => set(['padding'], v)"
@@ -75,7 +75,7 @@
         @update:value="(v) => set(['columns'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="gap" :paths="['gap']">
+    <NodeComponentRow name="gap">
       <NodeComponentRowFieldNumber
         :value="field(['gap'])"
         @update:value="(v) => set(['gap'], v)"

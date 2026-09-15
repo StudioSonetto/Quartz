@@ -47,10 +47,6 @@ export function applyState(
   return override ? deepMerge(base, override) : base;
 }
 
-export function hasAnimationKeys(data: any): boolean {
-  return !!(data?.tracks?.length || data?.stateKeys?.length);
-}
-
 export const DEFAULT_STATE_EASING = "ease-out";
 
 export const DEFAULT_HANDLER_DURATION = 400;

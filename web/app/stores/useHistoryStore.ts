@@ -39,6 +39,12 @@ export const useHistoryStore = defineStore("history", () => {
     };
   }
 
+  function capturedData(slideId: string, node: string, type: ComponentType) {
+    return open?.before
+      .get(slideId)
+      ?.components.find((c) => c.node === node && c.type === type)?.data;
+  }
+
   function readFocus(): Focus {
     const deck = useDeckStore();
 
@@ -277,6 +283,7 @@ export const useHistoryStore = defineStore("history", () => {
     capture,
     captureCurrent,
     readSlide,
+    capturedData,
     applySlides,
     transact,
     begin,

@@ -88,9 +88,10 @@ export const useDeckStore = defineStore("deck", () => {
   const animatedComponents = computed(() => {
     animationVersion.value;
 
+    // Keyless ones count too: without the dopesheet there is no way off t=0,
+    // and auto-key never creates a first key there.
     return toRaw(currentComponents.value ?? []).filter(
-      (component) =>
-        component.type === "core.animation" && hasAnimationKeys(component.data),
+      (component) => component.type === "core.animation",
     );
   });
 
@@ -1214,7 +1215,10 @@ export const useDeckStore = defineStore("deck", () => {
   ) {
     if (isNodeLocked(located?.node)) return;
 
-    const state = isStateless(component.type)
+    const stateless = isStateless(component.type);
+    const slideIndex = located?.slideIndex ?? currentSlidesIndex.value;
+
+    const state = stateless
       ? BASE_STATE
       : useAnimationState().activeState(component.node);
 
@@ -1234,33 +1238,52 @@ export const useDeckStore = defineStore("deck", () => {
       );
     }
 
-    const animated = getComponent(component.node, "core.animation");
-    const keyed = (animated?.data?.tracks ?? []).filter(
-      (track: Track) => track.type === component.type,
-    );
+    const animated = stateless
+      ? undefined
+      : getComponent(component.node, "core.animation");
 
-    if (keyed.length) {
-      const now = usePlayhead().keyTime(animated!.data);
+    // A component being added has no prior data, and must not key its defaults.
+    const existing = animated && getComponent(component.node, component.type);
+    const stored: Track[] = animated?.data.tracks ?? [];
+    const now = animated ? usePlayhead().keyTime(animated.data) : 0;
 
-      let tracks = animated!.data.tracks;
+    // At 0 an unkeyed field is set for the whole slide, not animated.
+    if (
+      existing &&
+      (now !== 0 || stored.some((track) => track.type === component.type))
+    ) {
+      const slideId = slides.value[slideIndex]?.id;
+      const before =
+        (slideId &&
+          history.capturedData(slideId, component.node, component.type)) ??
+        existing.data;
 
-      for (const track of keyed) {
-        const value = at(component.data, track.path);
+      let tracks = stored;
 
-        if (value !== undefined)
-          tracks = upsertKey(tracks, component.type, track.path, now, value);
+      for (const path of changedPaths(before, component.data)) {
+        const value = at(component.data, path);
+        const track = findTrack(tracks, component.type, path);
+
+        if (!isBlendable(value) || (!track && now === 0)) continue;
+        if (track?.keys.some((k) => k.t === now && k.value === value)) continue;
+
+        const prior = at(before, path);
+
+        // One key alone would hold, so the first also keys where it came from.
+        if (!track && isBlendable(prior))
+          tracks = upsertKey(tracks, component.type, path, 0, prior);
+
+        tracks = upsertKey(tracks, component.type, path, now, value);
       }
 
-      updateComponent(
-        { ...animated!, data: { ...animated!.data, tracks } },
-        located,
-      );
+      if (tracks !== stored)
+        updateComponent(
+          { ...animated!, data: { ...animated!.data, tracks } },
+          located,
+        );
     }
 
-    writeComponentAt(
-      located?.slideIndex ?? currentSlidesIndex.value,
-      component,
-    );
+    writeComponentAt(slideIndex, component);
 
     for (const { slideIndex, node } of peersOf(
       component.node,
@@ -1275,14 +1298,6 @@ export const useDeckStore = defineStore("deck", () => {
     }
   }
 
-  function pruneAnimation(nodeId: string) {
-    const anim = getComponent(nodeId, "core.animation");
-
-    if (!anim || hasAnimationKeys(anim.data)) return;
-
-    removeComponent(nodeId, "core.animation");
-  }
-
   function patchAnimation(
     nodeId: string,
     mutate: (data: any) => Record<string, any>,
@@ -1292,8 +1307,6 @@ export const useDeckStore = defineStore("deck", () => {
     if (!anim) return;
 
     updateComponent({ ...anim, data: { ...anim.data, ...mutate(anim.data) } });
-
-    pruneAnimation(nodeId);
   }
 
   function addComponent(nodeId: string, type: ComponentType) {
@@ -1413,7 +1426,6 @@ export const useDeckStore = defineStore("deck", () => {
     reorderNodes,
     updateComponent,
     addComponent,
-    pruneAnimation,
     patchAnimation,
     animatedComponents,
     componentIndex,

@@ -23,7 +23,7 @@
         @update:value="update"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="background" :paths="['background.value']">
+    <NodeComponentRow name="background">
       <NodeComponentRowFieldRadio
         :options="backgroundOptions"
         :value="mixed ? undefined : background.type"
