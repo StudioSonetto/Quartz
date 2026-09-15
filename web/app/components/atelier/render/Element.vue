@@ -62,7 +62,11 @@
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
+const {
+  getNodeComponent,
+  renderData,
+  isGridChild: isNodeGridChild,
+} = useNodeComponents();
 
 const atelier = useAtelierStore();
 const { setIsDragging, setHovered } = atelier;
@@ -218,11 +222,10 @@ watchThrottled(
 
       if (!box) return;
 
+      const { position } = renderData(props.node, "core.transform");
+
       dragStart.value = {
-        transform: {
-          x: transform.data.position.x,
-          y: transform.data.position.y,
-        },
+        transform: { x: position.x, y: position.y },
         pointer: { x: newX, y: newY },
         box,
       };
@@ -242,10 +245,15 @@ watchThrottled(
       top: box.top + (newY - pointer.y) * scaleY,
     });
 
-    transform.data.position.x = Math.round(
-      startPos.x + snapped.left - box.left,
+    updateComponent(
+      withData(transform, {
+        position: {
+          ...transform.data.position,
+          x: Math.round(startPos.x + snapped.left - box.left),
+          y: Math.round(startPos.y + snapped.top - box.top),
+        },
+      }),
     );
-    transform.data.position.y = Math.round(startPos.y + snapped.top - box.top);
   },
   { throttle },
 );
@@ -258,10 +266,6 @@ watch(isDragging, (newState) => {
       if (gesture.moved) gesture.drag.end?.();
 
       gesture = null;
-    } else if (dragStart.value) {
-      const transform = getNodeComponent(props.node.id, "core.transform");
-
-      if (transform) updateComponent(transform);
     }
 
     dragStart.value = null;
@@ -405,10 +409,17 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   history.captureCurrent(`nudge:${props.node.id}`);
 
-  transform.data.position.x += dx * step;
-  transform.data.position.y += dy * step;
+  const { position } = renderData(props.node, "core.transform");
 
-  updateComponent(transform);
+  updateComponent(
+    withData(transform, {
+      position: {
+        ...transform.data.position,
+        x: position.x + dx * step,
+        y: position.y + dy * step,
+      },
+    }),
+  );
 }
 
 onUnmounted(clearHover);

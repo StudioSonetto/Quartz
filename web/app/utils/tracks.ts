@@ -80,7 +80,10 @@ export function findTrack(
   path: string[],
 ): Track | undefined {
   return tracks?.find(
-    (track) => track.type === type && track.path.join(".") === path.join("."),
+    (track) =>
+      track.type === type &&
+      track.path.length === path.length &&
+      track.path.every((key, i) => key === path[i]),
   );
 }
 

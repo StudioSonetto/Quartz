@@ -353,11 +353,25 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
       const cx = anchorX - (nax * cos - nay * sin);
       const cy = anchorY - (nax * sin + nay * cos);
 
-      if (h.dx !== 0 || keepRatio) transform.data.size.width = sizeW;
-      if (h.dy !== 0 || keepRatio) transform.data.size.height = sizeH;
+      const current = transformOf(node);
 
-      transform.data.position.x = Math.round(cx - wc / 2);
-      transform.data.position.y = Math.round(cy - hc / 2);
+      if (!current) return;
+
+      const size = { ...current.data.size };
+
+      if (h.dx !== 0 || keepRatio) size.width = sizeW;
+      if (h.dy !== 0 || keepRatio) size.height = sizeH;
+
+      updateComponent(
+        withData(current, {
+          size,
+          position: {
+            ...current.data.position,
+            x: Math.round(cx - wc / 2),
+            y: Math.round(cy - hc / 2),
+          },
+        }),
+      );
 
       readout.value = [
         (h.dx || keepRatio) && sizeW,
@@ -366,7 +380,6 @@ function startResize(h: { dx: number; dy: number }, e: PointerEvent) {
         .filter(Boolean)
         .join(" x ");
 
-      updateComponent(transform);
       contents?.move(sizeW / startW, sizeH / startH);
     },
     () => {
@@ -437,20 +450,22 @@ function startRotate(e: PointerEvent) {
 
   if (isBound(transform.data, "rotation")) return;
 
-  const startRotation = transform.data.rotation ?? 0;
+  const startRotation = renderData(node, "core.transform").rotation ?? 0;
 
   const stopSampling = listen();
 
   startPointerDrag(
     "Rotate",
     () => {
-      transform.data.rotation = wrapAngle(
-        Math.round(startRotation + degrees()),
-      );
+      const current = transformOf(node);
 
-      readout.value = `${transform.data.rotation}°`;
+      if (!current) return;
 
-      updateComponent(transform);
+      const rotation = wrapAngle(Math.round(startRotation + degrees()));
+
+      readout.value = `${rotation}°`;
+
+      updateComponent(withData(current, { rotation }));
     },
     stopSampling,
   );

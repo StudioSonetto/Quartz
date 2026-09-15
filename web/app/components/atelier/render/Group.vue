@@ -208,10 +208,9 @@ watchThrottled(
 
         if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
-        snapshot.set(node.id, {
-          x: transform.data.position.x,
-          y: transform.data.position.y,
-        });
+        const { position } = renderData(node, "core.transform");
+
+        snapshot.set(node.id, { x: position.x, y: position.y });
       });
 
       startPositions.value = snapshot;
@@ -248,8 +247,15 @@ watchThrottled(
 
       if (!start || !transform) return;
 
-      transform.data.position.x = Math.round(start.x + deltaX);
-      transform.data.position.y = Math.round(start.y + deltaY);
+      updateComponent(
+        withData(transform, {
+          position: {
+            ...transform.data.position,
+            x: Math.round(start.x + deltaX),
+            y: Math.round(start.y + deltaY),
+          },
+        }),
+      );
     });
   },
   { throttle },
@@ -259,14 +265,6 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    if (startPositions.value) {
-      for (const node of movable) {
-        const transform = getNodeComponent(node.id, "core.transform");
-
-        if (transform) updateComponent(transform);
-      }
-    }
-
     startPositions.value = null;
     startDrag.value = null;
     startBox = null;

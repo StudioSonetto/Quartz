@@ -284,9 +284,11 @@ export function useAssetDrag() {
     )
       return;
 
-    transform.data.position = { ...transform.data.position, ...settled };
-
-    deck.updateComponent(transform);
+    deck.updateComponent(
+      withData(transform, {
+        position: { ...transform.data.position, ...settled },
+      }),
+    );
   }
 
   return { preview, start, end, leave, over, drop };

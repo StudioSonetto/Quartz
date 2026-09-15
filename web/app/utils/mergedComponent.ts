@@ -47,3 +47,11 @@ export function setNested(data: any, path: string[], value: unknown): any {
     [head!]: rest.length ? setNested(data[head!], rest, value) : value,
   };
 }
+
+// Auto-key compares against the stored data, so edits must never write into it.
+export function withData<C extends { data: any }>(
+  component: C,
+  changes: Record<string, any>,
+): C {
+  return { ...component, data: { ...component.data, ...changes } };
+}

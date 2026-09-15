@@ -62,16 +62,10 @@ const box = computed<Rect | null>(() => {
   return { left, top, width: right - left, height: bottom - top };
 });
 
-type DragEntry = {
-  t: NonNullable<ReturnType<typeof comps.getNodeComponent>>;
-  x: number;
-  y: number;
-};
-
 type DragState = {
   startX: number;
   startY: number;
-  starts: Map<string, DragEntry>;
+  starts: Map<string, { x: number; y: number }>;
   union: Rect;
   s: { x: number; y: number };
 };
@@ -90,12 +84,12 @@ function startMove(e: PointerEvent) {
   move.start();
 
   const s = scale();
-  const starts = new Map<string, DragEntry>();
+  const starts = new Map<string, { x: number; y: number }>();
 
   for (const n of nodes) {
-    const t = comps.getNodeComponent(n.id, "core.transform")!;
+    const { position } = comps.renderData(n, "core.transform");
 
-    starts.set(n.id, { t, x: t.data.position.x, y: t.data.position.y });
+    starts.set(n.id, { x: position.x, y: position.y });
   }
 
   drag = {
@@ -132,9 +126,20 @@ function flushMove() {
   const dx = snapped.left - drag.union.left;
   const dy = snapped.top - drag.union.top;
 
-  for (const entry of drag.starts.values()) {
-    entry.t.data.position.x = Math.round(entry.x + dx);
-    entry.t.data.position.y = Math.round(entry.y + dy);
+  for (const [id, start] of drag.starts) {
+    const t = comps.getNodeComponent(id, "core.transform");
+
+    if (!t) continue;
+
+    deck.updateComponent(
+      withData(t, {
+        position: {
+          ...t.data.position,
+          x: Math.round(start.x + dx),
+          y: Math.round(start.y + dy),
+        },
+      }),
+    );
   }
 }
 
@@ -155,11 +160,6 @@ useEventListener(window, ["pointerup", "pointercancel"], () => {
   latest = null;
 
   snapping.end();
-
-  for (const entry of drag.starts.values()) {
-    deck.updateComponent(entry.t);
-  }
-
   move.stop();
 
   drag = null;

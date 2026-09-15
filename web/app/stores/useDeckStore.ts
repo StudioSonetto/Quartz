@@ -1252,11 +1252,7 @@ export const useDeckStore = defineStore("deck", () => {
       existing &&
       (now !== 0 || stored.some((track) => track.type === component.type))
     ) {
-      const slideId = slides.value[slideIndex]?.id;
-      const before =
-        (slideId &&
-          history.capturedData(slideId, component.node, component.type)) ??
-        existing.data;
+      const before = existing.data;
 
       let tracks = stored;
 

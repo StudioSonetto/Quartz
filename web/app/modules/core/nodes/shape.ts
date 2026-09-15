@@ -73,9 +73,13 @@ export default {
 
       return {
         move: (sx, sy) => {
-          component.data.points = scalePoints(start, sx, sy);
+          const current = getNodeComponent(node.id, "core.path");
+
+          if (current)
+            updateComponent(
+              withData(current, { points: scalePoints(start, sx, sy) }),
+            );
         },
-        end: () => updateComponent(component),
       };
     },
   },
