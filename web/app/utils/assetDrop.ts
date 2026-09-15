@@ -10,7 +10,7 @@ export function resolveDropTarget(
   node: Tree | null,
   kind: AssetKind,
 ): { parent: Tree; def: NodeTypeDef } | null {
-  for (let n = node; n; n = n.parent ?? null) {
+  for (const n of ancestors(node)) {
     const def = resolveAssetDrop(kind, n.type);
 
     if (def) return { parent: n, def };

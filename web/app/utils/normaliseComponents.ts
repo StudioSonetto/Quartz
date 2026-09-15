@@ -44,14 +44,107 @@ const ROOT_LAYOUT_DEFAULTS = {
   background: { type: "colour", value: "#FAFAFA" },
 };
 
+function relocateStates(
+  nodeId: string,
+  kept: ComponentModel[],
+  relocated?: ComponentModel[],
+) {
+  const anim = kept.find((c) => c.type === "core.animation");
+
+  if (!anim || !isPlainObject(anim.data?.states)) return;
+
+  const { states, tracks, stateKeys, ...timing } = anim.data;
+
+  if (!Object.keys(states).length) return;
+
+  let base = kept.find((c) => c.type === "core.base");
+
+  if (!base) {
+    base = { node: nodeId, type: "core.base", data: {} } as ComponentModel;
+
+    kept.push(base);
+  }
+
+  const moved = Object.fromEntries(
+    Object.entries(states).map(([name, state]: [string, any]) => [
+      name,
+      { easing: DEFAULT_STATE_EASING, ...timing, ...state },
+    ]),
+  );
+
+  base.data = {
+    ...base.data,
+    states: { ...moved, ...(base.data.states ?? {}) },
+  };
+
+  anim.data = { tracks: tracks ?? [], stateKeys: stateKeys ?? [] };
+
+  relocated?.push(base, anim);
+}
+
+function relocateStateTiming(
+  kept: ComponentModel[],
+  relocated?: ComponentModel[],
+) {
+  const base = kept.find((c) => c.type === "core.base");
+
+  if (!base || !isPlainObject(base.data?.states)) return;
+
+  const timings = new Map<string, number>();
+
+  const states = Object.fromEntries(
+    Object.entries(base.data.states).map(([name, state]: [string, any]) => {
+      const {
+        duration,
+        delay: _delay,
+        repeat: _repeat,
+        repeatType: _repeatType,
+        ...rest
+      } = state ?? {};
+
+      if (typeof duration === "number") timings.set(name, duration);
+
+      return [name, rest];
+    }),
+  );
+
+  if (deepEqual(base.data.states, states)) return;
+
+  base.data = { ...base.data, states };
+
+  relocated?.push(base);
+
+  const events = kept.find((c) => c.type === "core.event");
+
+  if (!timings.size || !Array.isArray(events?.data?.handlers)) return;
+
+  const handlers = events.data.handlers.map((handler: any) =>
+    handler.duration === undefined &&
+    (handler.action === "setState" || handler.action === "toggleState") &&
+    timings.has(handler.state)
+      ? { ...handler, duration: timings.get(handler.state) }
+      : handler,
+  );
+
+  if (deepEqual(handlers, events.data.handlers)) return;
+
+  events.data = { ...events.data, handlers };
+
+  relocated?.push(events);
+}
+
 export function normaliseComponents(
   nodes: NodeModel[],
   components: ComponentModel[],
+  relocated?: ComponentModel[],
 ): ComponentModel[] {
   const result: ComponentModel[] = [];
 
   for (const node of nodes) {
     const kept = components.filter((c) => c.node === node.id);
+
+    relocateStates(node.id, kept, relocated);
+    relocateStateTiming(kept, relocated);
 
     if (node.path === ROOT_PATH) {
       for (const type of ROOT_COMPONENTS) {

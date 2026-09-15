@@ -82,14 +82,26 @@ export function cloneSubtree(
 
     const data = JSON.parse(JSON.stringify(c.data));
 
-    if (
-      c.node === rootId &&
-      c.type === "core.transform" &&
-      opts.offset &&
-      data.position
-    ) {
-      data.position.x = (data.position.x ?? 0) + opts.offset.x;
-      data.position.y = (data.position.y ?? 0) + opts.offset.y;
+    if (c.node === rootId && opts.offset) {
+      const { offset } = opts;
+
+      if (c.type === "core.transform" && data.position) {
+        data.position.x = (data.position.x ?? 0) + offset.x;
+        data.position.y = (data.position.y ?? 0) + offset.y;
+      }
+
+      if (c.type === "core.animation") {
+        for (const track of (data.tracks ?? []) as Track[]) {
+          const [field, axis] = track.path;
+
+          if (track.type !== "core.transform" || field !== "position") continue;
+          if (axis !== "x" && axis !== "y") continue;
+
+          for (const key of track.keys) {
+            if (typeof key.value === "number") key.value += offset[axis];
+          }
+        }
+      }
     }
     newComponents.push({
       ...c,

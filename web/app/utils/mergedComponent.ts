@@ -1,7 +1,7 @@
 import type { ComponentModel } from "#shared/types";
 
 // Read a nested key path out of a component's data, tolerant of nulls.
-function at(data: any, path: string[]): any {
+export function at(data: any, path: string[]): any {
   return path.reduce((v, k) => (v == null ? v : v[k]), data);
 }
 
@@ -46,4 +46,12 @@ export function setNested(data: any, path: string[], value: unknown): any {
     ...data,
     [head!]: rest.length ? setNested(data[head!], rest, value) : value,
   };
+}
+
+// Auto-key compares against the stored data, so edits must never write into it.
+export function withData<C extends { data: any }>(
+  component: C,
+  changes: Record<string, any>,
+): C {
+  return { ...component, data: { ...component.data, ...changes } };
 }

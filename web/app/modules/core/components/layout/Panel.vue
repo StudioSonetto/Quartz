@@ -14,6 +14,16 @@
         @update:value="(v) => setMode(v)"
       />
     </NodeComponentRow>
+    <NodeComponentRow name="direction">
+      <NodeComponentRowFieldRadio
+        :options="[
+          { value: 'vertical', icon: 'i-carbon-arrow-down' },
+          { value: 'horizontal', icon: 'i-carbon-arrow-right' },
+        ]"
+        :value="field(['direction'])"
+        @update:value="(v) => set(['direction'], v)"
+      />
+    </NodeComponentRow>
     <NodeComponentRow name="background">
       <NodeComponentRowFieldRadio
         :options="backgroundOptions"
@@ -56,7 +66,10 @@
         @update:value="(v) => set(['padding'], v)"
       />
     </NodeComponentRow>
-    <NodeComponentRow name="columns">
+    <NodeComponentRow
+      v-if="field(['direction']) !== 'horizontal'"
+      name="columns"
+    >
       <NodeComponentRowFieldNumber
         :value="field(['columns'])"
         @update:value="(v) => set(['columns'], v)"
@@ -79,12 +92,21 @@
         @update:value="(v) => set(['align'], v)"
       />
     </NodeComponentRow>
+    <NodeComponentRow name="justify">
+      <NodeComponentRowFieldRadio
+        :options="[
+          { value: 'start', icon: 'i-carbon-align-horizontal-left' },
+          { value: 'center', icon: 'i-carbon-align-horizontal-center' },
+          { value: 'end', icon: 'i-carbon-align-horizontal-right' },
+        ]"
+        :value="field(['justify'])"
+        @update:value="(v) => set(['justify'], v)"
+      />
+    </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <script setup lang="ts">
-import { coerceBackground, type BackgroundFit } from "~/utils/layoutStyle";
-
 const props = defineProps<{
   components: ComponentModel[];
   nodes: Tree[];
@@ -92,9 +114,6 @@ const props = defineProps<{
 }>();
 
 const DEFAULT_COLOUR = "#FAFAFA";
-
-const one = (value: string | string[]) =>
-  Array.isArray(value) ? value[0]! : value;
 
 const { getNodeComponent } = useNodeComponents();
 const { updateComponent } = useDeckStore();
@@ -109,13 +128,11 @@ const backgroundOptions = computed(() => [
   { value: "image", icon: "i-carbon-image" },
 ]);
 
-const rawBackground = computed(() => field(["background"]));
-
-const mixed = computed(
-  () => props.components.length > 1 && rawBackground.value === undefined,
+const { mixed, paint: background } = usePaintField(
+  () => props.components,
+  field,
+  "background",
 );
-
-const background = computed(() => coerceBackground(rawBackground.value));
 
 const lastColour = ref(DEFAULT_COLOUR);
 const lastImage = ref<{ value: string; fit: BackgroundFit }>({
@@ -140,8 +157,6 @@ watch(
   { immediate: true },
 );
 
-// `background.value` holds the colour and the image name, so a colour binding
-// left behind after a switch would overwrite the image name on the canvas.
 function clearColourBinding() {
   for (const c of props.components) {
     if (!c.data?.[BIND_KEY]?.["background.value"]) continue;
@@ -161,9 +176,6 @@ function setBackgroundType(next: string | string[]) {
   if (type === "colour") {
     set(["background"], { type: "colour", value: lastColour.value });
   } else if (type === "image") {
-    // Seed the first asset rather than "": the select has no empty placeholder,
-    // so a blank value would display the first option while holding nothing —
-    // and picking that option fires no change event, leaving it uncommittable.
     const value = lastImage.value.value || imageOptions.value[0] || "";
 
     set(["background"], { type: "image", ...lastImage.value, value });
@@ -176,10 +188,9 @@ function setFit(next: string | string[]) {
   set(["background"], { ...background.value, fit: one(next) });
 }
 
-// Anchor a group's transform to its children's top-left — mirrors the original
-// single-node behaviour on switch to grid.
 function anchorGroupToChildren(group: Tree) {
   const transform = getNodeComponent(group.id, "core.transform");
+
   if (!transform) return;
 
   let minX = Infinity;
@@ -198,6 +209,7 @@ function anchorGroupToChildren(group: Tree) {
   const data = setNested(
     setNested(transform.data, ["position", "x"], Math.round(minX)),
     ["position", "y"],
+
     Math.round(minY),
   );
 

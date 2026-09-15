@@ -79,8 +79,6 @@
 </template>
 
 <script setup lang="ts">
-import { coerceBackground } from "~/utils/layoutStyle";
-
 const props = defineProps<{
   components: ComponentModel[];
   nodes: Tree[];
@@ -103,7 +101,7 @@ const paintOptions = [
 ];
 
 function setPaint(key: "fill" | "stroke", next: string | string[]) {
-  const type = Array.isArray(next) ? next[0] : next;
+  const type = one(next);
   const previous = field([key]) as { value?: string } | undefined;
 
   set(
@@ -118,7 +116,7 @@ function setPaint(key: "fill" | "stroke", next: string | string[]) {
 }
 
 function setKind(next: string | string[], update: (value: unknown) => void) {
-  const value = Array.isArray(next) ? next[0] : next;
+  const value = one(next);
 
   update(value);
 
@@ -128,16 +126,14 @@ function setKind(next: string | string[], update: (value: unknown) => void) {
 
 const kind = computed(() => field(["kind"]));
 
-const rawFill = computed(() => field(["fill"]));
-const rawStroke = computed(() => field(["stroke"]));
-
-const mixedFill = computed(
-  () => props.components.length > 1 && rawFill.value === undefined,
+const { mixed: mixedFill, paint: fill } = usePaintField(
+  () => props.components,
+  field,
+  "fill",
 );
-const mixedStroke = computed(
-  () => props.components.length > 1 && rawStroke.value === undefined,
+const { mixed: mixedStroke, paint: stroke } = usePaintField(
+  () => props.components,
+  field,
+  "stroke",
 );
-
-const fill = computed(() => coerceBackground(rawFill.value));
-const stroke = computed(() => coerceBackground(rawStroke.value));
 </script>

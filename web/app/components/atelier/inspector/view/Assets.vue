@@ -93,7 +93,7 @@
       <p
         v-if="openModal === 'font' && selectedAsset"
         class="text-3xl"
-        :style="{ fontFamily: selectedAsset.name }"
+        :style="{ fontFamily: selectedFamily }"
       >
         A lazy fox jumps over the lazy dog.
       </p>
@@ -310,6 +310,10 @@ function previewObject(data: any) {
 }
 
 const selectedAsset = ref<Asset>();
+
+const selectedFamily = computed(
+  () => store.fonts.find((f) => f.name === selectedAsset.value?.name)?.family,
+);
 
 const openModal = ref<"image" | "font" | "model">();
 

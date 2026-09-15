@@ -41,6 +41,7 @@
     "nuxt-resend": "^0.0.2",
     "pinia": "^3.0.4",
     "postgres": "^3.4.9",
+    "shiki": "^4.4.3",
     "supabase": "2.2.1",
     "three": "^0.175.0",
     "vue": "latest",

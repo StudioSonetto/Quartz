@@ -46,6 +46,11 @@ export const EMPTY_TREE: Tree = {
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
+export interface RenderSpan {
+  text: string;
+  style?: Record<string, string | number>;
+}
+
 export interface RenderPaint {
   d: string;
   fill: string;
@@ -55,7 +60,7 @@ export interface RenderPaint {
 }
 
 export interface RenderResult {
-  content?: string;
+  content?: string | RenderSpan[];
   style?: Record<string, string | number>;
   component?: Component;
   paint?: RenderPaint;
@@ -84,7 +89,10 @@ export interface ComponentTypeDef {
   inspector: Component;
   defaultData: () => Record<string, any>;
   optional?: boolean;
+  // Unlike accepts/parents, undeclared means every node type.
+  only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
+  fonts?: (data: Record<string, any>) => (string | undefined)[];
 }
 
 export type DefaultComponent =

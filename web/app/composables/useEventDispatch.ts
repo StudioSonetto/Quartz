@@ -3,6 +3,8 @@ export const EVENT_TRIGGERS = ["click", "hover", "key", "enter"] as const;
 export const EVENT_ACTIONS = [
   "setState",
   "toggleState",
+  "animate",
+  "seek",
   "nextSlide",
   "prevSlide",
   "goToSlide",
@@ -16,6 +18,8 @@ export type EventHandler = {
   action: EventAction;
   key?: string;
   state?: string;
+  duration?: number;
+  time?: number;
   slide?: number;
 };
 
@@ -37,9 +41,10 @@ export function useEventDispatch() {
 
     const deck = useDeckStore();
     const { activeState, animateTo } = useAnimationState();
-    const timing =
-      useNodeComponents().getStoredComponent(node.id, "core.animation")?.data ??
-      {};
+    const base = useNodeComponents().getStoredComponent(
+      node.id,
+      "core.base",
+    )?.data;
 
     let ran = false;
 
@@ -56,10 +61,21 @@ export function useEventDispatch() {
 
           if (next === current) break;
 
-          animateTo(node.id, next, timing);
+          animateTo(node.id, next, {
+            ...stateTiming(base, next || current),
+            duration: handler.duration ?? DEFAULT_HANDLER_DURATION,
+          });
           ran = true;
           break;
         }
+        case "animate":
+          usePlayhead().play();
+          ran = true;
+          break;
+        case "seek":
+          usePlayhead().seek(roundTime(Number(handler.time ?? 0)));
+          ran = true;
+          break;
         case "nextSlide":
           deck.nextSlides();
           ran = true;

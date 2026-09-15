@@ -20,6 +20,7 @@ const props = defineProps<{
   name: string;
   path?: string;
   kind?: VariableKind;
+  override?: { value: any; update: (next: unknown) => void };
 }>();
 
 const { components, source } = useBoundSource(() => props.path);
@@ -27,9 +28,15 @@ const { field, set } = useMergedFields(components);
 
 const segments = computed(() => props.path?.split(".") ?? []);
 
-const value = computed(() => (props.path ? field(segments.value) : undefined));
+const value = computed(() => {
+  if (props.override) return props.override.value;
+
+  return props.path ? field(segments.value) : undefined;
+});
 
 function update(next: unknown) {
+  if (props.override) return props.override.update(next);
+
   set(segments.value, next);
 }
 </script>

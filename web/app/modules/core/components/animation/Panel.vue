@@ -4,79 +4,83 @@
     :icon="props.icon"
     :components="props.components"
   >
-    <NodeComponentRow name="states">
-      <NodeComponentList
-        v-if="component"
-        :key="component.node"
-        :count="stateNames.length"
-        @add="addState"
-        @remove="removeState"
-        @select="pick"
-      >
-        <NodeComponentListEntry
-          v-for="(name, index) in stateNames"
-          :key="name"
-          :index="index"
-          :name="name"
-          :active="activeState(component.node) === name"
+    <template v-if="component">
+      <NodeComponentRow name="loop">
+        <NodeComponentRowFieldSelect
+          :options="[{ value: '', label: 'off' }, 'on', 'mirror']"
+          :value="component.data.loop ?? ''"
+          @update:value="setLoop"
         />
-      </NodeComponentList>
-      <p v-else class="states-empty">Select one node to edit states.</p>
-    </NodeComponentRow>
-    <NodeComponentRow
-      name="duration"
-      path="duration"
-      kind="number"
-      v-slot="{ value, update }"
-    >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
-    </NodeComponentRow>
-    <NodeComponentRow
-      name="delay"
-      path="delay"
-      kind="number"
-      v-slot="{ value, update }"
-    >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
-    </NodeComponentRow>
-    <NodeComponentRow
-      name="easing"
-      path="easing"
-      kind="string"
-      v-slot="{ value, update }"
-    >
-      <NodeComponentRowFieldSelect
-        :options="EASING_OPTIONS"
-        :value="value"
-        @update:value="update"
-      />
-    </NodeComponentRow>
-    <NodeComponentRow
-      name="repeat"
-      path="repeat"
-      kind="number"
-      v-slot="{ value, update }"
-    >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
-    </NodeComponentRow>
-    <NodeComponentRow
-      name="repeat type"
-      path="repeatType"
-      kind="string"
-      v-slot="{ value, update }"
-    >
-      <NodeComponentRowFieldSelect
-        :options="REPEAT_TYPES"
-        :value="value"
-        @update:value="update"
-      />
+      </NodeComponentRow>
+      <NodeComponentRow name="playhead">
+        <div class="animation-at">
+          <UIButton
+            variant="icon"
+            aria-label="Previous key"
+            :disabled="prev === undefined"
+            @click="seek(prev!)"
+          >
+            <div class="i-carbon-chevron-left"></div>
+          </UIButton>
+          <span class="animation-time">{{ formatSeconds(now) }}</span>
+          <UIButton
+            variant="icon"
+            aria-label="Next key"
+            :disabled="next === undefined"
+            @click="seek(next!)"
+          >
+            <div class="i-carbon-chevron-right"></div>
+          </UIButton>
+        </div>
+      </NodeComponentRow>
+      <NodeComponentRow v-if="names.length" name="state">
+        <NodeComponentRowFieldSelect
+          :options="stateOptions"
+          :value="stateKeyValue"
+          @update:value="setStateKey"
+        />
+      </NodeComponentRow>
+      <NodeComponentRow v-for="row in rows" :key="row.id" :name="row.label">
+        <p v-if="row.from === undefined" class="animation-muted">first key</p>
+        <div v-else class="animation-key">
+          <p class="animation-muted">from {{ formatSeconds(row.from) }}</p>
+          <NodeComponentRowFieldSelect
+            class="animation-easing"
+            :options="row.options"
+            :value="row.easing"
+            @update:value="row.set"
+          />
+        </div>
+      </NodeComponentRow>
+      <NodeComponentRow v-if="!rows.length" name="keys">
+        <p class="animation-muted">No key at {{ formatSeconds(now) }}.</p>
+      </NodeComponentRow>
+    </template>
+    <NodeComponentRow v-else name="keys">
+      <p class="animation-muted">Select one node.</p>
     </NodeComponentRow>
   </NodeComponent>
 </template>
 
 <style scoped lang="postcss">
-.states-empty {
-  @apply m-0 opacity-60;
+.animation-at {
+  @apply flex items-center gap-2;
+}
+
+.animation-time {
+  @apply tabular-nums;
+}
+
+.animation-key {
+  @apply flex items-center gap-2 flex-1 min-w-0;
+}
+
+.animation-easing {
+  @apply flex-1 min-w-0;
+}
+
+.animation-muted {
+  @apply m-0 opacity-60 whitespace-nowrap;
 }
 </style>
 
@@ -87,66 +91,127 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { updateComponent } = useDeckStore();
-const { getNodeComponents } = useNodeComponents();
-const { activeState, setState, toggleState } = useAnimationState();
+const { patchAnimation } = useDeckStore();
+const { keyTime, seek } = usePlayhead();
+const { getStoredComponent } = useNodeComponents();
 
 const component = computed(() =>
   props.components.length === 1 ? props.components[0] : undefined,
 );
 
-const states = computed<Record<string, any>>(
-  () => component.value?.data?.states ?? {},
+const now = computed(() => keyTime(component.value?.data));
+
+const names = computed(() => {
+  const node = component.value?.node;
+
+  return stateNames(node && getStoredComponent(node, "core.base")?.data);
+});
+
+const stateKey = computed(() =>
+  (component.value?.data.stateKeys as StateKey[] | undefined)?.find(
+    (k) => k.t === now.value,
+  ),
 );
 
-const stateNames = computed(() => Object.keys(states.value));
+const stateOptions = computed(() => [
+  { value: "", label: "no key" },
+  { value: "key:", label: "base" },
+  ...names.value.map((name) => ({ value: `key:${name}`, label: name })),
+]);
 
-function write(next: Record<string, any>) {
+const stateKeyValue = computed(() =>
+  stateKey.value ? `key:${stateKey.value.name}` : "",
+);
+
+function setStateKey(value: string) {
   const target = component.value;
+  const t = now.value;
 
   if (!target) return;
 
-  updateComponent({ ...target, data: { ...target.data, states: next } });
+  patchAnimation(target.node, (data) => ({
+    stateKeys: value
+      ? upsertStateKey(data.stateKeys, t, value.slice("key:".length))
+      : removeStateKey(data.stateKeys, t),
+  }));
 }
 
-function addState() {
+function setLoop(loop: string) {
   const target = component.value;
 
-  if (!target) return;
-
-  let n = 1;
-  while (states.value[`state-${n}`]) n++;
-
-  const overrides: Record<string, any> = {};
-
-  for (const c of getNodeComponents(target.node)) {
-    if (isStateless(c.type)) continue;
-
-    overrides[c.type] = JSON.parse(JSON.stringify(c.data));
-  }
-
-  write({ ...states.value, [`state-${n}`]: { overrides } });
+  if (target) patchAnimation(target.node, () => ({ loop: loop || undefined }));
 }
 
-function removeState(index: number) {
+const STATE_EASING_OPTIONS = [
+  { value: "", label: "state's easing" },
+  ...EASING_OPTIONS,
+];
+
+const lastBefore = (times: number[], t: number) =>
+  times.filter((time) => time < t).at(-1);
+
+const times = computed(() =>
+  [...new Set(keyTimes(component.value?.data))].sort((a, b) => a - b),
+);
+
+const prev = computed(() => lastBefore(times.value, now.value));
+const next = computed(() => times.value.find((t) => t > now.value));
+
+const rows = computed(() => {
   const target = component.value;
-  const name = stateNames.value[index];
 
-  if (!target || !name) return;
+  if (!target) return [];
 
-  if (activeState(target.node) === name) setState(target.node, "");
+  const t = now.value;
+  const stateKeys: StateKey[] = target.data.stateKeys ?? [];
+  const state = stateKey.value;
 
-  const { [name]: _, ...rest } = states.value;
+  const stateRows = state
+    ? [
+        {
+          id: "state",
+          label: "state easing",
+          from: lastBefore(
+            stateKeys.map((k) => k.t),
+            t,
+          ),
+          easing: state.easing ?? "",
+          options: STATE_EASING_OPTIONS,
+          set: (easing: string) =>
+            patchAnimation(target.node, (data) => ({
+              stateKeys: setEasingAt(data.stateKeys, t, easing || undefined),
+            })),
+        },
+      ]
+    : [];
 
-  write(rest);
-}
+  const trackRows = ((target.data.tracks ?? []) as Track[]).flatMap((track) => {
+    const key = track.keys.find((k) => k.t === t);
 
-function pick(index: number) {
-  const target = component.value;
-  const name = stateNames.value[index];
+    if (!key) return [];
 
-  if (!target || !name) return;
+    return {
+      id: `${track.type}:${track.path.join(".")}`,
+      label: track.path.join("."),
+      from: lastBefore(
+        track.keys.map((k) => k.t),
+        t,
+      ),
+      easing: key.easing ?? "linear",
+      options: EASING_OPTIONS,
+      set: (easing: string) =>
+        patchAnimation(target.node, (data) => ({
+          tracks: setKeyEasing(
+            data.tracks,
+            track.type,
+            track.path,
+            t,
+            easing === "linear" ? undefined : easing,
+          ),
+        })),
+    };
+  });
 
-  toggleState(target.node, name, target.data);
-}
+  return [...stateRows, ...trackRows];
+});
 </script>

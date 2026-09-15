@@ -27,6 +27,13 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const focus = ref<AtelierFocus>(null);
 
+  const editingNodeId = ref<string | null>(null);
+  const textSelection = ref<{
+    nodeId: string;
+    start: number;
+    end: number;
+  } | null>(null);
+
   const recentCommands = ref<string[]>([]);
 
   const activeTool = ref<"select" | "pen" | "point">("select");
@@ -112,6 +119,8 @@ export const useAtelierStore = defineStore("atelier", () => {
     collapsedNodeIds,
     openComponentKeys,
     focus,
+    editingNodeId,
+    textSelection,
     recentCommands,
     activeTool,
     editingShapeId,

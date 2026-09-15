@@ -29,6 +29,10 @@ const { data: decks, refresh: refreshDecks } = await useAsyncData(
   async () => await useDeckStore().fetchAllDecks(),
 );
 
+watch(decks, (list) => useSnapshotsStore().fetchCovers(list ?? []), {
+  immediate: true,
+});
+
 onMounted(() => {
   const userId = useAuthStore().user?.id;
 

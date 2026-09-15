@@ -18,7 +18,6 @@
         v-for="node in currentTree.children"
         :key="node.id"
         :node="node"
-        :isLocked="!props.canEdit"
       />
     </template>
     <div v-else class="loader">
@@ -57,6 +56,8 @@ const { imageUrl } = useAssetsStore();
 const assetDrag = useAssetDrag();
 
 const { scopeFor } = useVariableScope();
+
+useTextSelection();
 
 const rootLayout = computed(() => {
   const root = currentTree.value;

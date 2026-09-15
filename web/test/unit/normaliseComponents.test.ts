@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import animation from "~/modules/core/components/animation";
+import base from "~/modules/core/components/base";
 
 function comp(node: string, type: string, data: any) {
   return { node, type, data } as any;
@@ -63,12 +64,8 @@ beforeEach(() => {
         },
       ] as any,
       componentTypes: [
-        {
-          type: "core.base",
-          icon: "i",
-          inspector: {} as any,
-          defaultData: () => ({}),
-        },
+        // The real one — it owns migrating the overrides its states hold.
+        base,
         {
           type: "core.transform",
           icon: "i",
@@ -79,6 +76,12 @@ beforeEach(() => {
             rotation: 0,
             scale: 1,
           }),
+        },
+        {
+          type: "core.event",
+          icon: "i",
+          inspector: {} as any,
+          defaultData: () => ({ handlers: [] }),
         },
         {
           type: "core.layout",
@@ -110,7 +113,6 @@ beforeEach(() => {
                 }
               : data,
         },
-        // The real one — it owns migrating the overrides its states hold.
         animation,
         {
           type: "webgl.model",
@@ -214,12 +216,20 @@ describe("normaliseComponents", () => {
     const components = normaliseComponents(
       [node("r", "core.group", "root")],
       [
-        comp("r", "core.animation", { duration: 5 }),
+        comp("r", "core.animation", {
+          tracks: [
+            {
+              type: "core.layout",
+              path: ["padding"],
+              keys: [{ t: 5, value: 1 }],
+            },
+          ],
+        }),
         comp("r", "core.transform", { position: { x: 9, y: 9, z: 0 } }),
       ],
     );
     const animation = components.find((c) => c.type === "core.animation")!;
-    expect(animation.data.duration).toBe(5);
+    expect(animation.data.tracks).toHaveLength(1);
     expect(components.some((c) => c.type === "core.transform")).toBe(false);
   });
 
@@ -234,21 +244,257 @@ describe("normaliseComponents", () => {
     expect(transform.data.scale).toEqual({ x: 2, y: 2, z: 2 });
   });
 
-  it("migrates animation state overrides, not just the component itself", () => {
+  it("moves states off core.animation and onto core.base, leaving the tracks behind", () => {
+    const tracks = [
+      {
+        type: "core.transform",
+        path: ["position", "x"],
+        keys: [{ t: 0, value: 0 }],
+      },
+    ];
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.animation", {
+          states: { hot: { overrides: {} } },
+          tracks,
+        }),
+      ],
+    );
+
+    const animation = components.find((c) => c.type === "core.animation")!;
+    const stored = components.find((c) => c.type === "core.base")!;
+
+    expect(animation.data.states).toBeUndefined();
+    expect(animation.data.tracks).toEqual(tracks);
+    expect(Object.keys(stored.data.states)).toEqual(["hot"]);
+  });
+
+  it("migrates the overrides a moved state holds, not just the component itself", () => {
     const components = normaliseComponents(
       [node("o1", "webgl.object")],
       [
         comp("o1", "core.animation", {
+          states: { big: { overrides: { "webgl.transform": { scale: 3 } } } },
+        }),
+      ],
+    );
+    const stored = components.find((c) => c.type === "core.base")!;
+
+    expect(stored.data.states.big.overrides["webgl.transform"].scale).toEqual({
+      x: 3,
+      y: 3,
+      z: 3,
+    });
+  });
+
+  it("carries the node's old easing onto each moved state", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.animation", {
+          easing: "linear",
           states: {
-            big: { overrides: { "webgl.transform": { scale: 3 } } },
+            hot: { overrides: {} },
+            cold: { overrides: {}, easing: "ease-in" },
           },
         }),
       ],
     );
-    const animation = components.find((c) => c.type === "core.animation")!;
+    const states = components.find((c) => c.type === "core.base")!.data.states;
 
-    expect(
-      animation.data.states.big.overrides["webgl.transform"].scale,
-    ).toEqual({ x: 3, y: 3, z: 3 });
+    expect(states.hot.easing).toBe("linear");
+    // A state that already carried its own easing keeps it.
+    expect(states.cold.easing).toBe("ease-in");
+  });
+
+  it("carries a legacy node-level duration all the way to the handler", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.animation", {
+          duration: 900,
+          states: { hot: { overrides: {} } },
+        }),
+        comp("t1", "core.event", {
+          handlers: [{ on: "click", action: "setState", state: "hot" }],
+        }),
+      ],
+    );
+    const handlers = components.find((c) => c.type === "core.event")!.data
+      .handlers;
+    const states = components.find((c) => c.type === "core.base")!.data.states;
+
+    expect(handlers[0].duration).toBe(900);
+    expect(states.hot.duration).toBeUndefined();
+  });
+
+  it("leaves an already-moved state alone, so repeated loads do not clobber edits", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: { hot: { overrides: {}, easing: "linear" } },
+        }),
+        comp("t1", "core.animation", {
+          states: { hot: { overrides: {}, easing: "ease-in" } },
+        }),
+      ],
+    );
+    const states = components.find((c) => c.type === "core.base")!.data.states;
+
+    expect(states.hot.easing).toBe("linear");
+  });
+  it("moves a state's duration onto the handlers that name it, and no others", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: { hot: { overrides: {}, duration: 900, easing: "linear" } },
+        }),
+        comp("t1", "core.event", {
+          handlers: [
+            { on: "click", action: "toggleState", state: "hot" },
+            { on: "hover", action: "setState", state: "hot" },
+            { on: "key", action: "setState", state: "cold" },
+            { on: "click", action: "nextSlide" },
+          ],
+        }),
+      ],
+    );
+    const handlers = components.find((c) => c.type === "core.event")!.data
+      .handlers;
+
+    expect(handlers[0].duration).toBe(900);
+    expect(handlers[1].duration).toBe(900);
+    expect(handlers[2].duration).toBeUndefined();
+    expect(handlers[3].duration).toBeUndefined();
+  });
+
+  it("leaves a handler's own duration alone, so the two can diverge", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: { hot: { overrides: {}, duration: 900 } },
+        }),
+        comp("t1", "core.event", {
+          handlers: [
+            { on: "click", action: "setState", state: "hot", duration: 120 },
+          ],
+        }),
+      ],
+    );
+    const handlers = components.find((c) => c.type === "core.event")!.data
+      .handlers;
+
+    expect(handlers[0].duration).toBe(120);
+  });
+
+  it("leaves the state with its overrides and easing only", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: {
+            hot: {
+              overrides: { "core.layout": { padding: 4 } },
+              duration: 900,
+              delay: 50,
+              easing: "linear",
+            },
+          },
+        }),
+      ],
+    );
+    const hot = components.find((c) => c.type === "core.base")!.data.states.hot;
+
+    expect(Object.keys(hot).sort()).toEqual(["easing", "overrides"]);
+    expect(hot.easing).toBe("linear");
+    expect(hot.overrides["core.layout"].padding).toBe(4);
+  });
+
+  it("drops the duration of a state no handler names, rather than throwing", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: { lonely: { overrides: {}, duration: 900 } },
+        }),
+      ],
+    );
+    const states = components.find((c) => c.type === "core.base")!.data.states;
+
+    expect(states.lonely.duration).toBeUndefined();
+    expect(states.lonely.overrides).toEqual({});
+  });
+
+  it("copies nothing on a second load, so a retimed handler survives", () => {
+    const components = normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", { states: { hot: { overrides: {} } } }),
+        comp("t1", "core.event", {
+          handlers: [
+            { on: "click", action: "setState", state: "hot", duration: 120 },
+          ],
+        }),
+      ],
+    );
+    const handlers = components.find((c) => c.type === "core.event")!.data
+      .handlers;
+
+    expect(handlers[0].duration).toBe(120);
+  });
+
+  // Nothing else rewrites a migrated row, so anything not reported here is
+  // lost on the next load.
+  it("reports the rows a migration rewrote, so the caller can persist them", () => {
+    const relocated: any[] = [];
+
+    normaliseComponents(
+      [node("t1", "core.text")],
+      [
+        comp("t1", "core.base", {
+          states: { hot: { overrides: {}, duration: 900 } },
+        }),
+        comp("t1", "core.event", {
+          handlers: [{ on: "click", action: "setState", state: "hot" }],
+        }),
+      ],
+      relocated,
+    );
+
+    expect(relocated.map((c) => c.type).sort()).toEqual([
+      "core.base",
+      "core.event",
+    ]);
+  });
+
+  it("reports both rows when states move off core.animation", () => {
+    const relocated: any[] = [];
+
+    normaliseComponents(
+      [node("t1", "core.text")],
+      [comp("t1", "core.animation", { states: { hot: { overrides: {} } } })],
+      relocated,
+    );
+
+    expect(relocated.map((c) => c.type).sort()).toEqual([
+      "core.animation",
+      "core.base",
+    ]);
+  });
+
+  it("reports nothing when there is nothing to migrate", () => {
+    const relocated: any[] = [];
+
+    normaliseComponents(
+      [node("t1", "core.text")],
+      [comp("t1", "core.base", { states: { hot: { overrides: {} } } })],
+      relocated,
+    );
+
+    expect(relocated).toEqual([]);
   });
 });

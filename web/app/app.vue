@@ -6,13 +6,29 @@
 </template>
 
 <style lang="postcss">
-::selection {
-  @apply bg-light-200 text-dark-900;
+::selection,
+::highlight(quartz-text) {
+  @apply bg-accent text-light-200;
 }
 
 * {
-  @apply m-0 p-0 box-border;
-  @apply font-azeret-mono outline-none;
+  @apply m-0 p-0 box-border outline-none;
+}
+
+body {
+  @apply font-azeret-mono;
+}
+
+button,
+code,
+input,
+kbd,
+optgroup,
+pre,
+samp,
+select,
+textarea {
+  @apply font-inherit;
 }
 
 a,
@@ -69,7 +85,7 @@ form {
 main {
   @apply min-h-screen;
   @apply bg-dark-900 text-light-200;
-  @apply overflow-x-hidden;
+  @apply overflow-x-clip;
 }
 
 select {
@@ -105,6 +121,16 @@ textarea {
 
 .fade-enter-active {
   @apply transition-opacity duration-500;
+}
+
+.fade-fast-enter-active,
+.fade-fast-leave-active {
+  @apply transition-opacity duration-100;
+}
+
+.fade-fast-enter-from,
+.fade-fast-leave-to {
+  @apply opacity-0;
 }
 
 .sortable-ghost {

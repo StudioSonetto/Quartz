@@ -44,9 +44,26 @@
           </NodeComponentRow>
           <NodeComponentRow v-if="isStateAction(handler.action)" name="state">
             <NodeComponentRowFieldDropdown
-              :options="stateNames"
+              :options="names"
               :value="handler.state"
               @update:value="(state: string) => patch(index, { state })"
+            />
+          </NodeComponentRow>
+          <NodeComponentRow v-if="handler.action === 'seek'" name="time">
+            <NodeComponentRowFieldNumber
+              :value="handler.time ?? 0"
+              :min="0"
+              @update:value="(time: number) => patch(index, { time })"
+            />
+          </NodeComponentRow>
+          <NodeComponentRow
+            v-if="isStateAction(handler.action)"
+            name="duration"
+          >
+            <NodeComponentRowFieldNumber
+              :value="handler.duration ?? DEFAULT_HANDLER_DURATION"
+              :min="0"
+              @update:value="(duration: number) => patch(index, { duration })"
             />
           </NodeComponentRow>
           <NodeComponentRow v-if="handler.action === 'goToSlide'" name="slide">
@@ -82,13 +99,10 @@ const handlers = computed<EventHandler[]>(() => {
   return Array.isArray(value) ? value : [];
 });
 
-const stateNames = computed(() => {
+const names = computed(() => {
   const node = component.value?.node;
-  const anim = node
-    ? getNodeComponent(node, "core.animation")?.data
-    : undefined;
 
-  return Object.keys(anim?.states ?? {});
+  return stateNames(node && getNodeComponent(node, "core.base")?.data);
 });
 
 const isStateAction = (action: string) =>
@@ -99,6 +113,8 @@ const title = (handler: EventHandler) =>
 
 function summary(handler: EventHandler) {
   if (handler.action === "goToSlide") return `goToSlide ${handler.slide ?? 0}`;
+  if (handler.action === "seek")
+    return `seek ${formatSeconds(handler.time ?? 0)}`;
 
   if (isStateAction(handler.action))
     return `${handler.action} ${handler.state || "base"}`;
@@ -123,7 +139,15 @@ function patch(index: number, changes: Partial<EventHandler>) {
 }
 
 function add() {
-  write([...handlers.value, { on: "click", action: "toggleState", state: "" }]);
+  write([
+    ...handlers.value,
+    {
+      on: "click",
+      action: "toggleState",
+      state: "",
+      duration: DEFAULT_HANDLER_DURATION,
+    },
+  ]);
 }
 
 function remove(index: number) {

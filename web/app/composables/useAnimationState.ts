@@ -5,52 +5,13 @@ type Transition = { from: string; to: string; t: number };
 
 export type Timing = {
   duration?: number;
-  delay?: number;
   easing?: string;
-  repeat?: number;
-  repeatType?: "loop" | "reverse" | "mirror";
 };
-
-export const REPEAT_TYPES = ["loop", "reverse", "mirror"];
 
 const active = reactive(new Map<string, string>());
 
 const transitions = reactive(new Map<string, Transition>());
 const running = new Map<string, AnimationPlaybackControls>();
-
-export const EASING_OPTIONS = [
-  "linear",
-  "ease-in",
-  "ease-out",
-  "ease-in-out",
-  "back-in",
-  "back-out",
-  "back-in-out",
-  "circ-in",
-  "circ-out",
-  "circ-in-out",
-  "anticipate",
-  "spring",
-];
-
-const motionEase = (easing: string) =>
-  easing.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
-
-function easingOptions(easing?: string): Record<string, any> {
-  if (!easing) return {};
-  if (easing === "spring") return { type: "spring", bounce: 0.25 };
-
-  const bezier = easing.match(/cubic-bezier\(([^)]+)\)/);
-
-  if (bezier) {
-    const points = bezier[1]!.split(",").map((n) => Number(n.trim()));
-
-    if (points.length === 4 && points.every(Number.isFinite))
-      return { ease: points };
-  }
-
-  return { ease: motionEase(easing) };
-}
 
 function halt(nodeId: string) {
   running.get(nodeId)?.stop();
@@ -76,13 +37,7 @@ export function useAnimationState() {
     if (activeState(nodeId) === name) return;
 
     const from = activeState(nodeId);
-    const {
-      duration = 0,
-      delay = 0,
-      easing,
-      repeat = 0,
-      repeatType = "loop",
-    } = timing;
+    const { duration = 0, easing } = timing;
 
     halt(nodeId);
     active.set(nodeId, name);
@@ -95,19 +50,12 @@ export function useAnimationState() {
 
     running.set(
       nodeId,
-      animate(
-        entry,
-        { t: 1 },
-        {
-          duration: duration / 1000,
-          ...(delay ? { delay: delay / 1000 } : {}),
-          ...easingOptions(easing),
-          ...(repeat
-            ? { repeat: repeat < 0 ? Infinity : repeat, repeatType }
-            : {}),
-          onComplete: () => halt(nodeId),
-        },
-      ),
+      animate(0, 1, {
+        duration: duration / 1000,
+        ease: (p: number) => ease(easing, p, duration),
+        onUpdate: (t) => (entry.t = t),
+        onComplete: () => halt(nodeId),
+      }),
     );
   }
 
@@ -122,6 +70,7 @@ export function useAnimationState() {
 
     active.clear();
     transitions.clear();
+    usePlayhead().reset();
   }
 
   return { activeState, transition, setState, animateTo, toggleState, reset };

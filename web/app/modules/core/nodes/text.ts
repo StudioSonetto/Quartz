@@ -1,3 +1,5 @@
+import { typographyStyle } from "../components/typography/style";
+
 export default {
   type: "core.text",
   label: "Text",
@@ -10,47 +12,28 @@ export default {
       const typography = ctx.data(node, "core.typography");
       const transform = ctx.data(node, "core.transform");
 
-      const textDecorations: string[] = [];
-      let fontStyle = "normal";
+      const runs = toRuns(typography.content);
 
-      typography.style.forEach((style: string) => {
-        switch (style) {
-          case "italic":
-            fontStyle = "italic";
-            break;
-          case "underline":
-            textDecorations.push("underline");
-            break;
-          case "strikethrough":
-            textDecorations.push("line-through");
-            break;
-        }
-      });
-
-      const autoWidth = transform.size.width === "auto";
+      const split = runs.some((run) => run.marks?.style !== undefined);
+      const spans = runs.some((run) => run.marks)
+        ? runs.map((run) => ({
+            text: run.text,
+            style: typographyStyle(
+              split ? { style: typography.style, ...run.marks } : run.marks,
+            ),
+          }))
+        : null;
 
       return {
-        content: typography.content,
+        content: spans ?? runsText(runs),
         style: {
           ...boxStyle(transform, ctx.scale),
-          color: typography.colour,
-          fontFamily: typography.font,
-          fontSize: `${typography.size}px`,
-          fontWeight: typography.weight,
-          fontStyle,
-          textDecoration:
-            textDecorations.length > 0 ? textDecorations.join(" ") : "none",
+          ...typographyStyle(typography),
+          ...(split && { textDecoration: "none" }),
+          ...sizeStyle(transform.size),
           textAlign: typography.alignment,
-          width: autoWidth ? "max-content" : `${transform.size.width}px`,
-          height:
-            transform.size.height === "auto"
-              ? "auto"
-              : `${transform.size.height}px`,
           whiteSpace: "pre-wrap",
           lineHeight: typography.lineHeight,
-          letterSpacing: `${typography.letterSpacing}px`,
-          textTransform: typography.textTransform,
-          opacity: typography.opacity,
         },
       };
     },

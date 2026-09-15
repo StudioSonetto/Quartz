@@ -1,8 +1,3 @@
-// Pure serialisation of a `core.layout` component into CSS. No store access and
-// no asset lookup — callers resolve an image name to a URL and pass it in, which
-// keeps this unit-testable and usable from both a node renderer and the slide
-// container.
-
 export type BackgroundFit = "cover" | "contain" | "tile" | "fill";
 
 export type Background =
@@ -68,11 +63,18 @@ export function backgroundStyle(
 }
 
 export function gridStyle(layout: Record<string, any>): Record<string, string> {
-  return {
+  const base = {
     display: "grid",
-    gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
     gap: `${layout.gap}px`,
     padding: `${layout.padding}px`,
     alignItems: layout.align,
+    justifyItems: layout.justify,
   };
+
+  return layout.direction === "horizontal"
+    ? { ...base, gridAutoFlow: "column", gridAutoColumns: "max-content" }
+    : {
+        ...base,
+        gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
+      };
 }

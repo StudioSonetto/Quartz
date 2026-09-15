@@ -26,3 +26,13 @@ export function offsetStyle(position: { x: number; y: number }) {
     top: `${(position.y / 1080) * 100}%`,
   };
 }
+
+export function sizeStyle(size: {
+  width: number | "auto";
+  height: number | "auto";
+}) {
+  return {
+    width: size.width === "auto" ? "max-content" : `${size.width}px`,
+    height: size.height === "auto" ? "auto" : `${size.height}px`,
+  };
+}

@@ -25,13 +25,31 @@ export const canContain = (
   (getNodeType(parentType)?.accepts.includes(childType) ?? false) ||
   (getNodeType(childType)?.parents?.includes(parentType) ?? false);
 
-// A node type the user can create from a menu (vs. one produced only by an
-// operation, e.g. groups via ⌘G). Defaults to creatable.
 export const isCreatable = (t: NodeTypeDef): boolean => t.creatable !== false;
 
-// The node types a user may create directly under a given parent.
 export const creatableTypesFor = (parentType: NodeType): NodeTypeDef[] =>
-  allNodeTypes().filter((t) => isCreatable(t) && canContain(parentType, t.type));
+  allNodeTypes().filter(
+    (t) => isCreatable(t) && canContain(parentType, t.type),
+  );
+
+export const isGuaranteed = (
+  nodeType: NodeType,
+  type: ComponentType,
+): boolean =>
+  getNodeType(nodeType)?.defaultComponents.some(
+    (entry) => entryType(entry) === type,
+  ) ?? false;
+
+export const canAttach = (nodeType: NodeType, type: ComponentType): boolean =>
+  getComponentType(type)?.only?.includes(nodeType) ?? true;
+
+export const optionalComponentsFor = (nodeType: NodeType): ComponentTypeDef[] =>
+  allComponentTypes().filter(
+    (c) =>
+      c.optional &&
+      !isGuaranteed(nodeType, c.type) &&
+      canAttach(nodeType, c.type),
+  );
 
 export const getCommand = (id: string) => commands.get(id);
 export const allCommands = (): Command[] => [...commands.values()];

@@ -4,7 +4,6 @@ import { setActivePinia, createPinia } from "pinia";
 import { buildTree } from "~/utils/tree";
 import { childPath, ROOT_PATH } from "~/utils/nodePath";
 import { useDeckStore } from "~/stores/useDeckStore";
-import { registerModule, __resetRegistry } from "~/modules/registry";
 
 const hoisted = vi.hoisted(() => {
   const fetchMock = () => new Promise(() => {});
@@ -54,33 +53,69 @@ describe("createNode containment guard", () => {
       [
         SLIDE,
         buildTree([
-          { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
+          {
+            id: "root-id",
+            slides: SLIDE,
+            name: "root",
+            path: ROOT_PATH,
+            type: "core.group",
+            reference: null,
+            sort_order: 0,
+          },
         ] as any),
       ],
     ]);
     store.components = new Map([[SLIDE, []]]);
   }
 
-  // A guard that stops throwing looks identical to one that works, and the
-  // webgl.* fixtures cannot be exercised without the private layer attached.
-  it("throws when the parent cannot contain the new type", () => {
-    const store = useDeckStore();
+  function seedTextChild(store: ReturnType<typeof useDeckStore>) {
     seedRootOnly(store);
-    // Add a text node and select it as the (invalid) parent.
+
     const textPath = childPath(ROOT_PATH, TEXT_ID);
     store.trees = new Map([
       [
         SLIDE,
         buildTree([
-          { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
-          { id: TEXT_ID, slides: SLIDE, name: "t", path: textPath, type: "core.text", reference: null, sort_order: 0 },
+          {
+            id: "root-id",
+            slides: SLIDE,
+            name: "root",
+            path: ROOT_PATH,
+            type: "core.group",
+            reference: null,
+            sort_order: 0,
+          },
+          {
+            id: TEXT_ID,
+            slides: SLIDE,
+            name: "t",
+            path: textPath,
+            type: "core.text",
+            reference: null,
+            sort_order: 0,
+          },
         ] as any),
       ],
     ]);
-    store.selectedNodeIds = [store.trees.get(SLIDE)!.children[0]!.id]; // the text node
-    // Pin the message so an unrelated exception can't masquerade as a pass.
-    expect(() => store.createNode("nope", "core.group")).toThrow(
-      /cannot be placed inside/,
+  }
+
+  it("throws when an explicit parent cannot contain the new type", () => {
+    const store = useDeckStore();
+    seedTextChild(store);
+    expect(() =>
+      store.createNode("nope", "core.group", { parentId: TEXT_ID }),
+    ).toThrow(/cannot be placed inside/);
+  });
+
+  it("creates under the nearest accepting ancestor of the selection", () => {
+    const store = useDeckStore();
+    seedTextChild(store);
+
+    const id = store.createNode("ok", "core.group");
+
+    expect(id).toBeTruthy();
+    expect(store.currentFlat().find((n) => n.id === id)?.path).toBe(
+      childPath(ROOT_PATH, id!),
     );
   });
 });

@@ -1,3 +1,5 @@
+import type { Run } from "~/modules/core/components/typography/types";
+
 function caretFromPoint(x: number, y: number): Range | null {
   const pos = document.caretPositionFromPoint?.(x, y);
 
@@ -11,27 +13,77 @@ function caretFromPoint(x: number, y: number): Range | null {
   return range;
 }
 
+function caretAtEnd(el: HTMLElement): Range {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+
+  let last: Node | null = null;
+
+  while (walker.nextNode()) last = walker.currentNode;
+
+  if (last) range.setStart(last, (last.nodeValue ?? "").length);
+  else range.selectNodeContents(el);
+
+  range.collapse(true);
+
+  return range;
+}
+
+function readRuns(el: HTMLElement, runs: Run[]): Run[] {
+  const walker = document.createTreeWalker(
+    el,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+  );
+  const out: Run[] = [];
+  let trailingBr = false;
+
+  for (let cursor = walker.nextNode(); cursor; cursor = walker.nextNode()) {
+    const br = cursor.nodeName === "BR";
+
+    if (cursor.nodeType === Node.ELEMENT_NODE && !br) continue;
+
+    const text = br ? "\n" : (cursor.nodeValue ?? "");
+
+    if (!text) continue;
+
+    const owner = cursor.parentElement?.closest("[data-run]");
+    const marks = owner
+      ? runs[Number(owner.getAttribute("data-run"))]?.marks
+      : undefined;
+
+    out.push(marks ? { text, marks: { ...marks } } : { text });
+    trailingBr = br;
+  }
+
+  if (trailingBr) out.pop();
+
+  return mergeRuns(out);
+}
+
 export function useInlineTextEdit(
   node: () => Tree,
   element: () => HTMLElement | null,
 ) {
   const { getNodeComponent } = useNodeComponents();
   const { updateComponent } = useDeckStore();
+  const atelier = useAtelierStore();
 
-  const editing = ref(false);
+  const editing = computed(() => atelier.editingNodeId === node().id);
+
+  onScopeDispose(() => {
+    if (atelier.editingNodeId === node().id) atelier.editingNodeId = null;
+  });
 
   const typography = () => getNodeComponent(node().id, "core.typography");
 
   const editable = () => !!typography();
 
-  // A bound `content` is re-resolved every render, so an inline edit would be
-  // invisible — and would quietly overwrite the literal kept as the fallback.
   const bound = () => isBound(typography()?.data, "content");
 
   function start(event?: MouseEvent) {
     if (!typography() || bound()) return;
 
-    editing.value = true;
+    atelier.editingNodeId = node().id;
 
     nextTick(() => {
       const el = element();
@@ -45,30 +97,53 @@ export function useInlineTextEdit(
 
       let range = event ? caretFromPoint(event.clientX, event.clientY) : null;
 
-      if (!range || !el.contains(range.startContainer)) {
-        range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false);
-      }
+      if (!range || !el.contains(range.startContainer)) range = caretAtEnd(el);
 
       selection.removeAllRanges();
       selection.addRange(range);
     });
   }
 
+  function keydown(event: KeyboardEvent) {
+    if (!editing.value) return;
+
+    if (["mod+b", "mod+i", "mod+u"].includes(eventToCombo(event))) {
+      event.preventDefault();
+    } else if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      document.execCommand("insertText", false, "\n");
+    }
+  }
+
+  function insert(event: ClipboardEvent | DragEvent) {
+    if (!editing.value) return;
+
+    event.preventDefault();
+
+    const source =
+      "clipboardData" in event ? event.clipboardData : event.dataTransfer;
+    const text = source?.getData("text/plain");
+
+    if (text) document.execCommand("insertText", false, text);
+  }
+
   function save() {
     if (!editing.value) return;
 
-    editing.value = false;
+    atelier.editingNodeId = null;
+
+    window.getSelection()?.removeAllRanges();
 
     const component = typography();
     const el = element();
 
     if (!component || !el) return;
 
-    const content = el.innerText;
+    const runs = readRuns(el, toRuns(component.data.content));
 
-    if (content !== component.data.content) {
+    const content = fromRuns(runs);
+
+    if (!deepEqual(content, component.data.content)) {
       updateComponent({
         ...component,
         data: { ...component.data, content },
@@ -76,5 +151,5 @@ export function useInlineTextEdit(
     }
   }
 
-  return { editing, editable, start, save };
+  return { editing, editable, start, save, keydown, insert };
 }

@@ -25,7 +25,6 @@
       v-for="child in props.node.children"
       :key="child.id"
       :node="child"
-      :isLocked="props.isLocked"
     />
   </div>
 </template>
@@ -76,10 +75,9 @@ useEventListener(window, "pointercancel", () => move.stop());
 
 const props = defineProps<{
   node: Tree;
-  isLocked?: boolean;
 }>();
 
-const locked = computed(() => props.isLocked || isNodeLocked(props.node));
+const locked = computed(() => isNodeLocked(props.node));
 
 const container = useTemplateRef<HTMLElement>("container");
 const border = useTemplateRef<HTMLElement>("border");
@@ -208,10 +206,9 @@ watchThrottled(
 
         if (anyBound(transform.data, ["position.x", "position.y"])) return;
 
-        snapshot.set(node.id, {
-          x: transform.data.position.x,
-          y: transform.data.position.y,
-        });
+        const { position } = renderData(node, "core.transform");
+
+        snapshot.set(node.id, { x: position.x, y: position.y });
       });
 
       startPositions.value = snapshot;
@@ -248,8 +245,15 @@ watchThrottled(
 
       if (!start || !transform) return;
 
-      transform.data.position.x = Math.round(start.x + deltaX);
-      transform.data.position.y = Math.round(start.y + deltaY);
+      updateComponent(
+        withData(transform, {
+          position: {
+            ...transform.data.position,
+            x: Math.round(start.x + deltaX),
+            y: Math.round(start.y + deltaY),
+          },
+        }),
+      );
     });
   },
   { throttle },
@@ -259,14 +263,6 @@ watch(isDragging, (newState) => {
   setIsDragging(newState);
 
   if (!newState) {
-    if (startPositions.value) {
-      for (const node of movable) {
-        const transform = getNodeComponent(node.id, "core.transform");
-
-        if (transform) updateComponent(transform);
-      }
-    }
-
     startPositions.value = null;
     startDrag.value = null;
     startBox = null;

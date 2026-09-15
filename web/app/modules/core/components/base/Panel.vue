@@ -10,6 +10,9 @@
     </NodeComponentRow>
     <p v-if="rejection" class="rejection">{{ rejection }}</p>
     <Sync :nodes="props.nodes" />
+    <NodeComponentRow name="states">
+      <States :components="props.components" />
+    </NodeComponentRow>
     <NodeComponentRow name="variables">
       <Variables :components="props.components" />
     </NodeComponentRow>
@@ -30,8 +33,9 @@
 </style>
 
 <script setup lang="ts">
-// Not auto-imported: Nuxt only scans `app/components/`, not `app/modules/`.
+// Not auto-imported:
 import LinkModal from "./LinkModal.vue";
+import States from "./States.vue";
 import Sync from "./Sync.vue";
 import Variables from "./Variables.vue";
 

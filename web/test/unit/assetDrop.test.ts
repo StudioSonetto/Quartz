@@ -36,6 +36,12 @@ describe("uniqueAssetName", () => {
     ).toBe("logo-2.png");
   });
 
+  it("renames a font whose family is taken", () => {
+    expect(uniqueAssetName("Inter.otf", new Set(["Inter"]))).toBe(
+      "Inter-1.otf",
+    );
+  });
+
   it("appends when there is no extension to split on", () => {
     expect(uniqueAssetName("logo", new Set(["logo"]))).toBe("logo-1");
     expect(uniqueAssetName(".env", new Set([".env"]))).toBe(".env-1");

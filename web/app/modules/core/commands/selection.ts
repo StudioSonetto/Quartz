@@ -52,12 +52,15 @@ const distributeCommands: Command[] = [
   run: () => useAlignment().distribute(axis),
 }));
 
+const withoutRoot = (nodes: Tree[]) =>
+  nodes.filter((n) => n.path !== ROOT_PATH).length;
+
 const groupCommand: Command = {
   id: "core.selection.group",
   title: "Group Selection",
   category: "Arrange",
   icon: "i-carbon-group-objects",
-  when: (ctx) => ctx.unlockedNodes.length >= 2,
+  when: (ctx) => withoutRoot(ctx.unlockedNodes) >= 2,
   run: (ctx) => ctx.deck.groupSelection(),
 };
 
@@ -78,7 +81,7 @@ const duplicateCommand: Command = {
   title: "Duplicate",
   category: "Edit",
   icon: "i-carbon-copy",
-  when: (ctx) => ctx.selectedNodes.length >= 1,
+  when: (ctx) => withoutRoot(ctx.selectedNodes) >= 1,
   run: (ctx) => ctx.deck.duplicateSelection(),
 };
 
@@ -87,7 +90,7 @@ const copyCommand: Command = {
   title: "Copy",
   category: "Edit",
   icon: "i-carbon-copy-file",
-  when: (ctx) => ctx.selectedNodes.length >= 1,
+  when: (ctx) => withoutRoot(ctx.selectedNodes) >= 1,
   undoable: false,
   run: (ctx) => ctx.deck.copySelection(),
 };
@@ -97,7 +100,7 @@ const cutCommand: Command = {
   title: "Cut",
   category: "Edit",
   icon: "i-carbon-cut",
-  when: (ctx) => ctx.unlockedNodes.length >= 1,
+  when: (ctx) => withoutRoot(ctx.unlockedNodes) >= 1,
   run: (ctx) => ctx.deck.cutSelection(),
 };
 

@@ -84,10 +84,15 @@ export function useAlignment() {
 
       if (!t || !offset) continue;
 
-      t.data.position.x = pos.left - offset.x;
-      t.data.position.y = pos.top - offset.y;
-
-      deck.updateComponent(t);
+      deck.updateComponent(
+        withData(t, {
+          position: {
+            ...t.data.position,
+            x: pos.left - offset.x,
+            y: pos.top - offset.y,
+          },
+        }),
+      );
     }
   }
 

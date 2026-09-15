@@ -1,6 +1,5 @@
 import html2canvas from "html2canvas";
 
-// Crops the painted area out of the capture and rescales it to a thumbnail.
 function toPng(captured: HTMLCanvasElement, source: Size) {
   const output = document.createElement("canvas");
 
@@ -33,12 +32,17 @@ export function useSnapshot() {
 
   const { currentSlides, trees } = storeToRefs(useDeckStore());
 
+  const { refreshSnapshot, dropSnapshot } = useSnapshotsStore();
+
   const capture = async () => {
     const slides = currentSlides.value;
+
     if (!slides) return;
 
     const tree = trees.value.get(slides.id);
-    if (!tree || isEmptyTree(tree)) return;
+    if (!tree) return;
+
+    if (isEmptyTree(tree)) return await dropSnapshot(slides.deck, slides.id);
 
     const render = findRenderEl();
     if (!render) return;
@@ -69,36 +73,15 @@ export function useSnapshot() {
       .upload(`${slides.deck}/${slides.id}.png`, blob, {
         upsert: true,
         contentType: "image/png",
+        cacheControl: "31536000",
       });
 
     if (error) throw error;
-  };
 
-  const fetch = async (
-    deck: string = currentSlides.value?.deck ?? "",
-    slides: string = currentSlides.value?.id ?? "",
-  ) => {
-    const current = currentSlides.value;
-    if (current?.id === slides) {
-      const tree = trees.value.get(current.id);
-      if (!tree || isEmptyTree(tree)) return;
-    }
-
-    const { data, error } = await client.storage.from("snapshots").list(deck, {
-      search: `${slides}.png`,
-    });
-
-    if (error) return;
-
-    const file = data?.find((object) => object.name === `${slides}.png`);
-
-    if (!file) return;
-
-    return await signStorageObject("snapshots", deck, file.name);
+    await refreshSnapshot(slides.deck, slides.id);
   };
 
   return {
     capture,
-    fetch,
   };
 }

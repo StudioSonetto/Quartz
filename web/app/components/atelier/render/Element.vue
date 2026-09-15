@@ -3,7 +3,6 @@
     v-if="render?.component"
     :is="render.component"
     :node="props.node"
-    :isLocked="props.isLocked"
   />
   <Component
     v-else-if="render?.element"
@@ -15,7 +14,7 @@
     ref="element"
     class="element"
     :tabindex="0"
-    :contenteditable="editing ? 'plaintext-only' : 'false'"
+    :contenteditable="editing ? 'true' : 'false'"
     @click="onClick"
     @mousedown="onSelect"
     @mouseenter="onHover"
@@ -26,13 +25,23 @@
     @blur="saveEditing"
     @click.right="clear"
     @keydown="onKeydown"
-  ><AtelierRenderPaint v-if="render.paint" :paint="render.paint" />{{
-      render.content
-    }}<AtelierRenderElement
+    @paste="editInsert"
+    @drop="editInsert"
+    ><AtelierRenderPaint v-if="render.paint" :paint="render.paint" /><template
+      v-if="Array.isArray(render.content)"
+      ><span
+        v-for="(span, index) in render.content"
+        :key="index"
+        :data-run="index"
+        :style="span.style"
+        class="text-run"
+        >{{ span.text }}</span
+      ></template
+    ><template v-else>{{ render.content }}</template
+    ><AtelierRenderElement
       v-for="child in props.node.children"
       :key="child.id"
       :node="child"
-      :isLocked="props.isLocked"
     />
   </Component>
 </template>
@@ -41,13 +50,21 @@
 .element {
   @apply absolute transform-origin-top-left border-rd;
 }
+
+.element[contenteditable="false"] .text-run {
+  @apply pointer-events-none;
+}
 </style>
 
 <script setup lang="ts">
 const { resolveRender } = useElementRenderer();
 const deck = useDeckStore();
 const { updateComponent } = deck;
-const { getNodeComponent, isGridChild: isNodeGridChild } = useNodeComponents();
+const {
+  getNodeComponent,
+  renderData,
+  isGridChild: isNodeGridChild,
+} = useNodeComponents();
 
 const atelier = useAtelierStore();
 const { setIsDragging, setHovered } = atelier;
@@ -68,18 +85,19 @@ const element = useTemplateRef<HTMLElement>("element");
 
 const props = defineProps<{
   node: Tree;
-  isLocked?: boolean;
 }>();
 
 const isGridChild = computed(() => isNodeGridChild(props.node));
 
-const locked = computed(() => props.isLocked || isNodeLocked(props.node));
+const locked = computed(() => presenting.value || isNodeLocked(props.node));
 
 const {
   editing,
   editable,
   start: startEditing,
   save: saveEditing,
+  keydown: editKeydown,
+  insert: editInsert,
 } = useInlineTextEdit(
   () => props.node,
   () => element.value,
@@ -92,10 +110,19 @@ function onDoubleClick(event: MouseEvent) {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  editKeydown(event);
+
+  if (event.defaultPrevented) return;
+
   switch (event.key) {
     case "Escape":
-      if (editing.value) saveEditing();
-      else clear();
+      event.preventDefault();
+
+      if (editing.value) {
+        saveEditing();
+
+        atelier.textSelection = null;
+      } else clear();
 
       return;
     case "ArrowUp":
@@ -123,7 +150,7 @@ const { x, y, isDragging } = useDraggable(element, {
   exact: true,
   disabled: computed(() => editing.value || atelier.activeTool !== "select"),
   onStart: (position, event) => {
-    if (props.isLocked) return;
+    if (presenting.value) return;
 
     const drag = getNodeType(props.node.type)?.drag?.(props.node, event);
 
@@ -192,11 +219,10 @@ watchThrottled(
 
       if (!box) return;
 
+      const { position } = renderData(props.node, "core.transform");
+
       dragStart.value = {
-        transform: {
-          x: transform.data.position.x,
-          y: transform.data.position.y,
-        },
+        transform: { x: position.x, y: position.y },
         pointer: { x: newX, y: newY },
         box,
       };
@@ -216,10 +242,15 @@ watchThrottled(
       top: box.top + (newY - pointer.y) * scaleY,
     });
 
-    transform.data.position.x = Math.round(
-      startPos.x + snapped.left - box.left,
+    updateComponent(
+      withData(transform, {
+        position: {
+          ...transform.data.position,
+          x: Math.round(startPos.x + snapped.left - box.left),
+          y: Math.round(startPos.y + snapped.top - box.top),
+        },
+      }),
     );
-    transform.data.position.y = Math.round(startPos.y + snapped.top - box.top);
   },
   { throttle },
 );
@@ -232,10 +263,6 @@ watch(isDragging, (newState) => {
       if (gesture.moved) gesture.drag.end?.();
 
       gesture = null;
-    } else if (dragStart.value) {
-      const transform = getNodeComponent(props.node.id, "core.transform");
-
-      if (transform) updateComponent(transform);
     }
 
     dragStart.value = null;
@@ -256,7 +283,7 @@ const elementStyle = computed(() => {
 
   const style =
     base && isGridChild.value
-      ? { ...base, position: "static", left: "", top: "", transform: "" }
+      ? { ...base, position: "relative", left: "", top: "", transform: "" }
       : base;
 
   const def = getNodeType(props.node.type);
@@ -280,15 +307,15 @@ function onSelect(event: MouseEvent) {
 
   if (atelier.activeTool !== "select") return;
 
-  if (props.isLocked) return;
-
   if (editing.value) {
     event.stopPropagation();
 
     return;
   }
 
-  const picked = getNodeType(props.node.type)?.pick?.(props.node, event);
+  atelier.textSelection = null;
+
+  const picked = pickAt(event);
 
   const target =
     picked ??
@@ -302,8 +329,23 @@ function onSelect(event: MouseEvent) {
 function onClick(event: MouseEvent) {
   if (!presenting.value) return onSelect(event);
 
-  if (fire(props.node, "click")) event.stopPropagation();
+  const picked = pickAt(event);
+
+  if ((picked && fire(picked, "click")) || fire(props.node, "click"))
+    event.stopPropagation();
 }
+
+const pickAt = (event: MouseEvent) =>
+  getNodeType(props.node.type)?.pick?.(props.node, event);
+
+// Picking a 3D object is a raycast, so a slide with no hover events skips it.
+const hoverable = computed(() =>
+  flattenTree(props.node).some((n) =>
+    getNodeComponent(n.id, "core.event")?.data.handlers?.some(
+      (h: EventHandler) => h.on === "hover",
+    ),
+  ),
+);
 
 function onHover() {
   if (presenting.value) fire(props.node, "hover");
@@ -313,30 +355,31 @@ const picked = ref<string | null>(null);
 
 let pickFrame = 0;
 
-// A locked node still resolves a pick; only the node itself is unhoverable.
 function hoverTarget() {
   return picked.value ?? (locked.value ? null : props.node.id);
 }
 
 function onPointerMove(event: MouseEvent) {
-  if (presenting.value || props.isLocked || isDragging.value || pickFrame)
-    return;
-
-  const pick = getNodeType(props.node.type)?.pick;
-
-  if (!pick) return;
+  if (isDragging.value || pickFrame) return;
+  if (!getNodeType(props.node.type)?.pick) return;
+  if (presenting.value && !hoverable.value) return;
 
   pickFrame = requestAnimationFrame(() => {
     pickFrame = 0;
 
-    picked.value = pick(props.node, event)?.id ?? null;
+    const hit = pickAt(event);
 
-    setHovered(hoverTarget());
+    // A picked node has no element to enter, so moving onto it is its hover.
+    if (presenting.value && hit && hit.id !== picked.value) fire(hit, "hover");
+
+    picked.value = hit?.id ?? null;
+
+    if (!presenting.value) setHovered(hoverTarget());
   });
 }
 
 function onMouseOver(event: MouseEvent) {
-  if (presenting.value || props.isLocked) return;
+  if (presenting.value) return;
 
   event.stopPropagation();
 
@@ -349,8 +392,6 @@ function clearHover() {
     pickFrame = 0;
   }
 
-  // Clears whatever this element could have set, lock or not: locking mid-hover
-  // would otherwise strand the outline on the node.
   const mine = picked.value ?? props.node.id;
 
   picked.value = null;
@@ -380,10 +421,17 @@ function nudge(dx: number, dy: number, event: KeyboardEvent) {
 
   history.captureCurrent(`nudge:${props.node.id}`);
 
-  transform.data.position.x += dx * step;
-  transform.data.position.y += dy * step;
+  const { position } = renderData(props.node, "core.transform");
 
-  updateComponent(transform);
+  updateComponent(
+    withData(transform, {
+      position: {
+        ...transform.data.position,
+        x: position.x + dx * step,
+        y: position.y + dy * step,
+      },
+    }),
+  );
 }
 
 onUnmounted(clearHover);

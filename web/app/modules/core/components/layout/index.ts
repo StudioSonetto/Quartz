@@ -6,10 +6,12 @@ export default {
   inspector: Panel,
   defaultData: () => ({
     mode: "free",
+    direction: "vertical",
     background: { type: "none" },
     padding: 0,
     columns: 1,
     gap: 0,
     align: "start",
+    justify: "start",
   }),
 };

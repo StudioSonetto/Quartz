@@ -9,23 +9,20 @@
   @apply relative w-full h-full border-rd overflow-hidden;
 
   img {
-    @apply absolute inset-0 w-full h-full object-cover;
+    @apply absolute w-full h-full object-cover;
   }
 }
 </style>
 
 <script setup lang="ts">
-const { fetchSlides } = useDeckStore();
+const { snapshotUrl, coverUrl } = useSnapshotsStore();
 
 const props = defineProps<{
   deck: string;
   slides?: string;
 }>();
 
-// TODO: Replace with useAsyncData.
-const url = asyncComputed(async () => {
-  const slideId = props.slides ?? (await fetchSlides(props.deck, 0)).id;
-
-  return await useSnapshot().fetch(props.deck, slideId);
-});
+const url = computed(() =>
+  props.slides ? snapshotUrl(props.slides) : coverUrl(props.deck),
+);
 </script>

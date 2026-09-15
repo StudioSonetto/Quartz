@@ -145,8 +145,6 @@ function frame() {
 
 type Frame = NonNullable<ReturnType<typeof frame>>;
 
-// getBoundingClientRect returns the ROTATED bounding box, whose centre is
-// still the true rotation centre — so rotate around that, not the AABB size.
 function toLocal(event: PointerEvent, f = frame()) {
   if (!f) return null;
 
@@ -325,17 +323,23 @@ function commitPoints(next: Point[], label: string) {
   const { points: refit, dx, dy } = refitPoints(next);
   const bounds = pathBounds(refit);
 
-  path.data.points = refit;
-  updateComponent(path);
+  const { position } = renderData(node, "core.transform");
 
-  transform.data.position.x += dx;
-  transform.data.position.y += dy;
-  // A zero-extent viewBox disables SVG rendering, and a straight line has one.
-  transform.data.size = {
-    width: Math.max(1, bounds.width),
-    height: Math.max(1, bounds.height),
-  };
-  updateComponent(transform);
+  updateComponent(withData(path, { points: refit }));
+
+  updateComponent(
+    withData(transform, {
+      position: {
+        ...transform.data.position,
+        x: position.x + dx,
+        y: position.y + dy,
+      },
+      size: {
+        width: Math.max(1, bounds.width),
+        height: Math.max(1, bounds.height),
+      },
+    }),
+  );
 
   end();
 }
@@ -457,10 +461,6 @@ function startPath(event: PointerEvent) {
   const origin = toCanvas(event);
 
   if (!origin) return;
-
-  const parentType = soleSelected.value?.type ?? "core.group";
-
-  if (!canContain(parentType, "core.shape")) useNodeSelection().clear();
 
   const endCreate = history.begin("Draw path");
   const id = deck.createNode("Path", "core.shape", { position: origin });

@@ -27,9 +27,10 @@ function fontshareCssUrl(families: readonly string[]): string {
 export function fontsInComponents(
   components: readonly ComponentModel[],
 ): string[] {
-  const fields = components
-    .filter((component) => component.type === "core.typography")
-    .map((component) => component.data?.font);
+  const fields = components.flatMap(
+    (component) =>
+      getComponentType(component.type)?.fonts?.(component.data) ?? [],
+  );
 
   return [...new Set(fields)].filter(
     (font): font is string => typeof font === "string" && !!font,

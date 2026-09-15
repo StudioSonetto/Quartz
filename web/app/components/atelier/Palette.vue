@@ -1,46 +1,52 @@
 <template>
   <!-- Not using Modal.vue because can't be called "easily" -->
-  <div
-    v-if="atelier.paletteOpen"
-    class="palette-container"
-    @click.self="atelier.closePalette()"
-    @keydown.esc.prevent="atelier.closePalette()"
-    @keydown.down.prevent="move(1)"
-    @keydown.up.prevent="move(-1)"
-    @keydown.enter.prevent="invokeActive()"
-  >
-    <div class="palette">
-      <input
-        ref="inputEl"
-        v-model="query"
-        class="palette-searchbar"
-        placeholder="Type a command, @node, or :slide"
-      />
-      <ul ref="listEl" class="palette-commands">
-        <p v-if="!rows.length" class="p-3 opacity-50 ui-text-3">No matches.</p>
-        <li
-          v-for="row in rows"
-          :key="row.key"
-          class="palette-commands-item"
-          :data-active="row.enabled && row.key === activeKey ? '' : null"
-          :class="[
-            !row.enabled && 'opacity-60 !cursor-not-allowed',
-            row.enabled && row.key === activeKey && 'bg-dark-500',
-          ]"
-          @mouseenter="
-            row.enabled &&
-            (activeIndex = selectableRows.findIndex((r) => r.key === row.key))
-          "
-          @click="row.invoke()"
-        >
-          <span v-if="row.icon" :class="row.icon" />
-          <span class="flex-1">{{ row.title }}</span>
-          <span v-if="row.category" class="opacity-40">{{ row.category }}</span>
-          <kbd v-if="row.hint" class="opacity-60">{{ row.hint }}</kbd>
-        </li>
-      </ul>
+  <Transition name="palette">
+    <div
+      v-if="atelier.paletteOpen"
+      class="palette-container"
+      @click.self="atelier.closePalette()"
+      @keydown.esc.prevent="atelier.closePalette()"
+      @keydown.down.prevent="move(1)"
+      @keydown.up.prevent="move(-1)"
+      @keydown.enter.prevent="invokeActive()"
+    >
+      <div class="palette">
+        <input
+          ref="inputEl"
+          v-model="query"
+          class="palette-searchbar"
+          placeholder="Type a command, @node, or :slide"
+        />
+        <ul ref="listEl" class="palette-commands">
+          <p v-if="!rows.length" class="p-3 opacity-50 ui-text-3">
+            No matches.
+          </p>
+          <li
+            v-for="row in rows"
+            :key="row.key"
+            class="palette-commands-item"
+            :data-active="row.enabled && row.key === activeKey ? '' : null"
+            :class="[
+              !row.enabled && 'opacity-60 !cursor-not-allowed',
+              row.enabled && row.key === activeKey && 'bg-dark-500',
+            ]"
+            @mouseenter="
+              row.enabled &&
+              (activeIndex = selectableRows.findIndex((r) => r.key === row.key))
+            "
+            @click="row.invoke()"
+          >
+            <span v-if="row.icon" :class="row.icon" />
+            <span class="flex-1">{{ row.title }}</span>
+            <span v-if="row.category" class="opacity-40">{{
+              row.category
+            }}</span>
+            <kbd v-if="row.hint" class="opacity-60">{{ row.hint }}</kbd>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped lang="postcss">
@@ -66,6 +72,28 @@
         @apply transition-colors;
       }
     }
+  }
+}
+
+.palette-enter-active,
+.palette-leave-active {
+  @apply transition-opacity;
+
+  .palette {
+    @apply transition-transform;
+  }
+}
+
+.palette-leave-active {
+  @apply pointer-events-none;
+}
+
+.palette-enter-from,
+.palette-leave-to {
+  @apply opacity-0;
+
+  .palette {
+    @apply scale-95;
   }
 }
 </style>

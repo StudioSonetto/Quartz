@@ -28,6 +28,6 @@ const { field } = useMergedFields(() => props.components);
 const count = computed(() => (field(["points"]) ?? []).length);
 
 function toClosed(value: string | string[]) {
-  return (Array.isArray(value) ? value[0] : value) === "closed";
+  return one(value) === "closed";
 }
 </script>

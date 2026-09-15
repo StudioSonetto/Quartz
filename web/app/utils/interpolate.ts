@@ -7,12 +7,25 @@ function blendHex(from: string, to: string, t: number): string {
     const a = parseInt(from.slice(i, i + 2), 16);
     const b = parseInt(to.slice(i, i + 2), 16);
 
-    out += Math.round(a + (b - a) * t)
+    // Spring and back easings overshoots.
+    out += Math.min(255, Math.max(0, Math.round(a + (b - a) * t)))
       .toString(16)
       .padStart(2, "0");
   }
 
   return out;
+}
+
+export const isBlendable = (value: unknown) =>
+  typeof value === "number" || (typeof value === "string" && HEX.test(value));
+
+export function blendValue(a: any, b: any, t: number): any {
+  if (typeof a === "number" && typeof b === "number") return a + (b - a) * t;
+  if (typeof a === "string" && HEX.test(a) && HEX.test(b ?? ""))
+    return blendHex(a, b, t);
+  if (isPlainObject(a) && isPlainObject(b)) return blendData(a, b, t);
+
+  return t < 0.5 ? a : b;
 }
 
 export function blendData(
@@ -22,20 +35,8 @@ export function blendData(
 ): Record<string, any> {
   const out: Record<string, any> = { ...from };
 
-  for (const key of Object.keys(to)) {
-    const a = from?.[key];
-    const b = to[key];
-
-    if (typeof a === "number" && typeof b === "number") {
-      out[key] = a + (b - a) * t;
-    } else if (typeof a === "string" && HEX.test(a) && HEX.test(b ?? "")) {
-      out[key] = blendHex(a, b, t);
-    } else if (isPlainObject(a) && isPlainObject(b)) {
-      out[key] = blendData(a, b, t);
-    } else {
-      out[key] = t < 0.5 ? a : b;
-    }
-  }
+  for (const key of Object.keys(to))
+    out[key] = blendValue(from?.[key], to[key], t);
 
   return out;
 }

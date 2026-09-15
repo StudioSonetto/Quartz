@@ -1,11 +1,17 @@
 export type Asset = { name: string; url: string };
 
+export type FontAsset = Asset & { family: string };
+
 export const useAssetsStore = defineStore("assets", () => {
   const client = useSupabaseClient();
 
-  const assets = ref<Asset[]>([]);
+  const { cached, fresh, list, sign, store } = useSignedBucket("assets");
 
   const LIST_LIMIT = 1000;
+
+  const assets = computed<Asset[]>(() =>
+    Object.entries(cached.value.urls).map(([name, url]) => ({ name, url })),
+  );
 
   const images = computed(() => {
     return assets.value.filter((asset) => isImage(asset.name));
@@ -21,9 +27,11 @@ export const useAssetsStore = defineStore("assets", () => {
     return imageUrls.value.get(name);
   }
 
-  const fonts = computed(() => {
-    return assets.value.filter((asset) => isFont(asset.name));
-  });
+  const fonts = computed<FontAsset[]>(() =>
+    assets.value
+      .filter((asset) => isFont(asset.name))
+      .map((asset) => ({ ...asset, family: assetStem(asset.name) })),
+  );
 
   const models = computed(() => {
     return assets.value.filter((asset) => isModel(asset.name));
@@ -41,131 +49,40 @@ export const useAssetsStore = defineStore("assets", () => {
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
 
-  const loadedDeck = ref("");
-  const signedAt = ref(0);
-
-  const cached = useLocalStorage<{
-    deck: string;
-    at: number;
-    urls: Record<string, string>;
-  }>("quartz-asset-urls", { deck: "", at: 0, urls: {} });
-
-  function reusable(deck: string) {
-    if (deck === loadedDeck.value && !signaturesStale(signedAt.value)) {
-      const held = assets.value.map((a) => [a.name, a.url] as const);
-
-      return { at: signedAt.value, urls: new Map(held) };
-    }
-
-    if (cached.value.deck === deck && !signaturesStale(cached.value.at)) {
-      return {
-        at: cached.value.at,
-        urls: new Map(Object.entries(cached.value.urls)),
-      };
-    }
-
-    return { at: 0, urls: new Map<string, string>() };
-  }
-
-  async function resolveAssets(
-    deck: string,
-    names: string[],
-    reuse = new Map<string, string>(),
-  ) {
-    const missing = names.filter((name) => !reuse.has(name));
-
-    const signed = missing.length
-      ? await signStorageObjects("assets", deck, missing)
-      : new Map<string, string>();
-
-    if (!signed) return null;
-
-    return names.flatMap((name) => {
-      const url = reuse.get(name) ?? signed.get(name);
-
-      return url ? [{ name, url }] : [];
-    });
-  }
-
   async function fetchAssets(deck: string) {
-    const { data, error } = await client.storage
-      .from("assets")
-      .list(deck, { limit: LIST_LIMIT });
+    const names = await list(deck);
 
-    if (error) {
-      console.error(error);
-    }
+    if (!names) return;
 
-    if (!data) return;
+    const reusable = fresh(deck);
 
-    const { at, urls } = reusable(deck);
+    const urls = await sign(deck, names, reusable ? cached.value.urls : {});
 
-    const resolved = await resolveAssets(
-      deck,
-      data.map((asset) => asset.name),
-      urls,
-    );
+    if (!urls) return;
 
-    if (!resolved) return;
-
-    loadedDeck.value = deck;
-    assets.value = resolved;
-    signedAt.value = urls.size ? at : Date.now();
-
-    cached.value = {
-      deck,
-      at: signedAt.value,
-      urls: Object.fromEntries(resolved.map((a) => [a.name, a.url])),
-    };
+    store(deck, urls, reusable ? cached.value.at : Date.now());
 
     await serveFonts(deck);
   }
-
-  let resigning = false;
-
-  async function resign() {
-    const deck = loadedDeck.value;
-
-    if (resigning || !deck || !assets.value.length) return;
-    if (!signaturesStale(signedAt.value)) return;
-
-    resigning = true;
-
-    const resolved = await resolveAssets(
-      deck,
-      assets.value.map((asset) => asset.name),
-    );
-
-    if (resolved && loadedDeck.value === deck) {
-      assets.value = resolved;
-      signedAt.value = Date.now();
-    }
-
-    resigning = false;
-  }
-
-  watch(useDocumentVisibility(), (state) => {
-    if (state === "visible") resign();
-  });
-
-  useEventListener(["focus", "online"], resign);
 
   async function uploadAssets(deck: string, files: File[]) {
     const { data: stored } = await client.storage
       .from("assets")
       .list(deck, { limit: LIST_LIMIT });
 
-    const taken = new Set([
-      ...assets.value.map((a) => a.name),
-      ...(stored ?? []).map((a) => a.name),
-    ]);
+    const taken = new Set(
+      [
+        ...assets.value.map((a) => a.name),
+        ...(stored ?? []).map((a) => a.name),
+      ].map(assetKey),
+    );
 
     const planned = files.flatMap((file) => {
       if (!assetKind(file.name)) return [];
 
       const name = uniqueAssetName(file.name, taken);
 
-      taken.add(name);
+      taken.add(assetKey(name));
 
       return [{ file, name }];
     });
@@ -185,10 +102,10 @@ export const useAssetsStore = defineStore("assets", () => {
     const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));
 
     if (names.size) {
-      const added = await resolveAssets(deck, [...names]);
+      const added = await sign(deck, [...names]);
 
       if (added) {
-        assets.value = [...assets.value, ...added];
+        store(deck, { ...cached.value.urls, ...added }, cached.value.at);
 
         await serveFonts(deck);
       }
@@ -219,8 +136,7 @@ export const useAssetsStore = defineStore("assets", () => {
     await Promise.all(
       pending.map(async (font) => {
         try {
-          const fontName = font.name.split(".")[0] ?? font.name;
-          const fontFace = new FontFace(fontName, `url(${font.url})`);
+          const fontFace = new FontFace(font.family, `url(${font.url})`);
 
           await fontFace.load();
 

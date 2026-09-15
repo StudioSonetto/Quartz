@@ -35,6 +35,7 @@ type RealtimeChannel = ReturnType<typeof client.channel>;
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { slides, deckTitle } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
+const { fetchSnapshots } = useSnapshotsStore();
 const sync = useDeckSync();
 const atelier = useAtelierStore();
 useKeybindings();
@@ -48,15 +49,13 @@ const flushOnHide = () => {
 };
 const flushOnPageHide = () => sync.flushBeacon();
 
-const { data: deck, refresh: refreshDeck } = await useAsyncData(
-  "deck",
-  async () => await fetchDeck(useRoute().params.id as string),
-);
-
-const { refresh: refreshSlides } = await useAsyncData(
-  "slides",
-  async () => await fetchAllSlides(useRoute().params.id as string),
-);
+const [{ data: deck, refresh: refreshDeck }, { refresh: refreshSlides }] =
+  await Promise.all([
+    useAsyncData("deck", async () => fetchDeck(useRoute().params.id as string)),
+    useAsyncData("slides", async () =>
+      fetchAllSlides(useRoute().params.id as string),
+    ),
+  ]);
 
 onMounted(async () => {
   snapshotScheduler.start();
@@ -108,7 +107,7 @@ onMounted(async () => {
     )
     .subscribe();
 
-  await fetchAssets(deck.value?.id as string);
+  await Promise.all([fetchAssets(id), fetchSnapshots(id)]);
 });
 
 onUnmounted(() => {
