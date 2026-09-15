@@ -7,7 +7,7 @@
     }"
   >
     <div class="bar">
-      <h1>quartz</h1>
+      <NuxtLink to="/" class="brand">quartz</NuxtLink>
       <nav class="links">
         <NuxtLink v-for="link in LINKS" :key="link.label" :to="link.to">
           {{ link.label }}
@@ -67,8 +67,8 @@
   @apply transition-opacity duration-500;
   @apply overflow-hidden select-none;
 
-  h1 {
-    @apply ui-text-5;
+  .brand {
+    @apply ui-text-5 font-semibold;
   }
 
   .bar {

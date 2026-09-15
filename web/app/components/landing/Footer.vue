@@ -5,8 +5,8 @@
       <p class="mt-6">© {{ new Date().getFullYear() }} Sonetto</p>
     </div>
     <nav class="links">
-      <NuxtLink to="/">Privacy Policy</NuxtLink>
-      <NuxtLink to="/">Terms of Service</NuxtLink>
+      <NuxtLink to="/legal/privacy">Privacy Policy</NuxtLink>
+      <NuxtLink to="/legal/terms">Terms of Service</NuxtLink>
     </nav>
   </footer>
 </template>

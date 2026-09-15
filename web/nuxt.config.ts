@@ -51,6 +51,7 @@ export default defineNuxtConfig({
   routeRules: {
     "/": { prerender: true },
     "/docs/**": { prerender: true },
+    "/legal/**": { prerender: true },
     ...Object.fromEntries(
       spaRoutes.map((route) => [`${route}/**`, { ssr: false }]),
     ),
