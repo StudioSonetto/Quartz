@@ -91,7 +91,7 @@ export function cloneSubtree(
       }
 
       if (c.type === "core.animation") {
-        for (const track of data.tracks ?? []) {
+        for (const track of (data.tracks ?? []) as Track[]) {
           const [field, axis] = track.path;
 
           if (track.type !== "core.transform" || field !== "position") continue;
