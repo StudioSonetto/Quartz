@@ -10,7 +10,7 @@
 
 <style scoped lang="postcss">
 .dashboard-header {
-  @apply w-full h-16 px-6 select-none;
+  @apply w-full h-16 px-6 select-none bg-dark-800;
   @apply border-solid border-0 border-b-1 border-dark-200;
   @apply flex items-center justify-between;
 

@@ -2,22 +2,25 @@
   <aside class="sidebar">
     <div class="brand">
       <h1>quartz</h1>
-      <span>v0.0.0</span>
+      <span>beta</span>
     </div>
     <nav>
-      <p class="label">{{ authStore.user?.email }}</p>
       <NuxtLink to="/atelier" class="item" exact-active-class="active">
         <div class="i-carbon-table"></div>
         Decks
       </NuxtLink>
-      <NuxtLink to="/templates" class="item" active-class="active">
+      <NuxtLink to="/docs" class="item" active-class="active">
+        <div class="i-carbon-rocket"></div>
+        Get Started
+      </NuxtLink>
+      <div class="item disabled">
         <div class="i-carbon-folder"></div>
         Templates
-      </NuxtLink>
-      <NuxtLink to="/settings" class="item" active-class="active">
+      </div>
+      <div class="item disabled">
         <div class="i-carbon-settings"></div>
         Settings
-      </NuxtLink>
+      </div>
     </nav>
     <UIButton variant="ghost" class="signOut" @click="authStore.signOut()">
       <div class="i-carbon-arrow-left"></div>
@@ -49,10 +52,6 @@
   nav {
     @apply flex-1 px-3 py-4 flex flex-col gap-1;
 
-    .label {
-      @apply uppercase ui-text-3 opacity-40 tracking-wider px-3 mb-2;
-    }
-
     .item {
       @apply flex items-center gap-3 px-3 py-2 border-rd;
       @apply ui-text-3 text-light-200/60 transition-colors;
@@ -60,6 +59,10 @@
 
       [class*="i-"] {
         @apply ui-text-4 flex-shrink-0;
+      }
+
+      &.disabled {
+        @apply opacity-60 pointer-event-none;
       }
 
       &.active {

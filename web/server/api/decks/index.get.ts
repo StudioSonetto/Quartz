@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
       last_modified: decks.last_modified,
       cover: sql<string | null>`(
         select s.id from ${slides} s
-        where s.deck = ${decks.id} and s.index = 0
+        where s.deck = "decks"."id" and s.index = 0
         limit 1
       )`.as("cover"),
     })
