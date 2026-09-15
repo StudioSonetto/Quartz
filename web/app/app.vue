@@ -85,7 +85,7 @@ form {
 main {
   @apply min-h-screen;
   @apply bg-dark-900 text-light-200;
-  @apply overflow-x-hidden;
+  @apply overflow-x-clip;
 }
 
 select {

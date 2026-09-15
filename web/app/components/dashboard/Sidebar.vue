@@ -9,7 +9,7 @@
         <div class="i-carbon-table"></div>
         Decks
       </NuxtLink>
-      <NuxtLink to="/docs" class="item" active-class="active">
+      <NuxtLink to="/docs/getting-started" target="_blank" class="item">
         <div class="i-carbon-rocket"></div>
         Get Started
       </NuxtLink>
@@ -31,7 +31,7 @@
 
 <style scoped lang="postcss">
 .sidebar {
-  @apply bg-dark-800 w-64 h-screen flex-shrink-0;
+  @apply bg-dark-800 w-64 h-screen flex-shrink-0 sticky top-0;
   @apply border-solid border-0 border-r-1 border-dark-200;
   @apply flex flex-col select-none;
 
@@ -62,7 +62,7 @@
       }
 
       &.disabled {
-        @apply opacity-60 pointer-event-none;
+        @apply opacity-60;
       }
 
       &.active {
