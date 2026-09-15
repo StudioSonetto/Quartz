@@ -2,7 +2,9 @@
   <div class="docs">
     <aside>Sidebar</aside>
     <div class="content">
-      <ContentRenderer v-if="page" :value="page" class="docs-prose" />
+      <div class="docs-prose">
+        <ContentRenderer v-if="page" :value="page" />
+      </div>
     </div>
   </div>
 </template>
