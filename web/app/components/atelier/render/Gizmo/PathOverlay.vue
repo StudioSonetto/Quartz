@@ -323,14 +323,16 @@ function commitPoints(next: Point[], label: string) {
   const { points: refit, dx, dy } = refitPoints(next);
   const bounds = pathBounds(refit);
 
+  const { position } = renderData(node, "core.transform");
+
   updateComponent(withData(path, { points: refit }));
 
   updateComponent(
     withData(transform, {
       position: {
         ...transform.data.position,
-        x: transform.data.position.x + dx,
-        y: transform.data.position.y + dy,
+        x: position.x + dx,
+        y: position.y + dy,
       },
       size: {
         width: Math.max(1, bounds.width),

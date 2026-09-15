@@ -7,7 +7,11 @@ export function useSignedBucket(bucket: string) {
     deck: string;
     at: number;
     urls: Record<string, string>;
-  }>(`quartz-signed:${bucket}`, { deck: "", at: 0, urls: {} });
+  }>(
+    `quartz-signed:${bucket}`,
+    { deck: "", at: 0, urls: {} },
+    { listenToStorageChanges: false },
+  );
 
   const fresh = (deck: string) =>
     deck === cached.value.deck && !signaturesStale(cached.value.at);

@@ -41,6 +41,7 @@ export const useDeckStore = defineStore("deck", () => {
   function setSlideComponents(slideId: string, list: ComponentModel[]) {
     history.capture(slideId);
     components.value.set(slideId, list);
+    animationVersion.value++;
   }
 
   function forgetSlide(id: string) {

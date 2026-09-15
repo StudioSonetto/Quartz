@@ -90,6 +90,7 @@ const lane = useTemplateRef<HTMLElement>("lane");
 const startDrag = useKeyDrag(
   () => lane.value,
   () => props.duration,
+  () => props.keys,
   emit,
 );
 </script>

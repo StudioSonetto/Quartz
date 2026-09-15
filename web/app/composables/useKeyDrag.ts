@@ -3,6 +3,7 @@ export const draggedKeyTime = ref<number | null>(null);
 export function useKeyDrag(
   lane: () => HTMLElement | null,
   duration: () => number,
+  keys: () => { t: number }[],
   emit: (event: "move", from: number, to: number) => void,
 ) {
   const { start } = usePointerDrag();
@@ -25,7 +26,7 @@ export function useKeyDrag(
       (e) => {
         const to = timeAtPointer(box, e.clientX, duration());
 
-        if (to === current) return;
+        if (to === current || keys().some((k) => k.t === to)) return;
 
         emit("move", current, to);
         current = draggedKeyTime.value = to;
