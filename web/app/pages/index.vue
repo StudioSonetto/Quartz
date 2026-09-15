@@ -20,6 +20,16 @@
 </template>
 
 <script setup lang="ts">
+import Lenis from "lenis";
+
+let lenis: Lenis;
+
+onMounted(() => {
+  lenis = new Lenis({ autoRaf: true });
+});
+
+onBeforeUnmount(() => lenis?.destroy());
+
 useSeoMeta({
   title: "Quartz",
   ogTitle: "Quartz",
