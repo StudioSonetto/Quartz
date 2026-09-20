@@ -1,17 +1,3 @@
-export function makeCreateCommands(defs: NodeTypeDef[]): Command[] {
-  return defs.filter(isCreatable).map((def) => ({
-    id: `core.node.create.${def.type}`,
-    title: `Add ${def.label}`,
-    category: "Node",
-    icon: def.icon,
-    when: (ctx) => {
-      const parentType = ctx.soleSelected?.type ?? "core.group";
-      return canContain(parentType, def.type);
-    },
-    run: (ctx) => ctx.deck.createNode(def.label, def.type),
-  }));
-}
-
 const deleteCommand: Command = {
   id: "core.node.delete",
   title: "Delete Node",

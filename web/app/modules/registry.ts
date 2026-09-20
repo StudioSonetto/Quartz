@@ -7,8 +7,26 @@ const componentTypes = new Map<ComponentType, ComponentTypeDef>();
 const commands = new Map<string, Command>();
 const apis = new Map<string, unknown>();
 
+const createCommand = (def: NodeTypeDef): Command => ({
+  id: `${def.type}.create`,
+  title: `Add ${def.label}`,
+  category: "Node",
+  icon: def.icon,
+  when: (ctx) => canContain(ctx.soleSelected?.type ?? "core.group", def.type),
+  run: (ctx) => ctx.deck.createNode(def.label, def.type),
+});
+
 export function registerModule(m: ModuleDefinition) {
-  for (const n of m.nodeTypes) nodeTypes.set(n.type, n);
+  for (const n of m.nodeTypes) {
+    nodeTypes.set(n.type, n);
+
+    if (isCreatable(n)) {
+      const cmd = createCommand(n);
+
+      commands.set(cmd.id, cmd);
+    }
+  }
+
   for (const c of m.componentTypes) componentTypes.set(c.type, c);
   for (const cmd of m.commands ?? []) commands.set(cmd.id, cmd);
   if (m.api !== undefined) apis.set(m.id, m.api);
