@@ -84,18 +84,6 @@ const lockedSelection = computed(
   () => selectedNodes.value.length > 0 && !unlockedSelection.value.length,
 );
 
-const panels = useTemplateRef<HTMLElement>("panels");
-
-watch(
-  () => selectedNodes.value.map((n) => n.id).join(),
-  () =>
-    panels.value?.animate([{ opacity: 0 }, {}], {
-      duration: 100,
-      easing: "ease-out",
-    }),
-  { flush: "post" },
-);
-
 const sameType = computed(
   () => new Set(selectedNodes.value.map((n) => n.type)).size === 1,
 );
@@ -119,6 +107,18 @@ const typePanels = computed(() =>
     type,
     def: getComponentType(type),
   })),
+);
+
+const panels = useTemplateRef<HTMLElement>("panels");
+
+watch(
+  () => sameType.value && typePanels.value.map((p) => p.type).join(),
+  () =>
+    panels.value?.animate([{ opacity: 0 }, {}], {
+      duration: 100,
+      easing: "ease-out",
+    }),
+  { flush: "post" },
 );
 
 const addComponent = useTemplateRef<{ open: () => void }>("addComponent");
