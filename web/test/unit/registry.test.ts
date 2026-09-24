@@ -8,7 +8,9 @@ import {
   __resetRegistry,
   getCommand,
   allCommands,
+  setUnlockedModules,
 } from "~/modules/registry";
+import { isNodeLocked } from "~/utils/lock";
 
 const node = (type: string) => ({ type }) as any;
 const component = (type: string) => ({ type }) as any;
@@ -19,11 +21,11 @@ describe("registry", () => {
   it("registers and retrieves types", () => {
     registerModule({
       id: "m",
-      nodeTypes: [node("group")],
-      componentTypes: [component("base")],
+      nodeTypes: [node("core.group")],
+      componentTypes: [component("core.base")],
     });
-    expect(getNodeType("group")?.type).toBe("group");
-    expect(getComponentType("base")?.type).toBe("base");
+    expect(getNodeType("core.group")?.type).toBe("core.group");
+    expect(getComponentType("core.base")?.type).toBe("core.base");
   });
 
   it("returns undefined for unknown types", () => {
@@ -34,80 +36,81 @@ describe("registry", () => {
   });
 
   it("last registration wins", () => {
-    registerModule({ id: "a", nodeTypes: [node("group")], componentTypes: [] });
+    registerModule({ id: "a", nodeTypes: [node("core.group")], componentTypes: [] });
     registerModule({
       id: "b",
-      nodeTypes: [{ ...node("group"), label: "second" }],
+      nodeTypes: [{ ...node("core.group"), label: "second" }],
       componentTypes: [],
     });
-    expect(getNodeType("group")?.label).toBe("second");
+    expect(getNodeType("core.group")?.label).toBe("second");
   });
 
   it("canContain reads the accepts matrix", () => {
     registerModule({
       id: "m",
       nodeTypes: [
-        { ...node("group"), accepts: ["group", "text", "webgl_canvas"] },
-        { ...node("text"), accepts: [] },
-        { ...node("webgl_canvas"), accepts: ["webgl_object"] },
-        { ...node("webgl_object"), accepts: [] },
+        { ...node("core.group"), accepts: ["core.group", "core.text", "webgl.canvas"] },
+        { ...node("core.text"), accepts: [] },
+        { ...node("webgl.canvas"), accepts: ["webgl.object"] },
+        { ...node("webgl.object"), accepts: [] },
       ],
       componentTypes: [],
     });
 
-    expect(canContain("group", "text")).toBe(true);
-    expect(canContain("group", "webgl_object")).toBe(false);
-    expect(canContain("webgl_canvas", "webgl_object")).toBe(true);
-    expect(canContain("webgl_canvas", "group")).toBe(false);
-    expect(canContain("text", "group")).toBe(false);
-    expect(canContain("webgl_object", "webgl_object")).toBe(false);
+    expect(canContain("core.group", "core.text")).toBe(true);
+    expect(canContain("core.group", "webgl.object")).toBe(false);
+    expect(canContain("webgl.canvas", "webgl.object")).toBe(true);
+    expect(canContain("webgl.canvas", "core.group")).toBe(false);
+    expect(canContain("core.text", "core.group")).toBe(false);
+    expect(canContain("webgl.object", "webgl.object")).toBe(false);
   });
 
   it("canContain honours a child-declared parents entry", () => {
     registerModule({
       id: "core",
-      nodeTypes: [{ ...node("group"), accepts: ["group", "text"] }],
+      nodeTypes: [{ ...node("core.group"), accepts: ["core.group", "core.text"] }],
       componentTypes: [],
     });
     registerModule({
       id: "webgl",
-      nodeTypes: [{ ...node("webgl_canvas"), accepts: [], parents: ["group"] }],
+      nodeTypes: [{ ...node("webgl.canvas"), accepts: [], parents: ["core.group"] }],
       componentTypes: [],
     });
 
-    expect(canContain("group", "webgl_canvas")).toBe(true);
-    expect(canContain("webgl_canvas", "group")).toBe(false);
+    expect(canContain("core.group", "webgl.canvas")).toBe(true);
+    expect(canContain("webgl.canvas", "core.group")).toBe(false);
   });
 
   it("creatableTypesFor includes a child that qualifies only via parents", () => {
     registerModule({
       id: "core",
       nodeTypes: [
-        { ...node("group"), accepts: ["text"] },
-        { ...node("text"), accepts: [] },
+        { ...node("core.group"), accepts: ["core.text"] },
+        { ...node("core.text"), accepts: [] },
       ],
       componentTypes: [],
     });
     registerModule({
       id: "webgl",
-      nodeTypes: [{ ...node("webgl_canvas"), accepts: [], parents: ["group"] }],
+      nodeTypes: [{ ...node("webgl.canvas"), accepts: [], parents: ["core.group"] }],
       componentTypes: [],
     });
 
     expect(
-      creatableTypesFor("group")
+      creatableTypesFor("core.group")
         .map((t) => t.type)
         .sort(),
-    ).toEqual(["text", "webgl_canvas"]);
+    ).toEqual(["core.text", "webgl.canvas"]);
   });
 
   it("canContain returns false for an unregistered parent type", () => {
     // @ts-expect-error — intentionally an unregistered type
-    expect(canContain("nope", "group")).toBe(false);
+    expect(canContain("nope", "core.group")).toBe(false);
   });
 });
 
-const command = (id: string) => ({ id, title: id, category: "Test", run: () => {} }) as any;
+const command = (id: string) =>
+  ({ id, title: id, category: "Test", run: () => {} }) as any;
 
 describe("registry commands", () => {
   beforeEach(__resetRegistry);
@@ -129,8 +132,25 @@ describe("registry commands", () => {
   });
 
   it("__resetRegistry clears commands", () => {
-    registerModule({ id: "m", nodeTypes: [], componentTypes: [], commands: [command("x")] });
+    registerModule({
+      id: "m",
+      nodeTypes: [],
+      componentTypes: [],
+      commands: [command("x")],
+    });
     __resetRegistry();
     expect(allCommands()).toEqual([]);
+  });
+});
+
+describe("unlocked modules", () => {
+  beforeEach(__resetRegistry);
+
+  it("treats a node of a locked module as locked", () => {
+    setUnlockedModules([]);
+    const node = { type: "paid.canvas", locked: false, path: "root.a" } as any;
+    expect(isNodeLocked(node)).toBe(true);
+    setUnlockedModules(["paid"]);
+    expect(isNodeLocked(node)).toBe(false);
   });
 });

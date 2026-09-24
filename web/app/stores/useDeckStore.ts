@@ -793,7 +793,7 @@ export const useDeckStore = defineStore("deck", () => {
   ) {
     const target = getNodeAsTree(id);
 
-    if (!target) return;
+    if (!target || !isModuleUnlocked(target.type)) return;
 
     history.capture(target.slides);
 

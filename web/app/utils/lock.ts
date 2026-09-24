@@ -1,5 +1,7 @@
 export function isNodeLocked(node: NodeModel | null | undefined): boolean {
-  return !!node?.locked && node.path !== ROOT_PATH;
+  if (!node || node.path === ROOT_PATH) return false;
+
+  return node.locked || !isModuleUnlocked(node.type);
 }
 
 export function unlockedOnly<T extends NodeModel>(nodes: T[]): T[] {
