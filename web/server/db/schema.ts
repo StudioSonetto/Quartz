@@ -54,7 +54,7 @@ export const lapidaries = pgTable.withRLS(
       .default(sql`auth.uid()`)
       .primaryKey(),
     name: text("name"),
-    unlocked_modules: text("unlocked")
+    unlocked_modules: text("unlocked_modules")
       .array()
       .notNull()
       .default(sql`'{}'`),
