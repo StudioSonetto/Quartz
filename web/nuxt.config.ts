@@ -63,14 +63,13 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    polarAccessToken: process.env.POLAR_ACCESS_TOKEN,
-    polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET,
-    polarServer: process.env.POLAR_SERVER ?? "sandbox",
-    polarProProductId: process.env.POLAR_PRO_PRODUCT_ID,
+    polarAccessToken: "",
+    polarWebhookSecret: "",
+    polarServer: "sandbox",
+    polarProProductId: "",
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseKey: process.env.SUPABASE_KEY,
-      billing: !!process.env.POLAR_ACCESS_TOKEN,
     },
   },
   supabase: {

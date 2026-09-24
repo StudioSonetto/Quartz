@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { lockedModules, moduleOf } from "~~/shared/utils/modules";
+import {
+  lockedModules,
+  moduleOf,
+  modulesFromBenefits,
+} from "~~/shared/utils/modules";
 
 describe("moduleOf", () => {
   it("takes the part before the dot", () => {
@@ -21,5 +25,17 @@ describe("lockedModules", () => {
 
   it("passes unlocked modules", () => {
     expect(lockedModules(["paid.canvas"], ["paid"])).toEqual([]);
+  });
+});
+
+describe("modulesFromBenefits", () => {
+  it("collects module metadata and skips benefits without it", () => {
+    expect(
+      modulesFromBenefits([
+        { benefitMetadata: { module: "paid" } },
+        { benefitMetadata: {} },
+        { benefitMetadata: { module: "paid" } },
+      ]),
+    ).toEqual(["paid"]);
   });
 });
