@@ -1,7 +1,11 @@
 <template>
   <AtelierInspectorView name="Properties" :actions="actions">
+    <div v-if="proRequired" class="placeholder" @contextmenu.prevent>
+      <div class="i-carbon-locked"></div>
+      <p>This node requires Pro plan to access.</p>
+    </div>
     <div
-      v-if="selectedNodes.length"
+      v-else-if="selectedNodes.length"
       class="view"
       :class="{ disabled: lockedSelection }"
       tabindex="-1"
@@ -62,7 +66,8 @@
   @apply flex flex-col justify-center items-center;
   @apply ui-text-3;
 
-  .i-carbon-error {
+  .i-carbon-error,
+  .i-carbon-locked {
     @apply ui-text-6 mb-6;
   }
 }
@@ -82,6 +87,10 @@ const { clear } = useNodeSelection();
 
 const lockedSelection = computed(
   () => selectedNodes.value.length > 0 && !unlockedSelection.value.length,
+);
+
+const proRequired = computed(() =>
+  selectedNodes.value.some((n) => !isModuleUnlocked(n.type)),
 );
 
 const sameType = computed(
