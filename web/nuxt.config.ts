@@ -64,7 +64,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     polarAccessToken: "",
     polarWebhookSecret: "",
-    polarServer: "sandbox",
+    polarServer: "",
     polarProProductId: "",
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
