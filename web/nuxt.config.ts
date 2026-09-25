@@ -58,7 +58,7 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      ignore: spaRoutes,
+      ignore: [...spaRoutes, "/api"],
     },
   },
   runtimeConfig: {
