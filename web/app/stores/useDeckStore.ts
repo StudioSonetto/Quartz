@@ -719,6 +719,11 @@ export const useDeckStore = defineStore("deck", () => {
       seed?: boolean;
     } = {},
   ) {
+    if (!isModuleUnlocked(type)) {
+      window.location.assign("/api/billing/checkout");
+      return;
+    }
+
     if (!currentSlides.value) return;
 
     const id = crypto.randomUUID();
