@@ -22,8 +22,10 @@ export default defineEventHandler(async (event) => {
       secret,
     );
   } catch (err) {
-    if (err instanceof WebhookVerificationError)
+    if (err instanceof WebhookVerificationError) {
+      console.warn("Polar webhook rejected:", err.message);
       throw createError({ statusCode: 403 });
+    }
 
     throw err;
   }
