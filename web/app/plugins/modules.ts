@@ -4,6 +4,5 @@ export default defineNuxtPlugin({
   name: "quartz-modules",
   setup() {
     initModules();
-    useAuthStore();
   },
 });

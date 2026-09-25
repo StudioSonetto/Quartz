@@ -83,8 +83,8 @@
 <script setup lang="ts">
 const authStore = useAuthStore();
 
-const billing = computed(() => authStore.unlocked !== "all");
-const isPro = computed(() => authStore.unlocked.length > 0);
+const billing = computed(() => getUnlockedModules() !== "all");
+const isPro = computed(() => getUnlockedModules().length > 0);
 const upgradeHref = computed(() =>
   isPro.value ? "/api/billing/portal" : "/api/billing/checkout",
 );

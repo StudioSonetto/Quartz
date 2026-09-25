@@ -77,9 +77,11 @@ export const setUnlockedModules = (names: string[] | "all") => {
   unlockedModules.value = names;
 };
 
+export const getUnlockedModules = () => unlockedModules.value;
+
 export const isModuleUnlocked = (type: string) =>
   unlockedModules.value === "all" ||
-  !lockedModules([type], unlockedModules.value).length;
+  moduleUnlocked(moduleOf(type), unlockedModules.value);
 
 export const getModuleApi = <T>(moduleId: string) =>
   apis.get(moduleId) as T | undefined;

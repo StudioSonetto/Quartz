@@ -1,11 +1,10 @@
 export const moduleOf = (type: string) => type.split(".")[0]!;
 
+export const moduleUnlocked = (module: string, unlocked: string[]) =>
+  module === "core" || unlocked.includes(module);
+
 export const lockedModules = (types: string[], unlocked: string[]) => [
-  ...new Set(
-    types
-      .map(moduleOf)
-      .filter((m) => m !== "core" && !unlocked.includes(m)),
-  ),
+  ...new Set(types.map(moduleOf).filter((m) => !moduleUnlocked(m, unlocked))),
 ];
 
 export const modulesFromBenefits = (

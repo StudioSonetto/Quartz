@@ -7,18 +7,6 @@ export const useAuthStore = defineStore("auth", () => {
 
   const user = ref<User | null>(useSupabaseUser().value);
   const isSignedIn = computed(() => !!user.value);
-  const unlocked = ref<string[] | "all">("all");
-  const requestFetch = useRequestFetch();
-
-  async function loadUnlocked(id: string | undefined) {
-    unlocked.value = id
-      ? (await requestFetch("/api/billing").catch(() => ({ unlocked: [] })))
-          .unlocked
-      : [];
-    setUnlockedModules(unlocked.value);
-  }
-
-  watch(() => user.value?.id, loadUnlocked, { immediate: true });
 
   client.auth.onAuthStateChange((event, session) => {
     user.value = session?.user || null;
@@ -68,5 +56,5 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
   }
 
-  return { user, isSignedIn, unlocked, register, signIn, signOut };
+  return { user, isSignedIn, register, signIn, signOut };
 });
