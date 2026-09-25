@@ -1,9 +1,5 @@
-import {
-  validateEvent,
-  WebhookVerificationError,
-} from "@polar-sh/sdk/webhooks";
 import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
-import { createHash } from "node:crypto";
+import { Webhook, WebhookVerificationError } from "standardwebhooks";
 import { z } from "zod";
 import { db } from "~~/server/db";
 import { lapidaries } from "~~/server/db/schema";
@@ -14,28 +10,17 @@ export default defineEventHandler(async (event) => {
 
   if (!secret) throw createError({ statusCode: 404 });
 
-  let payload;
-  const body = (await readRawBody(event)) ?? "";
-  const headers = getHeaders(event) as Record<string, string>;
+  let payload: { type: string; data: { external_id?: string | null } };
 
+  // Not the SDK's validateEvent: it re-encodes the secret, so whsec_ secrets never match.
   try {
-    payload = validateEvent(body, headers, secret);
+    payload = new Webhook(secret).verify(
+      (await readRawBody(event)) ?? "",
+      getHeaders(event) as Record<string, string>,
+    ) as typeof payload;
   } catch (err) {
     if (err instanceof WebhookVerificationError) {
       console.warn("Polar webhook rejected:", err.message);
-      // TEMP diagnostic — remove once signing is fixed
-      console.warn(
-        "Polar webhook debug:",
-        JSON.stringify({
-          id: headers["webhook-id"],
-          ts: headers["webhook-timestamp"],
-          sig: headers["webhook-signature"],
-          len: body.length,
-          sha: createHash("sha256").update(body).digest("hex"),
-          ct: headers["content-type"],
-          ce: headers["content-encoding"],
-        }),
-      );
       throw createError({ statusCode: 403 });
     }
 
@@ -44,7 +29,7 @@ export default defineEventHandler(async (event) => {
 
   if (payload.type !== "customer.state_changed") return { ok: true };
 
-  const id = payload.data.externalId;
+  const id = payload.data.external_id;
   if (!z.string().uuid().safeParse(id).success) return { ok: true };
 
   const state = await polar.customers
