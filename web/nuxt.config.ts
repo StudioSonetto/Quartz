@@ -18,7 +18,6 @@ export default defineNuxtConfig({
     ...(process.env.VITEST ? [] : ["@unocss/nuxt"]),
     "@vee-validate/nuxt",
     "@vueuse/nuxt",
-    "nuxt-resend",
   ],
   $development: {
     extends: ["../../QuartzWebGLModule"],
