@@ -3,6 +3,7 @@ import {
   WebhookVerificationError,
 } from "@polar-sh/sdk/webhooks";
 import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { db } from "~~/server/db";
 import { lapidaries } from "~~/server/db/schema";
@@ -14,16 +15,27 @@ export default defineEventHandler(async (event) => {
   if (!secret) throw createError({ statusCode: 404 });
 
   let payload;
+  const body = (await readRawBody(event)) ?? "";
+  const headers = getHeaders(event) as Record<string, string>;
 
   try {
-    payload = validateEvent(
-      (await readRawBody(event)) ?? "",
-      getHeaders(event) as Record<string, string>,
-      secret,
-    );
+    payload = validateEvent(body, headers, secret);
   } catch (err) {
     if (err instanceof WebhookVerificationError) {
       console.warn("Polar webhook rejected:", err.message);
+      // TEMP diagnostic — remove once signing is fixed
+      console.warn(
+        "Polar webhook debug:",
+        JSON.stringify({
+          id: headers["webhook-id"],
+          ts: headers["webhook-timestamp"],
+          sig: headers["webhook-signature"],
+          len: body.length,
+          sha: createHash("sha256").update(body).digest("hex"),
+          ct: headers["content-type"],
+          ce: headers["content-encoding"],
+        }),
+      );
       throw createError({ statusCode: 403 });
     }
 
