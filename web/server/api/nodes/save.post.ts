@@ -62,6 +62,11 @@ export default defineEventHandler(async (event) => {
     componentsToDelete,
   } = await validateBody(event, bodySchema);
 
+  await requireModules(user.id, [
+    ...nodesToUpsert.map((node) => node.type),
+    ...componentsToUpsert.map((component) => component.type),
+  ]);
+
   const slideIds = [
     ...new Set([
       ...nodesToUpsert.map((node) => node.slides),

@@ -17,10 +17,10 @@
         <div class="i-carbon-folder"></div>
         Templates
       </div>
-      <div class="item disabled">
-        <div class="i-carbon-settings"></div>
-        Settings
-      </div>
+      <a v-if="billing" :href="upgradeHref" class="item">
+        <div class="i-carbon-star"></div>
+        {{ isPro ? "Billing" : "Upgrade" }}
+      </a>
     </nav>
     <UIButton variant="ghost" class="signOut" @click="authStore.signOut()">
       <div class="i-carbon-arrow-left"></div>
@@ -82,4 +82,10 @@
 
 <script setup lang="ts">
 const authStore = useAuthStore();
+
+const billing = computed(() => getUnlockedModules() !== "all");
+const isPro = computed(() => getUnlockedModules().length > 0);
+const upgradeHref = computed(() =>
+  isPro.value ? "/api/billing/portal" : "/api/billing/checkout",
+);
 </script>

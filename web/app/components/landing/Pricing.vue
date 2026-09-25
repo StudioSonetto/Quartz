@@ -1,5 +1,5 @@
 <template>
-  <LandingSection title="Pricing" description="Price in AUD.">
+  <LandingSection title="Pricing" description="Start creating slides free!">
     <table>
       <colgroup>
         <col class="w-1.5/4" />
@@ -15,17 +15,16 @@
           </th>
           <th>
             <h3>Pro</h3>
-            <p>$20 per month.</p>
+            <p>$20 USD per month.</p>
           </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="row.label">
           <td class="feature">{{ row.label }}</td>
-          <td class="value">{{ row.free }}</td>
-          <td class="value">
-            <div v-if="row.unlimited" class="text-xl i-carbon-infinity"></div>
-            <template v-else>{{ row.paid }}</template>
+          <td v-for="(cell, i) in [row.free, row.paid]" :key="i" class="value">
+            <div v-if="cell === true" class="text-xl i-carbon-checkmark"></div>
+            <template v-else>{{ cell || "—" }}</template>
           </td>
         </tr>
         <tr class="actions">
@@ -34,7 +33,9 @@
             <UIButton to="/auth">Start free</UIButton>
           </td>
           <td>
-            <UIButton variant="solid" to="/">Select plan</UIButton>
+            <UIButton variant="solid" to="/api/billing/checkout" external>
+              Select plan
+            </UIButton>
           </td>
         </tr>
       </tbody>
@@ -91,39 +92,14 @@ thead th {
 <script setup lang="ts">
 interface PricingRow {
   label: string;
-  free: string;
-  paid: string;
-  unlimited?: boolean;
+  free: string | boolean;
+  paid: string | boolean;
 }
 
 const rows: PricingRow[] = [
-  { label: "Max Decks", free: "10", paid: "∞", unlimited: true },
-  { label: "Max Slides per Deck", free: "30", paid: "∞", unlimited: true },
-  { label: "Max Nodes per Slides", free: "30", paid: "∞", unlimited: true },
-  {
-    label: "Assets storage size",
-    free: "100 MB",
-    paid: "5000 MB",
-  },
-  {
-    label: "Animations and Events",
-    free: "Fully unlocked.",
-    paid: "Fully unlocked.",
-  },
-  {
-    label: "Scriptable and Dynamic slides",
-    free: "Fully unlocked.",
-    paid: "Fully unlocked.",
-  },
-  {
-    label: "3D Nodes and Rendering",
-    free: "Limited features.",
-    paid: "Fully unlocked.",
-  },
-  {
-    label: "Presentation modes",
-    free: "Local only.",
-    paid: "Local + Interactive presentations & Discord Integration.",
-  },
+  { label: "3D nodes and rendering", free: false, paid: true },
+  { label: "Animations, events and scripting", free: true, paid: true },
+  { label: "Decks", free: "10", paid: "Unlimited" },
+  { label: "Asset storage", free: "10 MB", paid: "100 MB" },
 ];
 </script>

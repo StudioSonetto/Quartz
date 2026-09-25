@@ -45,7 +45,7 @@
               :key="node.type"
               :value="node.type"
             >
-              {{ node.label }}
+              {{ node.label }}{{ isModuleUnlocked(node.type) ? "" : " (Pro Required)" }}
             </option>
           </select>
         </Field>

@@ -6,6 +6,7 @@ const nodeTypes = new Map<NodeType, NodeTypeDef>();
 const componentTypes = new Map<ComponentType, ComponentTypeDef>();
 const commands = new Map<string, Command>();
 const apis = new Map<string, unknown>();
+const unlockedModules = shallowRef<string[] | "all">("all");
 
 const createCommand = (def: NodeTypeDef): Command => ({
   id: `${def.type}.create`,
@@ -72,6 +73,16 @@ export const optionalComponentsFor = (nodeType: NodeType): ComponentTypeDef[] =>
 export const getCommand = (id: string) => commands.get(id);
 export const allCommands = (): Command[] => [...commands.values()];
 
+export const setUnlockedModules = (names: string[] | "all") => {
+  unlockedModules.value = names;
+};
+
+export const getUnlockedModules = () => unlockedModules.value;
+
+export const isModuleUnlocked = (type: string) =>
+  unlockedModules.value === "all" ||
+  moduleUnlocked(moduleOf(type), unlockedModules.value);
+
 export const getModuleApi = <T>(moduleId: string) =>
   apis.get(moduleId) as T | undefined;
 
@@ -81,4 +92,5 @@ export function __resetRegistry() {
   componentTypes.clear();
   commands.clear();
   apis.clear();
+  unlockedModules.value = "all";
 }

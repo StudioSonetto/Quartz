@@ -33,7 +33,7 @@
 .ui-button--solid {
   @apply border-solid border-1 border-light-200/90;
   @apply bg-light-200/90 text-dark-900;
-  @apply px-6 py-3;
+  @apply px-6 py-3 ui-text-3;
   @apply hover:bg-light-200;
   @apply active:opacity-80;
 }

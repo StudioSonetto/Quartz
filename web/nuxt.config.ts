@@ -18,7 +18,6 @@ export default defineNuxtConfig({
     ...(process.env.VITEST ? [] : ["@unocss/nuxt"]),
     "@vee-validate/nuxt",
     "@vueuse/nuxt",
-    "nuxt-resend",
   ],
   $development: {
     extends: ["../../QuartzWebGLModule"],
@@ -59,10 +58,14 @@ export default defineNuxtConfig({
   nitro: {
     prerender: {
       crawlLinks: true,
-      ignore: spaRoutes,
+      ignore: [...spaRoutes, "/api"],
     },
   },
   runtimeConfig: {
+    polarAccessToken: "",
+    polarWebhookSecret: "",
+    polarServer: "sandbox",
+    polarProProductId: "",
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseKey: process.env.SUPABASE_KEY,

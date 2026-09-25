@@ -65,6 +65,14 @@ export const useAssetsStore = defineStore("assets", () => {
     await serveFonts(deck);
   }
 
+  function storageFull() {
+    if (getUnlockedModules().length) {
+      alert("Storage full. Pro includes 100 MB.");
+    } else if (confirm("Storage full. Basic includes 10 MB. Upgrade to Pro for 100 MB?")) {
+      window.location.assign("/api/billing/checkout");
+    }
+  }
+
   async function uploadAssets(deck: string, files: File[]) {
     const { data: stored } = await client.storage
       .from("assets")
@@ -87,6 +95,8 @@ export const useAssetsStore = defineStore("assets", () => {
       return [{ file, name }];
     });
 
+    let full = false;
+
     const entries = await Promise.all(
       planned.map(async ({ file, name }) => {
         const { error } = await client.storage
@@ -94,10 +104,13 @@ export const useAssetsStore = defineStore("assets", () => {
           .upload(`${deck}/${name}`, file, { cacheControl: "31536000" });
 
         if (error) console.error(error);
+        if (error?.message.includes("row-level security")) full = true;
 
         return [file, error ? null : name] as const;
       }),
     );
+
+    if (full) storageFull();
 
     const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));
 

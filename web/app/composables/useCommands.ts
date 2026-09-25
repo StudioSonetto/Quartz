@@ -4,10 +4,12 @@ export function useCommands() {
 
   const enabledCommands = computed(() => {
     const ctx = buildCommandContext();
-    return allCommands().map((command) => ({
-      command,
-      enabled: command.when ? command.when(ctx) : true,
-    }));
+    return allCommands()
+      .filter((command) => isModuleUnlocked(command.id))
+      .map((command) => ({
+        command,
+        enabled: command.when ? command.when(ctx) : true,
+      }));
   });
 
   async function run(id: string) {
