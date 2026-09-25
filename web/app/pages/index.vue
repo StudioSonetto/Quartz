@@ -7,7 +7,6 @@
   <LandingSection title="Keyboard driven" description="...">
     <div class="bg-dark-500 w-full h-xl"></div>
   </LandingSection>
-  <LandingModules />
   <LandingPricing />
   <LandingRoadmap />
   <LandingFAQ />

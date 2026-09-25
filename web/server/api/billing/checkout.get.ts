@@ -1,6 +1,11 @@
+import { serverSupabaseUser } from "#supabase/server";
+
 export default defineEventHandler(async (event) => {
   const polar = usePolar();
-  const user = await requireUser(event);
+  const user = await serverSupabaseUser(event);
+
+  if (!user) return sendRedirect(event, "/auth");
+
   const product = useRuntimeConfig().polarProProductId;
 
   if (!product)
