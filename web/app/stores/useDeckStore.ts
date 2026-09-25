@@ -1,3 +1,5 @@
+import type { FetchError } from "ofetch";
+
 // Too big but don't know really how to split it up cleanly lmao.
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -331,7 +333,15 @@ export const useDeckStore = defineStore("deck", () => {
   async function insertNewDeck() {
     const data = await apiFetch<{ id: string }>("/api/decks", {
       method: "POST",
+    }).catch((err: FetchError) => {
+      if (err.statusCode !== 403) throw err;
+
+      if (confirm("Basic includes 10 decks. Upgrade to Pro for unlimited?"))
+        window.location.assign("/api/billing/checkout");
     });
+
+    if (!data) return;
+
     navigateTo(`/atelier/${data?.id}`, {
       external: true,
       open: { target: "_blank" },

@@ -15,7 +15,7 @@
           </th>
           <th>
             <h3>Pro</h3>
-            <p>$20 per month.</p>
+            <p>$20 USD per month.</p>
           </th>
         </tr>
       </thead>
@@ -100,6 +100,6 @@ const rows: PricingRow[] = [
   { label: "3D nodes and rendering", free: false, paid: true },
   { label: "Animations, events and scripting", free: true, paid: true },
   { label: "Decks", free: "10", paid: "Unlimited" },
-  { label: "Asset storage", free: "100 MB", paid: "5 GB" },
+  { label: "Asset storage", free: "10 MB", paid: "100 MB" },
 ];
 </script>
