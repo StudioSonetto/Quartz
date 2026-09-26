@@ -15,7 +15,7 @@
           </th>
           <th>
             <h3>Pro</h3>
-            <p>$20 USD per month.</p>
+            <p>7 days free trial.</p>
           </th>
         </tr>
       </thead>

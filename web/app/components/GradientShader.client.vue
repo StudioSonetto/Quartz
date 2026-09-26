@@ -9,7 +9,7 @@
       :position="[0, 0, 0.1]"
     />
     <TresMesh>
-      <TresPlaneGeometry :args="[1.2, 1.2, 100, 100]" />
+      <TresPlaneGeometry :args="[1.2, 1.2, 125, 125]" />
       <TresShaderMaterial
         :vertex-shader="vertexShader"
         :fragment-shader="fragmentShader"
@@ -57,6 +57,8 @@ let advance: (() => void) | undefined;
 const canvasEl = shallowRef<HTMLCanvasElement>();
 
 const isVisible = useElementVisibility(canvasEl);
+
+const props = defineProps<{ paused?: boolean }>();
 
 function onReady(context: {
   renderer: { value: WebGLRenderer };
@@ -131,7 +133,7 @@ const { onLoop } = useRenderLoop();
 const glassMesh = shallowRef<Mesh>();
 
 onLoop(({ delta }) => {
-  if (!advance || !isVisible.value) return;
+  if (!advance || !isVisible.value || props.paused) return;
 
   uniforms.uTime.value += 0.01 * delta;
 

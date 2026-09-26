@@ -1,20 +1,21 @@
 <template>
   <LandingNavbar />
-  <LandingHero />
-  <LandingSection title="Node powered" description="...">
-    <div class="bg-dark-500 w-full h-xl"></div>
-  </LandingSection>
-  <LandingSection title="Keyboard driven" description="...">
-    <div class="bg-dark-500 w-full h-xl"></div>
-  </LandingSection>
-  <LandingPricing />
-  <LandingRoadmap />
-  <LandingFAQ />
-  <LandingSection title="cta">
-    <div class="flex flex-col items-center justify-center">
-      <p class="text-4xl">Start pitching easy.</p>
-    </div>
-  </LandingSection>
+  <LandingHero>
+    <LandingSection title="Node powered" description="...">
+      <div class="bg-dark-500 w-full h-xl"></div>
+    </LandingSection>
+    <LandingSection title="Keyboard driven" description="...">
+      <div class="bg-dark-500 w-full h-xl"></div>
+    </LandingSection>
+    <LandingPricing />
+    <LandingRoadmap />
+    <LandingFAQ />
+    <LandingSection title="cta">
+      <div class="flex flex-col items-center justify-center">
+        <p class="ui-text-6">Start pitching easy.</p>
+      </div>
+    </LandingSection>
+  </LandingHero>
   <LandingFooter />
 </template>
 
