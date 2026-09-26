@@ -27,6 +27,7 @@ export const nodeType = pgEnum("node_type", [
   "core.text",
   "webgl.canvas",
   "webgl.object",
+  "webgl.part",
 ]);
 
 export const componentType = pgEnum("component_type", [
@@ -42,6 +43,7 @@ export const componentType = pgEnum("component_type", [
   "core.typography",
   "webgl.camera",
   "webgl.model",
+  "webgl.part",
   "webgl.scene",
   "webgl.shader",
   "webgl.transform",
