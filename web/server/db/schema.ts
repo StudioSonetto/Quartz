@@ -99,6 +99,22 @@ export const decks = pgTable.withRLS(
   ],
 );
 
+export const discordSessions = pgTable.withRLS(
+  "discord_sessions",
+  {
+    instance_id: text("instance_id").primaryKey(),
+    deck: uuid("deck").notNull(),
+    presenter: text("presenter").notNull(),
+  },
+  (t) => [
+    foreignKey({
+      columns: [t.deck],
+      foreignColumns: [decks.id],
+      name: "discord_sessions_deck_fkey",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const slides = pgTable.withRLS(
   "slides",
   {
