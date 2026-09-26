@@ -2,11 +2,11 @@
   <Title>Authenticate | Quartz</Title>
   <div class="auth">
     <section class="logo">
-      <GradientShader class="border-rd-15" />
+      <GradientShader class="border-rd-12" />
     </section>
     <section class="form">
       <Transition name="fade" mode="out-in">
-        <div :key="isRegister ? 'register' : 'signin'">
+        <div :key="isRegister ? 'register' : 'signin'" class="w-full max-w-md">
           <AuthSignInForm v-if="!isRegister" />
           <AuthRegisterForm v-else />
           <div class="whitespace flex justify-center">
@@ -30,24 +30,16 @@
 
 <style scoped lang="postcss">
 .auth {
-  @apply flex justify-center items-center;
-
-  .logo,
-  .form {
-    @apply flex-1 max-w-[50vw] h-screen;
-  }
+  @apply flex flex-col lg:flex-row justify-center items-center min-h-screen;
 
   .logo {
-    @apply px-15 py-15 relative;
+    @apply w-full h-[35vh] p-4 relative;
+    @apply lg:flex-1 lg:max-w-[50vw] lg:h-screen lg:p-15;
   }
 
   .form {
-    @apply flex flex-col justify-center items-center;
-    @apply mr-15;
-
-    form {
-      @apply w-[25vw];
-    }
+    @apply w-full flex-1 flex flex-col justify-center items-center;
+    @apply px-4 py-12 lg:px-0 lg:mr-15 lg:max-w-[50vw];
   }
 }
 </style>

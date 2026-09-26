@@ -1,6 +1,6 @@
 <template>
   <form v-if="!hasRegistered" @submit="onSubmit">
-    <h2 class="text-center text-3xl">New here?</h2>
+    <h2 class="text-center ui-text-6">New here?</h2>
     <div class="whitespace"></div>
     <div class="flex flex-col gap-4">
       <FormInput
@@ -57,7 +57,7 @@ const passwordSchema = zod
   });
 
 const registerSchema = toTypedSchema(
-  zod.intersection(baseSchema, passwordSchema)
+  zod.intersection(baseSchema, passwordSchema),
 );
 
 const { handleSubmit, meta } = useForm({

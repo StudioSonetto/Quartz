@@ -1,4 +1,4 @@
-import type { User } from "@supabase/supabase-js";
+import type { Provider, User } from "@supabase/supabase-js";
 
 export const useAuthStore = defineStore("auth", () => {
   const client = useSupabaseClient();
@@ -50,11 +50,20 @@ export const useAuthStore = defineStore("auth", () => {
     return data;
   }
 
+  async function signInWithProvider(provider: Provider) {
+    const { error } = await client.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+
+    if (error) throw error;
+  }
+
   async function signOut() {
     await client.auth.signOut();
 
     user.value = null;
   }
 
-  return { user, isSignedIn, register, signIn, signOut };
+  return { user, isSignedIn, register, signIn, signInWithProvider, signOut };
 });
