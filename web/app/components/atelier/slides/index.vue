@@ -1,5 +1,5 @@
 <template>
-  <div ref="list" @wheel="handleScroll" class="slides-list">
+  <div ref="list" @wheel.passive="handleScroll" class="slides-list">
     <TransitionGroup name="list">
       <AtelierSlidesThumb
         v-for="slide in slides"
@@ -22,7 +22,7 @@
 
 <style scoped lang="postcss">
 .slides-list {
-  @apply flex flex-1 min-h-0 scroll-smooth scroll-px-[5ch] p-[2.5ch];
+  @apply flex flex-1 min-h-0 scroll-px-[5ch] p-[2.5ch];
   @apply overflow-x-auto overflow-y-hidden;
 
   & > * {
@@ -62,6 +62,8 @@
 </style>
 
 <script setup lang="ts">
+import { animate } from "motion";
+import type { AnimationPlaybackControls } from "motion";
 import { useDraggable } from "vue-draggable-plus";
 
 const deckStore = useDeckStore();
@@ -69,29 +71,32 @@ const { slides, insertingSlides } = storeToRefs(deckStore);
 
 const list = useTemplateRef<HTMLDivElement>("list");
 
-const { x } = useScroll(list, { behavior: "smooth" });
+const WHEEL_MS = 100;
 
-const wheelDelta = ref(0);
+let target = 0;
+let tween: AnimationPlaybackControls | undefined;
 
-const handleScroll = (event: WheelEvent) => {
-  if (event.deltaY !== 0) {
-    wheelDelta.value = event.deltaY * 10;
-  }
-};
+function handleScroll(event: WheelEvent) {
+  const el = list.value;
 
-const throttle = useFrameThrottle();
+  if (!el || !event.deltaY) return;
 
-watchThrottled(
-  wheelDelta,
-  (delta) => {
-    if (delta !== 0) {
-      x.value += delta;
+  target = Math.min(
+    Math.max((tween ? target : el.scrollLeft) + event.deltaY, 0),
+    el.scrollWidth - el.clientWidth,
+  );
 
-      wheelDelta.value = 0;
-    }
-  },
-  { throttle },
-);
+  tween?.stop();
+
+  tween = animate(el.scrollLeft, target, {
+    duration: WHEEL_MS / 1000,
+    ease: "linear",
+    onUpdate: (x) => (el.scrollLeft = x),
+    onComplete: () => (tween = undefined),
+  });
+}
+
+onUnmounted(() => tween?.stop());
 
 function insertNewSlides() {
   return deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
