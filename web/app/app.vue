@@ -144,4 +144,17 @@ textarea {
 
 <script setup lang="ts">
 import { Analytics } from "@vercel/analytics/nuxt";
+
+const route = useRoute();
+const url = withSiteUrl(computed(() => route.path));
+
+useSeoMeta({
+  ogUrl: url,
+  ogSiteName: useSiteConfig().name,
+  ogType: "website",
+  ogImage: withSiteUrl("/images/og-image.png"),
+  twitterCard: "summary_large_image",
+});
+
+useHead({ link: [{ rel: "canonical", href: url }] });
 </script>

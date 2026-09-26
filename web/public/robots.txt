@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /atelier$
+Disallow: /atelier/
+Disallow: /auth$
+Disallow: /auth/
+Disallow: /live/
+Disallow: /api/
+
+Sitemap: https://quartz.graphics/sitemap.xml

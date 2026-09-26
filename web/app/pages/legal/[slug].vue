@@ -15,5 +15,10 @@ if (!page.value) {
   throw createError({ statusCode: 404, statusMessage: "Page not found" });
 }
 
-useSeoMeta({ title: `${page.value.title} | Quartz` });
+useSeoMeta({
+  title: `${page.value.title} | Quartz`,
+  ogTitle: page.value.title,
+  description: page.value.description,
+  ogDescription: page.value.description,
+});
 </script>

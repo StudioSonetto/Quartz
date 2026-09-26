@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     },
   },
   modules: [
+    "@nuxtjs/sitemap",
     "@nuxt/content",
     "@nuxt/image",
     "@nuxtjs/supabase",
@@ -35,8 +36,17 @@ export default defineNuxtConfig({
   imports: {
     dirs: ["modules"],
   },
+  site: {
+    url: "https://quartz.graphics",
+    name: "Quartz",
+  },
+  sitemap: {
+    xsl: false,
+    zeroRuntime: true,
+  },
   app: {
     head: {
+      htmlAttrs: { lang: "en" },
       link: [
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         {
@@ -52,7 +62,7 @@ export default defineNuxtConfig({
     "/docs/**": { prerender: true },
     "/legal/**": { prerender: true },
     ...Object.fromEntries(
-      spaRoutes.map((route) => [`${route}/**`, { ssr: false }]),
+      spaRoutes.map((route) => [`${route}/**`, { ssr: false, sitemap: false }]),
     ),
   },
   nitro: {

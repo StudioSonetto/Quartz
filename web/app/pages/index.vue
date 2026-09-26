@@ -34,15 +34,7 @@ onBeforeUnmount(() => lenis?.destroy());
 useSeoMeta({
   title: "Quartz",
   ogTitle: "Quartz",
-  ogImage: "/images/og-image.png",
   description: "Open core slides engine; built for ambitious presenters.",
   ogDescription: "Open core slides engine; built for ambitious presenters.",
-  ogUrl: "https://quartz.graphics/",
-});
-
-useHead({
-  htmlAttrs: {
-    lang: "en",
-  },
 });
 </script>

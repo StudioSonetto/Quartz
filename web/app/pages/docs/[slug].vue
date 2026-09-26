@@ -29,10 +29,14 @@ const { data: page } = await useAsyncData(`docs-${route.params.slug}`, () => {
   return queryCollection("docs").path(`/docs/${route.params.slug}`).first();
 });
 
-if (page.value) {
-  useSeoMeta({
-    title: `${page.value.title} | Quartz Docs`,
-    description: page.value.description,
-  });
+if (!page.value) {
+  throw createError({ statusCode: 404, statusMessage: "Page not found" });
 }
+
+useSeoMeta({
+  title: `${page.value.title} | Quartz Docs`,
+  ogTitle: page.value.title,
+  description: page.value.description,
+  ogDescription: page.value.description,
+});
 </script>
