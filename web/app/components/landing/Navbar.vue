@@ -9,7 +9,12 @@
     <div class="bar">
       <NuxtLink to="/" class="brand">quartz</NuxtLink>
       <nav class="links">
-        <NuxtLink v-for="link in LINKS" :key="link.label" :to="link.to">
+        <NuxtLink
+          v-for="link in LINKS"
+          :key="link.label"
+          :to="link.to"
+          :target="link.target"
+        >
           {{ link.label }}
         </NuxtLink>
       </nav>
@@ -17,7 +22,7 @@
         <UIButton
           variant="ghost"
           class="stars"
-          to="https://github.com/StudioSonetto/Quartz"
+          :to="`https://github.com/${GITHUB_REPO}`"
           target="_blank"
         >
           <div class="i-carbon-logo-github" />
@@ -134,10 +139,10 @@
 </style>
 
 <script setup lang="ts">
-const LINKS: { label: string; to?: string }[] = [
+const LINKS: { label: string; to?: string; target?: string }[] = [
   { label: "Product" },
-  { label: "Community" },
-  { label: "Pricing" },
+  { label: "Community", to: DISCORD_URL, target: "_blank" },
+  { label: "Pricing", to: "/#pricing" },
   { label: "Docs", to: "/docs" },
   { label: "Blog" },
 ];
@@ -166,7 +171,7 @@ const stargazers = ref(0);
 const fetchStargazers = async () => {
   try {
     const response = await $fetch<{ stargazers_count: number }>(
-      "https://api.github.com/repos/StudioSonetto/Quartz",
+      `https://api.github.com/repos/${GITHUB_REPO}`,
     );
 
     stargazers.value = response.stargazers_count;

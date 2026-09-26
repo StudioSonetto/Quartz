@@ -1,5 +1,5 @@
 <template>
-  <section :id="props.title.toLowerCase()">
+  <section>
     <div v-if="props.description || $slots.description" class="info">
       <h2 class="title">{{ props.title }}/</h2>
       <p class="description">

@@ -1,10 +1,8 @@
 <template>
-  <LandingSection title="FAQ">
+  <LandingSection id="faq" title="FAQ">
     <template #description>
       Visit our
-      <NuxtLink to="https://discord.gg/MXWb4W92ZH" external target="_blank"
-        >Discord</NuxtLink
-      >
+      <NuxtLink :to="DISCORD_URL" target="_blank">Discord</NuxtLink>
       if you have more questions!
     </template>
     <div class="faq-grid">

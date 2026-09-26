@@ -1,5 +1,9 @@
 <template>
-  <LandingSection title="Pricing" description="Start creating slides free!">
+  <LandingSection
+    id="pricing"
+    title="Pricing"
+    description="Start creating slides free!"
+  >
     <table>
       <colgroup>
         <col class="w-1.5/4" />

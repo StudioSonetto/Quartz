@@ -1,5 +1,9 @@
 <template>
-  <div ref="pin" :style="{ height: `calc(100dvh + ${distance}px)` }">
+  <div
+    id="roadmap"
+    ref="pin"
+    :style="{ height: `calc(100dvh + ${distance}px)` }"
+  >
     <div class="roadmap-sticky">
       <LandingSection title="Roadmap" description="Polishing never stops.">
         <ol ref="track" role="list" class="roadmap-grid">
@@ -81,6 +85,11 @@ const distance = computed(() =>
   Math.max(trackWidth.value - viewWidth.value, 0),
 );
 const shift = computed(() => clamp(-top.value, 0, distance.value));
+
+watch(distance, (now, before) => {
+  if (now && !before && location.hash)
+    document.getElementById(location.hash.slice(1))?.scrollIntoView();
+});
 
 watch(shift, (x) => {
   if (track.value) track.value.style.transform = `translateX(${-x}px)`;
