@@ -36,6 +36,7 @@
 
 .faq-item {
   @apply border-solid border-1 border-dark-200 border-rd;
+  @apply transition-colors hover:bg-light-200/6 duration-100;
 
   button {
     @apply flex justify-between items-center gap-6 w-full p-5;
@@ -49,7 +50,7 @@
 }
 
 .faq-answer {
-  @apply grid grid-rows-[0fr] transition-[grid-template-rows] duration-300;
+  @apply grid grid-rows-[0fr] transition-[grid-template-rows] duration-200;
 
   & > div {
     @apply overflow-hidden min-h-0;
@@ -67,7 +68,7 @@
 }
 
 .faq-icon {
-  @apply flex-shrink-0 text-xl transition-transform;
+  @apply flex-shrink-0 ui-text-5 transition-transform;
 }
 </style>
 
