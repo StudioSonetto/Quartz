@@ -92,14 +92,7 @@ function load() {
 }
 
 async function openSession() {
-  // Only "no session" means pick or wait; an expired pass must not reach the picker.
-  await show(
-    await $fetch<Session>("/api/discord/session").catch((err) => {
-      if (err?.statusCode === 404) return null;
-
-      throw err;
-    }),
-  );
+  await show(await $fetch<Session | null>("/api/discord/session"));
 }
 
 async function show(next: Session | null) {

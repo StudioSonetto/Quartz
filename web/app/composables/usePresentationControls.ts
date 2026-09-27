@@ -18,7 +18,9 @@ export function usePresentationControls(
     if (["enter", " ", "arrowright"].includes(combo)) return deck.nextSlides();
   });
 
-  watch(currentTree, (next) => enabled() && fireTree(next, "enter"));
+  watch(currentTree, (next) => enabled() && fireTree(next, "enter"), {
+    flush: "post",
+  });
 
   return {
     click: () => enabled() && deck.prevSlides(),

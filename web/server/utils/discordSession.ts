@@ -48,5 +48,5 @@ export async function requireLiveSession(event: H3Event) {
 
   if (!session) throw createError({ statusCode: 404 });
 
-  return { ...session, viewer: discordId };
+  return session;
 }
