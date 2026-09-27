@@ -6,7 +6,6 @@
     <p v-else-if="status === 'waiting'">
       Waiting for the presenter to pick a deck.
     </p>
-    <p v-else-if="status === 'left'">The presenter left.</p>
     <div v-else-if="status === 'picking'" class="picker">
       <h2>Pick a deck to present</h2>
       <UIButton
@@ -43,7 +42,7 @@
 </style>
 
 <script setup lang="ts">
-import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { DiscordSDK, RPCCloseCodes } from "@discord/embedded-app-sdk";
 
 // The SDK throws without the query Discord opens the activity with.
 definePageMeta({
@@ -52,7 +51,7 @@ definePageMeta({
   },
 });
 
-type Status = "loading" | "error" | "picking" | "waiting" | "showing" | "left";
+type Status = "loading" | "error" | "picking" | "waiting" | "showing";
 
 const config = useRuntimeConfig();
 const token = useDiscordToken();
@@ -166,10 +165,8 @@ onMounted(async () => {
 
         if (!presenter || presenting.value) return;
 
-        const here = participants.some((p) => p.id === presenter);
-
-        if (!here) status.value = "left";
-        else if (status.value === "left") load();
+        if (!participants.some((p) => p.id === presenter))
+          sdk.close(RPCCloseCodes.CLOSE_NORMAL, "The presenter left");
       },
     );
 
