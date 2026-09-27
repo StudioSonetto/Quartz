@@ -206,6 +206,45 @@ export const useDeckStore = defineStore("deck", () => {
     { immediate: true },
   );
 
+  const slideEnterHooks = new Set<(tree: Tree) => void>();
+
+  function onSlideEnter(hook: (tree: Tree) => void) {
+    slideEnterHooks.add(hook);
+
+    return () => slideEnterHooks.delete(hook);
+  }
+
+  let entering = 0;
+  let entered = Promise.resolve();
+
+  // Only the latest call runs hooks: the watcher and a page can both enter the
+  // same slide, and an enter toggle run twice undoes itself.
+  function enterSlide() {
+    const turn = ++entering;
+
+    useAnimationState().reset();
+
+    entered = (async () => {
+      const tree = await until(currentTree).toMatch((t) => !!t?.id);
+
+      await nextTick();
+
+      if (turn !== entering) return;
+
+      for (const hook of [...slideEnterHooks]) {
+        try {
+          hook(tree!);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    })();
+
+    return entered;
+  }
+
+  const whenEntered = () => entered;
+
   watch(
     () => currentSlides.value?.id,
     (id) => {
@@ -216,7 +255,7 @@ export const useDeckStore = defineStore("deck", () => {
         anchorId.value = null;
       }
 
-      useAnimationState().reset();
+      enterSlide();
 
       sync.flush();
     },
@@ -1381,6 +1420,9 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   return {
+    enterSlide,
+    onSlideEnter,
+    whenEntered,
     slides,
     deckTitle,
     currentSlideId,

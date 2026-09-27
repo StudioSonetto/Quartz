@@ -1,1 +1,0 @@
-# @quartz/discord-activity

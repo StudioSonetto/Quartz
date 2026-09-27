@@ -65,6 +65,31 @@ export function useAnimationState() {
     animateTo(nodeId, next, timing);
   }
 
+  function snapshot(): Record<string, string> {
+    return Object.fromEntries(active);
+  }
+
+  function animateToState(
+    nodeId: string,
+    next: string,
+    duration?: number | null,
+  ) {
+    const base = useNodeComponents().getStoredComponent(
+      nodeId,
+      "core.base",
+    )?.data;
+
+    animateTo(nodeId, next, {
+      ...stateTiming(base, next || activeState(nodeId)),
+      duration: duration ?? DEFAULT_HANDLER_DURATION,
+    });
+  }
+
+  function restore(states: Record<string, string>) {
+    for (const nodeId of new Set([...active.keys(), ...Object.keys(states)]))
+      animateToState(nodeId, states[nodeId] ?? BASE_STATE);
+  }
+
   function reset() {
     for (const nodeId of [...running.keys()]) halt(nodeId);
 
@@ -73,5 +98,15 @@ export function useAnimationState() {
     usePlayhead().reset();
   }
 
-  return { activeState, transition, setState, animateTo, toggleState, reset };
+  return {
+    activeState,
+    transition,
+    setState,
+    animateTo,
+    animateToState,
+    toggleState,
+    snapshot,
+    restore,
+    reset,
+  };
 }

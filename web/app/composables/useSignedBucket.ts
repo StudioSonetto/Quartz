@@ -1,5 +1,3 @@
-const LIST_LIMIT = 1000;
-
 export function useSignedBucket(bucket: string) {
   const client = useSupabaseClient();
 
@@ -16,15 +14,9 @@ export function useSignedBucket(bucket: string) {
   const fresh = (deck: string) =>
     deck === cached.value.deck && !signaturesStale(cached.value.at);
 
-  async function list(deck: string) {
-    const { data, error } = await client.storage
-      .from(bucket)
-      .list(deck, { limit: LIST_LIMIT });
+  const storage = client.storage.from(bucket);
 
-    if (error) console.error(error);
-
-    return data?.map((object) => object.name) ?? null;
-  }
+  const list = (deck: string) => listFolder(storage, deck);
 
   async function sign(
     deck: string,
@@ -34,7 +26,7 @@ export function useSignedBucket(bucket: string) {
     const missing = names.filter((name) => !reuse[name]);
 
     const signed = missing.length
-      ? await signStorageObjects(bucket, deck, missing)
+      ? await signFolder(storage, deck, missing)
       : new Map<string, string>();
 
     if (!signed) return null;
@@ -78,5 +70,5 @@ export function useSignedBucket(bucket: string) {
 
   useEventListener(["focus", "online"], resign);
 
-  return { cached, fresh, list, sign, store };
+  return { storage, cached, fresh, list, sign, store };
 }

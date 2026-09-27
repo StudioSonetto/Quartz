@@ -1,3 +1,5 @@
+export const FONTSHARE_CSS = "https://api.fontshare.com/v2/css";
+
 export const fonts = [
   "Alpino",
   "Amulya",
@@ -81,3 +83,7 @@ export const fonts = [
   "Work Sans",
   "Zodiak",
 ] as const;
+
+export function fontSlug(family: string): string {
+  return family.toLowerCase().replace(/\s+/g, "-");
+}

@@ -1,4 +1,4 @@
-const spaRoutes = ["/atelier", "/auth", "/live"];
+const spaRoutes = ["/atelier", "/auth", "/live", "/discord"];
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-08-05",
@@ -72,20 +72,21 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    discordBotToken: "",
+    discordClientSecret: "",
     polarAccessToken: "",
     polarWebhookSecret: "",
     polarServer: "",
     polarProProductId: "",
     public: {
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseKey: process.env.SUPABASE_KEY,
+      discordClientId: "",
     },
   },
   supabase: {
     redirectOptions: {
       login: "/auth",
       callback: "/auth/callback",
-      exclude: ["/", "/docs*", "/legal/*"],
+      exclude: ["/", "/docs*", "/legal/*", "/discord"],
       saveRedirectToCookie: true,
     },
   },
@@ -93,10 +94,10 @@ export default defineNuxtConfig({
     devtools: true,
     glsl: true,
   },
-  // vite.server.allowedHosts is for the discord activity (wip)
+  // Lets the Discord activity reach dev through a cloudflared tunnel.
   vite: {
     server: {
-      allowedHosts: ["*.trycloudflare.com"],
+      allowedHosts: [".trycloudflare.com"],
     },
   },
   typescript: {

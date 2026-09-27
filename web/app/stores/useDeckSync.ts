@@ -3,6 +3,9 @@ import type { FetchError } from "ofetch";
 export const useDeckSync = defineStore("deck-sync", () => {
   const apiFetch = useRequestFetch();
 
+  // Discord passes can't write, so nothing gets queued inside the activity.
+  const readOnly = inDiscordActivity();
+
   const dirtyNodes = ref<Set<string>>(new Set());
   const deletedNodes = ref<DeleteNode[]>([]);
   const dirtyComponents = ref<Set<string>>(new Set());
@@ -22,12 +25,16 @@ export const useDeckSync = defineStore("deck-sync", () => {
   );
 
   function enqueueNode(id: string) {
+    if (readOnly) return;
+
     dirtyNodes.value.add(id);
 
     scheduleFlush();
   }
 
   function enqueueComponent(node: string, type: string) {
+    if (readOnly) return;
+
     const key = componentKey(node, type);
 
     deletedComponents.value.delete(key);
@@ -37,6 +44,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueComponentDelete(node: string, type: string) {
+    if (readOnly) return;
+
     const key = componentKey(node, type);
 
     dirtyComponents.value.delete(key);
@@ -62,6 +71,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueDelete(del: DeleteNode, nodeId: string) {
+    if (readOnly) return;
+
     dropNode(nodeId);
 
     deletedNodes.value.push(del);

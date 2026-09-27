@@ -1,12 +1,8 @@
-import { fonts } from "./fonts";
+import { FONTSHARE_CSS, fonts } from "~~/shared/utils/fonts";
 
 const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
 const served = new Set<string>();
-
-function fontSlug(family: string): string {
-  return family.toLowerCase().replace(/\s+/g, "-");
-}
 
 function unservedFonts(
   families: readonly (string | null | undefined)[],
@@ -21,7 +17,9 @@ function unservedFonts(
 function fontshareCssUrl(families: readonly string[]): string {
   const query = families.map((f) => `f[]=${fontSlug(f)}@1`).join("&");
 
-  return `https://api.fontshare.com/v2/css?${query}&display=swap`;
+  const base = inDiscordActivity() ? "/api/discord/fonts" : FONTSHARE_CSS;
+
+  return `${base}?${query}&display=swap`;
 }
 
 export function fontsInComponents(

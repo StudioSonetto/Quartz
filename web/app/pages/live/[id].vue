@@ -6,8 +6,7 @@
   </div>
   <div
     v-else
-    @click="prevSlides()"
-    @contextmenu.prevent="nextSlides()"
+    v-on="controls"
     @mousemove="onCursorMoved"
     tabindex="0"
     autofocus
@@ -42,29 +41,12 @@ const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
-const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
-const { slides, currentSlidesIndex, currentTree } = storeToRefs(useDeckStore());
+const { fetchDeck, fetchAllSlides, enterSlide } = useDeckStore();
+const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
-const { fireTree } = useEventDispatch();
 const { reset } = useAnimationState();
 
-useEventListener(window, "keydown", onKey);
-
-function onKey(event: KeyboardEvent) {
-  const combo = eventToCombo(event);
-
-  if (fireTree(currentTree.value, "key", combo)) {
-    event.preventDefault();
-
-    return;
-  }
-
-  if (combo === "escape") return leavePresentation();
-  if (combo === "arrowleft") return prevSlides();
-  if (["enter", " ", "arrowright"].includes(combo)) return nextSlides();
-}
-
-watch(currentTree, (next) => fireTree(next, "enter"));
+const controls = usePresentationControls(() => true, leavePresentation);
 
 const cursorMoved = ref(false);
 
@@ -95,8 +77,7 @@ const { refresh: refreshSlides } = await useAsyncData(
 );
 
 onMounted(async () => {
-  reset();
-  fireTree(currentTree.value, "enter");
+  enterSlide();
 
   const id = useRoute().params.id as string;
 

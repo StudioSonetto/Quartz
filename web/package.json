@@ -15,6 +15,7 @@
     "typecheck": "vue-tsc -b"
   },
   "dependencies": {
+    "@discord/embedded-app-sdk": "^2.0.0",
     "@iconify-json/carbon": "^1.2.24",
     "@nuxt/content": "^3.15.0",
     "@nuxt/image": "^1.11.0",

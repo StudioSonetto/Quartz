@@ -98,13 +98,21 @@ function onCanvasPointerDown(event: PointerEvent) {
   if (props.canEdit) pathTool.press?.(event);
 }
 
-const props = defineProps<{
-  canEdit?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    canEdit?: boolean;
+    interactive?: boolean;
+  }>(),
+  { interactive: true },
+);
 
 provide(
   presentingKey,
   computed(() => !props.canEdit),
+);
+provide(
+  interactiveKey,
+  computed(() => props.interactive),
 );
 
 const renderEl = useTemplateRef<HTMLElement>("renderEl");

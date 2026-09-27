@@ -23,6 +23,14 @@
 <script setup lang="ts">
 import Lenis from "lenis";
 
+// Discord always opens the activity at "/", with frame_id in the query.
+definePageMeta({
+  middleware: (to) => {
+    if (to.query.frame_id)
+      return navigateTo({ path: "/discord", query: to.query });
+  },
+});
+
 let lenis: Lenis;
 
 onMounted(() => {

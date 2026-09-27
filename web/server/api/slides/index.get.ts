@@ -3,13 +3,11 @@ import { db } from "~~/server/db";
 import { slides } from "~~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
-
   const query = getQuery(event);
   const deck = query.deck as string;
   const index = query.index !== undefined ? Number(query.index) : undefined;
 
-  await requireDeckOwner(deck, user.id);
+  await requireDeckReader(event, () => deckTarget(deck));
 
   if (index !== undefined) {
     const [slide] = await db

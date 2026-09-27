@@ -7,8 +7,6 @@ export const useAssetsStore = defineStore("assets", () => {
 
   const { cached, fresh, list, sign, store } = useSignedBucket("assets");
 
-  const LIST_LIMIT = 1000;
-
   const assets = computed<Asset[]>(() =>
     Object.entries(cached.value.urls).map(([name, url]) => ({ name, url })),
   );
@@ -60,7 +58,15 @@ export const useAssetsStore = defineStore("assets", () => {
 
     if (!urls) return;
 
-    store(deck, urls, reusable ? cached.value.at : Date.now());
+    await setSignedUrls(deck, urls, reusable ? cached.value.at : Date.now());
+  }
+
+  async function setSignedUrls(
+    deck: string,
+    urls: Record<string, string>,
+    at = Date.now(),
+  ) {
+    store(deck, urls, at);
 
     await serveFonts(deck);
   }
@@ -68,21 +74,18 @@ export const useAssetsStore = defineStore("assets", () => {
   function storageFull() {
     if (getUnlockedModules().length) {
       alert("Storage full. Pro includes 100 MB.");
-    } else if (confirm("Storage full. Basic includes 10 MB. Upgrade to Pro for 100 MB?")) {
+    } else if (
+      confirm("Storage full. Basic includes 10 MB. Upgrade to Pro for 100 MB?")
+    ) {
       window.location.assign("/api/billing/checkout");
     }
   }
 
   async function uploadAssets(deck: string, files: File[]) {
-    const { data: stored } = await client.storage
-      .from("assets")
-      .list(deck, { limit: LIST_LIMIT });
+    const stored = await list(deck);
 
     const taken = new Set(
-      [
-        ...assets.value.map((a) => a.name),
-        ...(stored ?? []).map((a) => a.name),
-      ].map(assetKey),
+      [...assets.value.map((a) => a.name), ...(stored ?? [])].map(assetKey),
     );
 
     const planned = files.flatMap((file) => {
@@ -117,11 +120,12 @@ export const useAssetsStore = defineStore("assets", () => {
     if (names.size) {
       const added = await sign(deck, [...names]);
 
-      if (added) {
-        store(deck, { ...cached.value.urls, ...added }, cached.value.at);
-
-        await serveFonts(deck);
-      }
+      if (added)
+        await setSignedUrls(
+          deck,
+          { ...cached.value.urls, ...added },
+          cached.value.at,
+        );
     }
 
     return new Map(entries);
@@ -163,6 +167,7 @@ export const useAssetsStore = defineStore("assets", () => {
   }
 
   return {
+    setSignedUrls,
     assets,
     images,
     imageNames,
