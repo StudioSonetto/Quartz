@@ -11,13 +11,14 @@ export function usePresentationControls(
 
     const combo = eventToCombo(event);
 
-    if (fireTree(currentTree.value, "key", combo)) return event.preventDefault();
+    if (fireTree(currentTree.value, "key", combo))
+      return event.preventDefault();
     if (combo === "escape") return onEscape?.();
     if (combo === "arrowleft") return deck.prevSlides();
     if (["enter", " ", "arrowright"].includes(combo)) return deck.nextSlides();
   });
 
-  watch(currentTree, (next) => fireTree(next, "enter"));
+  watch(currentTree, (next) => enabled() && fireTree(next, "enter"));
 
   return {
     click: () => enabled() && deck.prevSlides(),

@@ -18,7 +18,7 @@
       </UIButton>
     </div>
     <div v-else class="stage" v-on="controls">
-      <AtelierRender class="select-none" />
+      <AtelierRender class="select-none" :interactive="presenting" />
     </div>
   </div>
 </template>
@@ -78,10 +78,9 @@ const sdk = new DiscordSDK(clientId);
 
 // Created in setup: Nuxt composables inside it lose their context after an await.
 const sync = usePresenterSync(sdk.instanceId, presenting, load);
+const discordPass = useDiscordPass();
 
 const controls = usePresentationControls(() => presenting.value);
-
-watchEffect(() => (followingPresenter.value = !presenting.value));
 
 function fail(err: unknown) {
   error.value = (err as Error).message;
@@ -172,7 +171,7 @@ onMounted(async () => {
 
     await sdk.commands.authenticate({ access_token });
 
-    enterDiscordMode(pass);
+    discordPass.value = pass;
     auth.value = who;
 
     await sdk.subscribe(
@@ -194,7 +193,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  followingPresenter.value = false;
   sync.stop();
   reset();
 });

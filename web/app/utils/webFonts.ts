@@ -4,12 +4,6 @@ const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
 const served = new Set<string>();
 
-let cssBase = FONTSHARE_CSS;
-
-export function setFontCssBase(base: string) {
-  cssBase = base;
-}
-
 function unservedFonts(
   families: readonly (string | null | undefined)[],
   alreadyServed: ReadonlySet<string>,
@@ -23,7 +17,9 @@ function unservedFonts(
 function fontshareCssUrl(families: readonly string[]): string {
   const query = families.map((f) => `f[]=${fontSlug(f)}@1`).join("&");
 
-  return `${cssBase}?${query}&display=swap`;
+  const base = inDiscordActivity() ? "/api/discord/fonts" : FONTSHARE_CSS;
+
+  return `${base}?${query}&display=swap`;
 }
 
 export function fontsInComponents(

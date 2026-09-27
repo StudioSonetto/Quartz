@@ -2,6 +2,9 @@ export const renderScaleKey: InjectionKey<Ref<number>> = Symbol("renderScale");
 
 export const presentingKey: InjectionKey<Ref<boolean>> = Symbol("presenting");
 
+// False for someone watching another presenter: their events don't run.
+export const interactiveKey: InjectionKey<Ref<boolean>> = Symbol("interactive");
+
 export function useElementRenderer() {
   const { getStoredComponent, stagedData } = useNodeComponents();
   const { imageUrl } = useAssetsStore();
