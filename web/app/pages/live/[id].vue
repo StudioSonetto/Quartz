@@ -6,8 +6,7 @@
   </div>
   <div
     v-else
-    @click="prevSlides()"
-    @contextmenu.prevent="nextSlides()"
+    v-on="controls"
     @mousemove="onCursorMoved"
     tabindex="0"
     autofocus
@@ -42,13 +41,13 @@ const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
-const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
+const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { slides, currentSlidesIndex, currentTree } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const { fireTree } = useEventDispatch();
 const { reset } = useAnimationState();
 
-usePresentationKeys(() => true, leavePresentation);
+const controls = usePresentationControls(() => true, leavePresentation);
 
 const cursorMoved = ref(false);
 

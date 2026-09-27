@@ -1,4 +1,4 @@
-export function usePresentationKeys(
+export function usePresentationControls(
   enabled: () => boolean,
   onEscape?: () => void,
 ) {
@@ -18,4 +18,13 @@ export function usePresentationKeys(
   });
 
   watch(currentTree, (next) => fireTree(next, "enter"));
+
+  return {
+    click: () => enabled() && deck.prevSlides(),
+    contextmenu: (event: MouseEvent) => {
+      event.preventDefault();
+
+      if (enabled()) deck.nextSlides();
+    },
+  };
 }

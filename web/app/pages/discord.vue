@@ -21,8 +21,7 @@
     <div
       v-else
       class="stage"
-      @click="presenting && prevSlides()"
-      @contextmenu.prevent="presenting && nextSlides()"
+      v-on="controls"
     >
       <AtelierRender class="select-none" />
     </div>
@@ -58,7 +57,7 @@ type Status = "loading" | "error" | "picking" | "waiting" | "showing" | "left";
 const config = useRuntimeConfig();
 const token = useDiscordToken();
 const api = useApiFetch();
-const { fetchDeck, fetchAllSlides, nextSlides, prevSlides } = useDeckStore();
+const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { setSignedUrls } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -80,7 +79,7 @@ const sdk = new DiscordSDK(clientId);
 // Created in setup: Nuxt composables inside it lose their context after an await.
 const sync = usePresenterSync(sdk.instanceId, presenting, load);
 
-usePresentationKeys(() => presenting.value);
+const controls = usePresentationControls(() => presenting.value);
 
 function fail(err: unknown) {
   error.value = (err as Error).message;
