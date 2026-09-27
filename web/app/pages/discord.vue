@@ -49,8 +49,7 @@ definePageMeta({
 
 type Status = "loading" | "error" | "picking" | "waiting" | "showing";
 
-const config = useRuntimeConfig();
-const { fetchDeck, fetchAllSlides } = useDeckStore();
+const { fetchDeck, fetchAllSlides, enterSlide } = useDeckStore();
 const { setSignedUrls } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -72,7 +71,7 @@ const presenting = computed(
   () => !!session.value && session.value.presenter === auth.value?.discordId,
 );
 
-const clientId = config.public.discordClientId;
+const clientId = useRuntimeConfig().public.discordClientId;
 
 const sdk = new DiscordSDK(clientId);
 
@@ -88,11 +87,7 @@ function fail(err: unknown) {
 }
 
 function load() {
-  return openSession().catch(fail);
-}
-
-async function openSession() {
-  await show(await $fetch<Session | null>("/api/discord/session"));
+  return $fetch<Session | null>("/api/discord/session").then(show).catch(fail);
 }
 
 async function show(next: Session | null) {
@@ -118,7 +113,7 @@ async function show(next: Session | null) {
     ),
   ]);
 
-  reset();
+  enterSlide();
   status.value = "showing";
 
   if (!presenting.value) sync.requestState();
@@ -179,7 +174,7 @@ onMounted(async () => {
       },
     );
 
-    await openSession();
+    await load();
   } catch (err) {
     fail(err);
   }

@@ -1,7 +1,6 @@
 export const useSnapshotsStore = defineStore("snapshots", () => {
-  const client = useSupabaseClient();
-
-  const { cached, fresh, list, sign, store } = useSignedBucket("snapshots");
+  const { storage, cached, fresh, list, sign, store } =
+    useSignedBucket("snapshots");
 
   const covers = ref<Record<string, string>>({});
 
@@ -38,7 +37,7 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
     );
 
     const signed = await signPaths(
-      client.storage.from("snapshots"),
+      storage,
       wanted.map(([, path]) => path),
     );
 
@@ -58,11 +57,7 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
 
     const held =
       snapshotUrl(slides) ??
-      (
-        await signFolder(client.storage.from("snapshots"), deck, [
-          objectName(slides),
-        ])
-      )?.get(objectName(slides));
+      (await sign(deck, [objectName(slides)]))?.[objectName(slides)];
 
     if (!held) return;
 
@@ -74,9 +69,7 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
   }
 
   async function dropSnapshot(deck: string, slides: string) {
-    const { error } = await client.storage
-      .from("snapshots")
-      .remove([`${deck}/${objectName(slides)}`]);
+    const { error } = await storage.remove([`${deck}/${objectName(slides)}`]);
 
     if (error) return console.error(error);
 

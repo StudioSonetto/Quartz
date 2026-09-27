@@ -44,11 +44,7 @@ export function useEventDispatch() {
     if (!handlers.length) return false;
 
     const deck = useDeckStore();
-    const { activeState, animateTo } = useAnimationState();
-    const base = useNodeComponents().getStoredComponent(
-      node.id,
-      "core.base",
-    )?.data;
+    const { activeState, animateToState } = useAnimationState();
 
     let ran = false;
 
@@ -65,10 +61,7 @@ export function useEventDispatch() {
 
           if (next === current) break;
 
-          animateTo(node.id, next, {
-            ...stateTiming(base, next || current),
-            duration: handler.duration ?? DEFAULT_HANDLER_DURATION,
-          });
+          animateToState(node.id, next, handler.duration);
           ran = true;
           break;
         }

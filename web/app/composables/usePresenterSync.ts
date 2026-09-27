@@ -23,8 +23,8 @@ export function usePresenterSync(
     useRuntimeConfig().public.supabase.key,
     { auth: { persistSession: false } },
   );
-  const { currentSlideId, currentSlides, currentTree } =
-    storeToRefs(useDeckStore());
+  const deck = useDeckStore();
+  const { currentSlideId, currentSlides } = storeToRefs(deck);
   const playhead = usePlayhead();
   const { snapshot, restore } = useAnimationState();
 
@@ -99,7 +99,9 @@ export function usePresenterSync(
 
     if (slide) currentSlideId.value = slide;
 
-    await until(currentTree).toMatch((tree) => !!tree?.id);
+    // Lets a slide change start the store's enter step, whose reset must land first.
+    await nextTick();
+    await deck.whenEntered();
 
     if (turn !== latest) return;
 

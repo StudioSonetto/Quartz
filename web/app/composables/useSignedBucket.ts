@@ -70,5 +70,5 @@ export function useSignedBucket(bucket: string) {
 
   useEventListener(["focus", "online"], resign);
 
-  return { cached, fresh, list, sign, store };
+  return { storage, cached, fresh, list, sign, store };
 }

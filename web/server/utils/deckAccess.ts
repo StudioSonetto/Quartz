@@ -6,18 +6,18 @@ import { decks, nodes, slides } from "~~/server/db/schema";
 
 type Target = { deck: string; owner: string };
 
-const target = { deck: decks.id, owner: decks.lapidarist };
+export const deckOwnerColumns = { deck: decks.id, owner: decks.lapidarist };
 
 export const deckTarget = (id: string) =>
   db
-    .select(target)
+    .select(deckOwnerColumns)
     .from(decks)
     .where(eq(decks.id, id))
     .then(([row]) => row);
 
 export const slideTarget = (id: string) =>
   db
-    .select(target)
+    .select(deckOwnerColumns)
     .from(slides)
     .innerJoin(decks, eq(slides.deck, decks.id))
     .where(eq(slides.id, id))
@@ -25,7 +25,7 @@ export const slideTarget = (id: string) =>
 
 export const nodeTarget = (id: string) =>
   db
-    .select(target)
+    .select(deckOwnerColumns)
     .from(nodes)
     .innerJoin(slides, eq(nodes.slides, slides.id))
     .innerJoin(decks, eq(slides.deck, decks.id))

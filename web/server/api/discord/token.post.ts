@@ -24,25 +24,27 @@ export default defineEventHandler(async (event) => {
     },
   );
 
-  const [me, users] = await Promise.all([
-    $fetch<{ id: string }>("https://discord.com/api/users/@me", {
-      headers: { Authorization: `Bearer ${access_token}` },
-    }),
+  const me = $fetch<{ id: string }>("https://discord.com/api/users/@me", {
+    headers: { Authorization: `Bearer ${access_token}` },
+  });
+
+  const [{ id: discordId }, users] = await Promise.all([
+    me,
     instanceUsers(instanceId, { fresh: true }),
   ]);
 
   if (!users) throw createError({ statusCode: 503 });
-  if (!users.includes(me.id)) throw createError({ statusCode: 403 });
+  if (!users.includes(discordId)) throw createError({ statusCode: 403 });
 
-  const userId = await quartzUserFor(me.id);
+  const userId = await quartzUserFor(discordId);
 
   return {
     access_token,
     token: signDiscordToken(
-      { discordId: me.id, userId, instanceId },
+      { discordId, userId, instanceId },
       config.discordClientSecret,
     ),
-    discordId: me.id,
+    discordId,
     canPresent: !!userId,
   };
 });

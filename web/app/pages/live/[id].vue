@@ -41,10 +41,9 @@ const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
-const { fetchDeck, fetchAllSlides } = useDeckStore();
-const { slides, currentSlidesIndex, currentTree } = storeToRefs(useDeckStore());
+const { fetchDeck, fetchAllSlides, enterSlide } = useDeckStore();
+const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
-const { fireTree } = useEventDispatch();
 const { reset } = useAnimationState();
 
 const controls = usePresentationControls(() => true, leavePresentation);
@@ -78,8 +77,7 @@ const { refresh: refreshSlides } = await useAsyncData(
 );
 
 onMounted(async () => {
-  reset();
-  fireTree(currentTree.value, "enter");
+  enterSlide();
 
   const id = useRoute().params.id as string;
 

@@ -69,19 +69,25 @@ export function useAnimationState() {
     return Object.fromEntries(active);
   }
 
-  function restore(states: Record<string, string>) {
-    for (const nodeId of new Set([...active.keys(), ...Object.keys(states)])) {
-      const next = states[nodeId] ?? BASE_STATE;
-      const base = useNodeComponents().getStoredComponent(
-        nodeId,
-        "core.base",
-      )?.data;
+  function animateToState(
+    nodeId: string,
+    next: string,
+    duration?: number | null,
+  ) {
+    const base = useNodeComponents().getStoredComponent(
+      nodeId,
+      "core.base",
+    )?.data;
 
-      animateTo(nodeId, next, {
-        ...stateTiming(base, next || activeState(nodeId)),
-        duration: DEFAULT_HANDLER_DURATION,
-      });
-    }
+    animateTo(nodeId, next, {
+      ...stateTiming(base, next || activeState(nodeId)),
+      duration: duration ?? DEFAULT_HANDLER_DURATION,
+    });
+  }
+
+  function restore(states: Record<string, string>) {
+    for (const nodeId of new Set([...active.keys(), ...Object.keys(states)]))
+      animateToState(nodeId, states[nodeId] ?? BASE_STATE);
   }
 
   function reset() {
@@ -97,6 +103,7 @@ export function useAnimationState() {
     transition,
     setState,
     animateTo,
+    animateToState,
     toggleState,
     snapshot,
     restore,

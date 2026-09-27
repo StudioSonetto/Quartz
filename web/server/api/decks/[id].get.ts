@@ -7,10 +7,14 @@ export default defineEventHandler(async (event) => {
 
   const { title, last_modified } = await requireDeckReader(event, () =>
     db
-      .select()
+      .select({
+        ...deckOwnerColumns,
+        title: decks.title,
+        last_modified: decks.last_modified,
+      })
       .from(decks)
       .where(eq(decks.id, id))
-      .then(([row]) => row && { ...row, deck: row.id, owner: row.lapidarist }),
+      .then(([row]) => row),
   );
 
   return { id, title, last_modified };
