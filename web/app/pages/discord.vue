@@ -50,15 +50,15 @@ definePageMeta({
 type Status = "loading" | "error" | "picking" | "waiting" | "showing";
 
 const config = useRuntimeConfig();
-const token = useDiscordToken();
-const api = useApiFetch();
 const { fetchDeck, fetchAllSlides } = useDeckStore();
 const { setSignedUrls } = useAssetsStore();
 const { reset } = useAnimationState();
 
 const status = ref<Status>("loading");
 const error = ref("");
-const decks = ref<{ id: string; title: string }[]>([]);
+type Deck = { id: string; title: string };
+
+const decks = ref<Deck[]>([]);
 const session = ref<{
   deck: string;
   presenter: string;
@@ -71,8 +71,6 @@ const presenting = computed(
 );
 
 const clientId = config.public.discordClientId;
-
-setFontCssBase("/api/discord/fonts");
 
 const sdk = new DiscordSDK(clientId);
 
@@ -94,7 +92,7 @@ function load() {
 
 async function openSession() {
   // Only "no session" means pick or wait; an expired pass must not reach the picker.
-  session.value = await api("/api/discord/session").catch((err) => {
+  session.value = await $fetch("/api/discord/session").catch((err) => {
     if (err?.statusCode === 404) return null;
 
     throw err;
@@ -105,7 +103,7 @@ async function openSession() {
   if (!deck) {
     if (!auth.value?.canPresent) return (status.value = "waiting");
 
-    decks.value = await api("/api/discord/decks");
+    decks.value = await $fetch<Deck[]>("/api/discord/decks");
     status.value = "picking";
 
     return;
@@ -115,7 +113,7 @@ async function openSession() {
     sync.trust(session.value!),
     fetchDeck(deck),
     fetchAllSlides(deck),
-    api<Record<string, string>>("/api/discord/assets").then((urls) =>
+    $fetch<Record<string, string>>("/api/discord/assets").then((urls) =>
       setSignedUrls(deck, urls),
     ),
   ]);
@@ -128,7 +126,7 @@ async function openSession() {
 
 // A 409 means someone else started presenting first: show theirs instead.
 function present(deck: string) {
-  return api("/api/discord/session", { method: "POST", body: { deck } })
+  return $fetch("/api/discord/session", { method: "POST", body: { deck } })
     .then(openSession)
     .then(sync.announceDeck, (err) =>
       err?.statusCode === 409 ? load() : fail(err),
@@ -163,7 +161,7 @@ onMounted(async () => {
 
     await sdk.commands.authenticate({ access_token });
 
-    token.value = pass;
+    enterDiscordMode(pass);
     auth.value = who;
 
     await sdk.subscribe(

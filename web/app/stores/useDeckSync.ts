@@ -1,8 +1,10 @@
 import type { FetchError } from "ofetch";
 
 export const useDeckSync = defineStore("deck-sync", () => {
-  const apiFetch = useApiFetch();
-  const discordToken = useDiscordToken();
+  const apiFetch = useRequestFetch();
+
+  // Discord viewers read through a pass that can't write; nothing gets queued.
+  const readOnly = ref(false);
 
   const dirtyNodes = ref<Set<string>>(new Set());
   const deletedNodes = ref<DeleteNode[]>([]);
@@ -23,12 +25,16 @@ export const useDeckSync = defineStore("deck-sync", () => {
   );
 
   function enqueueNode(id: string) {
+    if (readOnly.value) return;
+
     dirtyNodes.value.add(id);
 
     scheduleFlush();
   }
 
   function enqueueComponent(node: string, type: string) {
+    if (readOnly.value) return;
+
     const key = componentKey(node, type);
 
     deletedComponents.value.delete(key);
@@ -38,6 +44,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueComponentDelete(node: string, type: string) {
+    if (readOnly.value) return;
+
     const key = componentKey(node, type);
 
     dirtyComponents.value.delete(key);
@@ -63,6 +71,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueDelete(del: DeleteNode, nodeId: string) {
+    if (readOnly.value) return;
+
     dropNode(nodeId);
 
     deletedNodes.value.push(del);
@@ -99,7 +109,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   async function flush(): Promise<void> {
-    if (flushing.value || !hasPending.value || discordToken.value) return;
+    if (flushing.value || !hasPending.value) return;
 
     const snapshot = currentSnapshot();
     const payload = buildPayloadFor(snapshot);
@@ -206,6 +216,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   return {
+    readOnly,
     status,
     hasPending,
     enqueueNode,
