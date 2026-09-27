@@ -81,6 +81,8 @@ const sync = usePresenterSync(sdk.instanceId, presenting, load);
 
 const controls = usePresentationControls(() => presenting.value);
 
+watchEffect(() => (followingPresenter.value = !presenting.value));
+
 function fail(err: unknown) {
   error.value = (err as Error).message;
   status.value = "error";
@@ -183,6 +185,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  followingPresenter.value = false;
   sync.stop();
   reset();
 });

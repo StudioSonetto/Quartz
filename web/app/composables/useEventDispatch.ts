@@ -23,6 +23,8 @@ export type EventHandler = {
   slide?: number;
 };
 
+export const followingPresenter = ref(false);
+
 export function useEventDispatch() {
   function handlersFor(node: Tree, on: EventTrigger, key?: string) {
     const stored = useNodeComponents().getStoredComponent(
@@ -35,6 +37,8 @@ export function useEventDispatch() {
   }
 
   function fire(node: Tree, on: EventTrigger, key?: string): boolean {
+    if (followingPresenter.value) return false;
+
     const handlers = handlersFor(node, on, key);
 
     if (!handlers.length) return false;

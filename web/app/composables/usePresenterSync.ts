@@ -4,6 +4,7 @@ type WatchState = {
   slide: string | null;
   time: number;
   playing: boolean;
+  states: Record<string, string>;
   seq: number;
 };
 
@@ -25,6 +26,7 @@ export function usePresenterSync(
   const { currentSlideId, currentSlides, currentTree } =
     storeToRefs(useDeckStore());
   const playhead = usePlayhead();
+  const { snapshot, restore } = useAnimationState();
 
   const channel = client.channel(`discord:${instanceId}`, {
     config: { broadcast: { self: false } },
@@ -57,6 +59,7 @@ export function usePresenterSync(
       slide: currentSlides.value?.id ?? null,
       time: playhead.time.value,
       playing: playhead.playing.value,
+      states: snapshot(),
       seq,
     } satisfies WatchState);
 
@@ -91,7 +94,7 @@ export function usePresenterSync(
 
   let latest = 0;
 
-  async function apply({ slide, time, playing }: WatchState) {
+  async function apply({ slide, time, playing, states }: WatchState) {
     const turn = ++latest;
 
     if (slide) currentSlideId.value = slide;
@@ -101,6 +104,7 @@ export function usePresenterSync(
     if (turn !== latest) return;
 
     playhead.seek(time);
+    restore(states ?? {});
 
     if (playing) playhead.play();
   }
@@ -120,7 +124,12 @@ export function usePresenterSync(
     .subscribe();
 
   const stopWatch = watch(
-    [() => currentSlides.value?.id, playhead.playing],
+    [
+      () => currentSlides.value?.id,
+      playhead.playing,
+      () => (playhead.playing.value ? null : playhead.time.value),
+      () => JSON.stringify(snapshot()),
+    ],
     () => {
       if (presenting.value) sendState();
     },
