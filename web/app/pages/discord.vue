@@ -17,11 +17,7 @@
         {{ d.title }}
       </UIButton>
     </div>
-    <div
-      v-else
-      class="stage"
-      v-on="controls"
-    >
+    <div v-else class="stage" v-on="controls">
       <AtelierRender class="select-none" />
     </div>
   </div>
@@ -63,7 +59,12 @@ const { reset } = useAnimationState();
 const status = ref<Status>("loading");
 const error = ref("");
 const decks = ref<{ id: string; title: string }[]>([]);
-const session = ref<{ deck: string; presenter: string } | null>(null);
+const session = ref<{
+  deck: string;
+  presenter: string;
+  publicKey: JsonWebKey;
+  privateKey?: JsonWebKey;
+} | null>(null);
 const auth = ref<{ discordId: string; canPresent: boolean } | null>(null);
 const presenting = computed(
   () => !!session.value && session.value.presenter === auth.value?.discordId,
@@ -109,6 +110,7 @@ async function openSession() {
   }
 
   await Promise.all([
+    sync.trust(session.value!),
     fetchDeck(deck),
     fetchAllSlides(deck),
     api<Record<string, string>>("/api/discord/assets").then((urls) =>
@@ -143,7 +145,11 @@ onMounted(async () => {
       scope: ["identify"],
     });
 
-    const { access_token, token: pass, ...who } = await $fetch<{
+    const {
+      access_token,
+      token: pass,
+      ...who
+    } = await $fetch<{
       access_token: string;
       token: string;
       discordId: string;
