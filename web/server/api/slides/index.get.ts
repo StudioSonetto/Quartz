@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const deck = query.deck as string;
   const index = query.index !== undefined ? Number(query.index) : undefined;
 
-  await requireDeckReader(event, deckTarget(deck));
+  await requireDeckReader(event, () => deckTarget(deck));
 
   if (index !== undefined) {
     const [slide] = await db

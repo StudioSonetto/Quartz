@@ -128,7 +128,7 @@ export function usePresenterSync(
       () => currentSlides.value?.id,
       playhead.playing,
       () => (playhead.playing.value ? null : playhead.time.value),
-      () => JSON.stringify(snapshot()),
+      () => presenting.value && JSON.stringify(snapshot()),
     ],
     () => {
       if (presenting.value) sendState();

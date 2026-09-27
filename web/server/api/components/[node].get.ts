@@ -5,7 +5,7 @@ import { components } from "~~/server/db/schema";
 export default defineEventHandler(async (event) => {
   const node = getRouterParam(event, "node")!;
 
-  await requireDeckReader(event, nodeTarget(node));
+  await requireDeckReader(event, () => nodeTarget(node));
 
   return db
     .select()

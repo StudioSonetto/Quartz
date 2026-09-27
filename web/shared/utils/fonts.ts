@@ -1,3 +1,5 @@
+export const FONTSHARE_CSS = "https://api.fontshare.com/v2/css";
+
 export const fonts = [
   "Alpino",
   "Amulya",

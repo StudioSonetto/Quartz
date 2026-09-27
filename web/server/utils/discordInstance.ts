@@ -1,7 +1,10 @@
 import type { FetchError } from "ofetch";
 
 const TTL = 15_000;
-const cache = new Map<string, { at: number; users: Promise<string[] | null> }>();
+const cache = new Map<
+  string,
+  { at: number; users: Promise<string[] | null> }
+>();
 
 // null means Discord could not be asked; [] means the activity has ended.
 export function instanceUsers(

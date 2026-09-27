@@ -1,10 +1,10 @@
-import { fonts } from "~~/shared/utils/fonts";
+import { FONTSHARE_CSS, fonts } from "~~/shared/utils/fonts";
 
 const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
 const served = new Set<string>();
 
-let cssBase = "https://api.fontshare.com/v2/css";
+let cssBase = FONTSHARE_CSS;
 
 export function setFontCssBase(base: string) {
   cssBase = base;

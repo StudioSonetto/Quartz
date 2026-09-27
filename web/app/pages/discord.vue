@@ -59,12 +59,14 @@ const error = ref("");
 type Deck = { id: string; title: string };
 
 const decks = ref<Deck[]>([]);
-const session = ref<{
+type Session = {
   deck: string;
   presenter: string;
   publicKey: JsonWebKey;
   privateKey?: JsonWebKey;
-} | null>(null);
+};
+
+const session = ref<Session | null>(null);
 const auth = ref<{ discordId: string; canPresent: boolean } | null>(null);
 const presenting = computed(
   () => !!session.value && session.value.presenter === auth.value?.discordId,
@@ -92,13 +94,19 @@ function load() {
 
 async function openSession() {
   // Only "no session" means pick or wait; an expired pass must not reach the picker.
-  session.value = await $fetch("/api/discord/session").catch((err) => {
-    if (err?.statusCode === 404) return null;
+  await show(
+    await $fetch<Session>("/api/discord/session").catch((err) => {
+      if (err?.statusCode === 404) return null;
 
-    throw err;
-  });
+      throw err;
+    }),
+  );
+}
 
-  const deck = session.value?.deck;
+async function show(next: Session | null) {
+  session.value = next;
+
+  const deck = next?.deck;
 
   if (!deck) {
     if (!auth.value?.canPresent) return (status.value = "waiting");
@@ -110,7 +118,7 @@ async function openSession() {
   }
 
   await Promise.all([
-    sync.trust(session.value!),
+    sync.trust(next),
     fetchDeck(deck),
     fetchAllSlides(deck),
     $fetch<Record<string, string>>("/api/discord/assets").then((urls) =>
@@ -126,8 +134,11 @@ async function openSession() {
 
 // A 409 means someone else started presenting first: show theirs instead.
 function present(deck: string) {
-  return $fetch("/api/discord/session", { method: "POST", body: { deck } })
-    .then(openSession)
+  return $fetch<Session>("/api/discord/session", {
+    method: "POST",
+    body: { deck },
+  })
+    .then(show)
     .then(sync.announceDeck, (err) =>
       err?.statusCode === 409 ? load() : fail(err),
     );

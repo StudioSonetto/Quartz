@@ -1,13 +1,13 @@
 import type { H3Event } from "h3";
 import { hash } from "ohash";
-import { fonts, fontSlug } from "~~/shared/utils/fonts";
+import { FONTSHARE_CSS, fonts, fontSlug } from "~~/shared/utils/fonts";
 
 const KNOWN = new Set(fonts.map((f) => `${fontSlug(f)}@1`));
 
 export default defineCachedEventHandler(
   async (event) => {
     const css = await $fetch<string>(
-      `https://api.fontshare.com/v2/css?${fontQuery(event)}&display=swap`,
+      `${FONTSHARE_CSS}?${fontQuery(event)}&display=swap`,
       { responseType: "text" },
     );
 

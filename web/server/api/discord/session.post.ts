@@ -5,9 +5,7 @@ import { discordSessions } from "~~/server/db/schema";
 const schema = z.object({ deck: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
-  const { userId, discordId, instanceId } = requireDiscordToken(event);
-
-  if (!userId) throw createError({ statusCode: 403 });
+  const { userId, discordId, instanceId } = requireDiscordOwner(event);
 
   const { deck } = await validateBody(event, schema);
 
@@ -27,5 +25,5 @@ export default defineEventHandler(async (event) => {
       set: { deck, presenter: discordId },
     });
 
-  return { deck };
+  return sessionView({ id: instanceId, deck, presenter: discordId }, discordId);
 });

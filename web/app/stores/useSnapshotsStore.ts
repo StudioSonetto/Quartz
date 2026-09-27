@@ -37,8 +37,8 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
         : [],
     );
 
-    const signed = await signStoragePaths(
-      "snapshots",
+    const signed = await signPaths(
+      client.storage.from("snapshots"),
       wanted.map(([, path]) => path),
     );
 
@@ -58,7 +58,11 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
 
     const held =
       snapshotUrl(slides) ??
-      (await signStorageObject("snapshots", deck, objectName(slides)));
+      (
+        await signFolder(client.storage.from("snapshots"), deck, [
+          objectName(slides),
+        ])
+      )?.get(objectName(slides));
 
     if (!held) return;
 

@@ -66,3 +66,12 @@ export function requireDiscordToken(event: H3Event) {
 
   return claims;
 }
+
+// A pass whose Discord account is linked to a Quartz user.
+export function requireDiscordOwner(event: H3Event) {
+  const claims = requireDiscordToken(event);
+
+  if (!claims.userId) throw createError({ statusCode: 403 });
+
+  return claims as DiscordClaims & { userId: string };
+}

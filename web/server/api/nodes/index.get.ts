@@ -5,7 +5,7 @@ import { nodes } from "~~/server/db/schema";
 export default defineEventHandler(async (event) => {
   const { slides: slidesId } = getQuery(event) as { slides: string };
 
-  await requireDeckReader(event, slideTarget(slidesId));
+  await requireDeckReader(event, () => slideTarget(slidesId));
 
   return db
     .select()
