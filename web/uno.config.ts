@@ -5,6 +5,7 @@ import {
   presetWebFonts,
   transformerDirectives,
 } from "unocss";
+import { createLocalFontProcessor } from "@unocss/preset-web-fonts/local";
 
 export default defineConfig({
   presets: [
@@ -13,6 +14,7 @@ export default defineConfig({
     presetWebFonts({
       provider: "fontshare",
       fonts: { "azeret-mono": "Azeret Mono" },
+      processors: createLocalFontProcessor(),
     }),
   ],
   transformers: [transformerDirectives()],
