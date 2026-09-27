@@ -1,18 +1,22 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "~~/server/db";
 import { decks } from "~~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
-  const user = await requireUser(event);
-
   const id = getRouterParam(event, "id")!;
 
-  const [deck] = await db
+  const row = db
     .select()
     .from(decks)
-    .where(and(eq(decks.id, id), eq(decks.lapidarist, user.id)));
+    .where(eq(decks.id, id))
+    .then(([deck]) => deck);
 
-  if (!deck) throw createError({ statusCode: 404 });
+  await requireDeckReader(
+    event,
+    row.then((deck) => deck && { deck: deck.id, owner: deck.lapidarist }),
+  );
 
-  return deck;
+  const { lapidarist, ...visible } = (await row)!;
+
+  return visible;
 });

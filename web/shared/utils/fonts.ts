@@ -81,3 +81,7 @@ export const fonts = [
   "Work Sans",
   "Zodiak",
 ] as const;
+
+export function fontSlug(family: string): string {
+  return family.toLowerCase().replace(/\s+/g, "-");
+}

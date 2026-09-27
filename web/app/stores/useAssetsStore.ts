@@ -60,7 +60,15 @@ export const useAssetsStore = defineStore("assets", () => {
 
     if (!urls) return;
 
-    store(deck, urls, reusable ? cached.value.at : Date.now());
+    await setSignedUrls(deck, urls, reusable ? cached.value.at : Date.now());
+  }
+
+  async function setSignedUrls(
+    deck: string,
+    urls: Record<string, string>,
+    at = Date.now(),
+  ) {
+    store(deck, urls, at);
 
     await serveFonts(deck);
   }
@@ -163,6 +171,7 @@ export const useAssetsStore = defineStore("assets", () => {
   }
 
   return {
+    setSignedUrls,
     assets,
     images,
     imageNames,

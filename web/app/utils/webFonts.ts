@@ -1,11 +1,13 @@
-import { fonts } from "./fonts";
+import { fonts } from "~~/shared/utils/fonts";
 
 const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
 const served = new Set<string>();
 
-function fontSlug(family: string): string {
-  return family.toLowerCase().replace(/\s+/g, "-");
+let cssBase = "https://api.fontshare.com/v2/css";
+
+export function setFontCssBase(base: string) {
+  cssBase = base;
 }
 
 function unservedFonts(
@@ -21,7 +23,7 @@ function unservedFonts(
 function fontshareCssUrl(families: readonly string[]): string {
   const query = families.map((f) => `f[]=${fontSlug(f)}@1`).join("&");
 
-  return `https://api.fontshare.com/v2/css?${query}&display=swap`;
+  return `${cssBase}?${query}&display=swap`;
 }
 
 export function fontsInComponents(

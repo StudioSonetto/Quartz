@@ -48,23 +48,7 @@ const { fetchAssets } = useAssetsStore();
 const { fireTree } = useEventDispatch();
 const { reset } = useAnimationState();
 
-useEventListener(window, "keydown", onKey);
-
-function onKey(event: KeyboardEvent) {
-  const combo = eventToCombo(event);
-
-  if (fireTree(currentTree.value, "key", combo)) {
-    event.preventDefault();
-
-    return;
-  }
-
-  if (combo === "escape") return leavePresentation();
-  if (combo === "arrowleft") return prevSlides();
-  if (["enter", " ", "arrowright"].includes(combo)) return nextSlides();
-}
-
-watch(currentTree, (next) => fireTree(next, "enter"));
+usePresentationKeys(() => true, leavePresentation);
 
 const cursorMoved = ref(false);
 

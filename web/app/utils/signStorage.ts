@@ -1,5 +1,3 @@
-const SIGNED_URL_TTL = 60 * 60 * 24;
-
 export function signaturesStale(since: number) {
   return Date.now() - since > (SIGNED_URL_TTL / 2) * 1000;
 }

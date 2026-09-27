@@ -102,7 +102,7 @@ export const decks = pgTable.withRLS(
 export const discordSessions = pgTable.withRLS(
   "discord_sessions",
   {
-    instance_id: text("instance_id").primaryKey(),
+    id: text("id").primaryKey(),
     deck: uuid("deck").notNull(),
     presenter: text("presenter").notNull(),
   },

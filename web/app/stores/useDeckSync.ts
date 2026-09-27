@@ -1,7 +1,8 @@
 import type { FetchError } from "ofetch";
 
 export const useDeckSync = defineStore("deck-sync", () => {
-  const apiFetch = useRequestFetch();
+  const apiFetch = useApiFetch();
+  const discordToken = useDiscordToken();
 
   const dirtyNodes = ref<Set<string>>(new Set());
   const deletedNodes = ref<DeleteNode[]>([]);
@@ -98,7 +99,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   async function flush(): Promise<void> {
-    if (flushing.value || !hasPending.value) return;
+    if (flushing.value || !hasPending.value || discordToken.value) return;
 
     const snapshot = currentSnapshot();
     const payload = buildPayloadFor(snapshot);

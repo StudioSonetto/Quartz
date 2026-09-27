@@ -5,7 +5,7 @@ import type { FetchError } from "ofetch";
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export const useDeckStore = defineStore("deck", () => {
-  const apiFetch = useRequestFetch();
+  const apiFetch = useApiFetch();
   const sync = useDeckSync();
   const history = useHistoryStore();
 
