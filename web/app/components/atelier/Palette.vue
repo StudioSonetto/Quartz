@@ -100,7 +100,6 @@
 
 <script setup lang="ts">
 import { fuzzyFilter } from "~/utils/fuzzy";
-import { comboForCommand } from "~/utils/keymap";
 import { getNodeType } from "~/modules/registry";
 
 import type { Tree } from "#shared/types";
@@ -183,7 +182,7 @@ const rows = computed<Row[]>(() => {
     key: command.id,
     title: command.title,
     icon: command.icon,
-    hint: comboForCommand(command.id),
+    hint: command.keys?.[0],
     category: command.category,
     enabled,
     invoke: () => {

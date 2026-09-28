@@ -14,18 +14,15 @@ export function useKeybindings() {
 
     if (isEditableTarget(e.target) && !ALWAYS_ALLOWED.has(combo)) return;
 
-    const id = resolveCombo(combo);
-    if (!id) return;
-
-    const command = getCommand(id);
+    const command = commandForKey(combo);
     if (!command) return;
 
-    if (ALWAYS_CLAIMED.has(id)) e.preventDefault();
+    if (ALWAYS_CLAIMED.has(command.id)) e.preventDefault();
 
     const ctx = buildCommandContext();
     if (command.when && !command.when(ctx)) return;
 
     e.preventDefault();
-    run(id);
+    run(command.id);
   });
 }

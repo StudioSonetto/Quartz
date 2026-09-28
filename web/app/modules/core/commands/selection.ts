@@ -57,6 +57,7 @@ const withoutRoot = (nodes: Tree[]) =>
 
 const groupCommand: Command = {
   id: "core.selection.group",
+  keys: ["mod+g"],
   title: "Group Selection",
   category: "Arrange",
   icon: "i-carbon-group-objects",
@@ -66,6 +67,7 @@ const groupCommand: Command = {
 
 const ungroupCommand: Command = {
   id: "core.selection.ungroup",
+  keys: ["mod+shift+g"],
   title: "Ungroup",
   category: "Arrange",
   icon: "i-carbon-ungroup-objects",
@@ -78,6 +80,7 @@ const ungroupCommand: Command = {
 
 const duplicateCommand: Command = {
   id: "core.selection.duplicate",
+  keys: ["mod+d"],
   title: "Duplicate",
   category: "Edit",
   icon: "i-carbon-copy",
@@ -87,6 +90,7 @@ const duplicateCommand: Command = {
 
 const copyCommand: Command = {
   id: "core.selection.copy",
+  keys: ["mod+c"],
   title: "Copy",
   category: "Edit",
   icon: "i-carbon-copy-file",
@@ -97,6 +101,7 @@ const copyCommand: Command = {
 
 const cutCommand: Command = {
   id: "core.selection.cut",
+  keys: ["mod+x"],
   title: "Cut",
   category: "Edit",
   icon: "i-carbon-cut",
@@ -106,6 +111,7 @@ const cutCommand: Command = {
 
 const pasteCommand: Command = {
   id: "core.selection.paste",
+  keys: ["mod+v"],
   title: "Paste",
   category: "Edit",
   icon: "i-carbon-paste",

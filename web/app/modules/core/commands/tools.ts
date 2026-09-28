@@ -1,13 +1,12 @@
 const tools = [
   { id: "select", title: "Select Tool", icon: "i-carbon-cursor-1" },
-  { id: "pen", title: "Pen Tool", icon: "i-carbon-pen" },
-  { id: "point", title: "Point Tool", icon: "i-carbon-checkbox" },
+  { id: "pen", title: "Pen Tool", icon: "i-carbon-pen", keys: ["p"] },
+  { id: "point", title: "Point Tool", icon: "i-carbon-checkbox", keys: ["a"] },
 ] as const;
 
-export default tools.map(({ id, title, icon }) => ({
+export default tools.map(({ id, ...tool }) => ({
+  ...tool,
   id: `core.tool.${id}`,
-  title,
   category: "Tools",
-  icon,
   run: (ctx) => ctx.atelier.setActiveTool(id),
 })) satisfies Command[];

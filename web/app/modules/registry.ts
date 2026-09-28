@@ -73,6 +73,11 @@ export const optionalComponentsFor = (nodeType: NodeType): ComponentTypeDef[] =>
 export const getCommand = (id: string) => commands.get(id);
 export const allCommands = (): Command[] => [...commands.values()];
 
+export function commandForKey(combo: string) {
+  for (const command of commands.values())
+    if (command.keys?.includes(combo)) return command;
+}
+
 export const setUnlockedModules = (names: string[] | "all") => {
   unlockedModules.value = names;
 };

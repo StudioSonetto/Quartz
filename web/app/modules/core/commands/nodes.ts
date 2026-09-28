@@ -1,5 +1,6 @@
 const deleteCommand: Command = {
   id: "core.node.delete",
+  keys: ["backspace", "delete"],
   title: "Delete Node",
   category: "Node",
   icon: "i-carbon-trash-can",
@@ -9,6 +10,7 @@ const deleteCommand: Command = {
 
 const lockCommand: Command = {
   id: "core.node.lock",
+  keys: ["mod+shift+l"],
   title: "Lock / Unlock",
   category: "Node",
   icon: "i-carbon-locked",
@@ -24,6 +26,7 @@ const lockCommand: Command = {
 
 const selectAllCommand: Command = {
   id: "core.selection.selectAll",
+  keys: ["mod+a"],
   title: "Select All",
   category: "Selection",
   icon: "i-carbon-select-window",
@@ -34,6 +37,7 @@ const selectAllCommand: Command = {
 
 const clearSelectionCommand: Command = {
   id: "core.selection.clear",
+  keys: ["escape"],
   title: "Clear Selection",
   category: "Selection",
   icon: "i-carbon-close",

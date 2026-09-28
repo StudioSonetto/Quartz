@@ -1,5 +1,6 @@
 const next: Command = {
   id: "core.slide.next",
+  keys: ["arrowright"],
   title: "Next Slide",
   category: "Slide",
   icon: "i-carbon-chevron-right",
@@ -10,6 +11,7 @@ const next: Command = {
 
 const prev: Command = {
   id: "core.slide.prev",
+  keys: ["arrowleft"],
   title: "Previous Slide",
   category: "Slide",
   icon: "i-carbon-chevron-left",

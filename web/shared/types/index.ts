@@ -165,6 +165,7 @@ export interface NodeTypeDef {
 
 export interface Command {
   id: string;
+  keys?: readonly string[];
   title: string;
   category: string;
   icon?: string;

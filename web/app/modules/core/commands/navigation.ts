@@ -2,6 +2,7 @@ const TAB_NAMES = ["Editor", "Assets", "Exports"];
 
 const openPalette: Command = {
   id: "core.view.palette",
+  keys: ["mod+k"],
   title: "Command Palette",
   category: "View",
   icon: "i-carbon-search",

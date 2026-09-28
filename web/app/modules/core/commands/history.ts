@@ -2,6 +2,7 @@ import type { Command } from "#shared/types";
 
 const undoCommand: Command = {
   id: "core.edit.undo",
+  keys: ["mod+z"],
   title: "Undo",
   category: "Edit",
   icon: "i-carbon-undo",
@@ -12,6 +13,7 @@ const undoCommand: Command = {
 
 const redoCommand: Command = {
   id: "core.edit.redo",
+  keys: ["mod+shift+z", "mod+y"],
   title: "Redo",
   category: "Edit",
   icon: "i-carbon-redo",
