@@ -54,15 +54,30 @@ export function useSnapshot() {
 
     let painted: Size = rect;
 
-    const captured = await html2canvas(render, {
-      scale,
-      useCORS: true,
-      onclone: (_, clone) => {
-        clone.style.borderRadius = "0px";
+    const restores: (() => void)[] = [];
+    let capturing: Promise<HTMLCanvasElement>;
 
-        painted = clone.getBoundingClientRect();
-      },
-    });
+    try {
+      for (const node of flattenTree(tree)) {
+        const restore = getNodeType(node.type)?.snapshot?.(node.id);
+
+        if (restore) restores.push(restore);
+      }
+
+      capturing = html2canvas(render, {
+        scale,
+        useCORS: true,
+        onclone: (_, clone) => {
+          clone.style.borderRadius = "0px";
+
+          painted = clone.getBoundingClientRect();
+        },
+      });
+    } finally {
+      restores.forEach((restore) => restore());
+    }
+
+    const captured = await capturing;
 
     const source = snapshotSource(painted, scale, captured);
 

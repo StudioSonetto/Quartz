@@ -18,6 +18,8 @@ export function useElementRenderer() {
     computed(() => 1),
   );
 
+  const presenting = inject(presentingKey, ref(false));
+
   const { scopeFor } = useVariableScope();
 
   function resolveRender(node: Tree) {
@@ -44,6 +46,7 @@ export function useElementRenderer() {
       optional: (node: Tree, type: ComponentType) =>
         findComponent(node, type)?.data,
       scale: scale.value,
+      presenting: presenting.value,
       module: <T>(moduleId: string) => {
         const api = getModuleApi<T>(moduleId);
 

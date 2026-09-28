@@ -74,6 +74,7 @@ export interface RenderContext {
   data: (node: Tree, type: ComponentType) => any;
   optional: (node: Tree, type: ComponentType) => any | undefined;
   scale: number;
+  presenting: boolean;
   module: <T>(moduleId: string) => T;
   assetUrl: (name: string) => string | undefined;
 }
@@ -154,6 +155,7 @@ export interface NodeTypeDef {
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
   navigate?: (node: Tree) => NavigateGesture | undefined;
+  snapshot?: (nodeId: string) => (() => void) | void;
   handles?: HandleDef;
   hitTest?: "element" | "contents";
   asset?: AssetDropDef;

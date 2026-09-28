@@ -24,9 +24,9 @@ export function useNavigateGesture(
   disabled: () => boolean,
 ) {
   const drag = usePointerDrag();
-  const history = useHistoryStore();
   const atelier = useAtelierStore();
 
+  let wheel: NavigateGesture | undefined;
   let zoom = 0;
   let wheelFrame = 0;
 
@@ -47,7 +47,7 @@ export function useNavigateGesture(
 
     let last = { x: event.clientX, y: event.clientY };
 
-    drag.start("Navigate", (ev) => {
+    drag.start(null, (ev) => {
       const dx = ev.clientX - last.x;
       const dy = ev.clientY - last.y;
 
@@ -64,6 +64,10 @@ export function useNavigateGesture(
     (event: WheelEvent) => {
       if (disabled() || isPointerDragging() || atelier.isDragging) return;
 
+      wheel ??= open();
+
+      if (!wheel) return;
+
       event.preventDefault();
 
       zoom +=
@@ -74,13 +78,8 @@ export function useNavigateGesture(
       wheelFrame ||= requestAnimationFrame(() => {
         wheelFrame = 0;
 
-        const gesture = open();
-
-        if (gesture) {
-          history.captureCurrent(`navigate:${node().id}`);
-          gesture.zoom(zoom);
-        }
-
+        wheel?.zoom(zoom);
+        wheel = undefined;
         zoom = 0;
       });
     },
