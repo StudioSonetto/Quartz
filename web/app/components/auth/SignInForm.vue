@@ -14,7 +14,7 @@
         {{ label }}
       </UIButton>
     </div>
-    <p class="text-center ui-text-3 text-light-200/60 my-9">
+    <p class="text-center ui-muted my-9">
       or sign in with email
     </p>
     <div class="flex flex-col gap-4">

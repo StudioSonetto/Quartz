@@ -1,9 +1,9 @@
 <template>
-  <LandingSection
-    id="pricing"
-    title="Pricing"
-    description="Start creating slides free!"
-  >
+  <LandingSection id="pricing" title="Pricing">
+    <template #description>
+      Upgrade to Pro when you want
+      <span class="tracking-[0.5em]">more</span> "depth".
+    </template>
     <table>
       <colgroup>
         <col class="w-1.5/4" />
@@ -76,12 +76,12 @@ thead th {
   }
 
   p {
-    @apply ui-text-3 mt-3 text-light-200/60;
+    @apply ui-muted mt-3;
   }
 }
 
 .feature {
-  @apply ui-text-3 text-light-200/60;
+  @apply ui-muted;
 }
 
 .value {

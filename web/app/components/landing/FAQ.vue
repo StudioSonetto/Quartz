@@ -43,7 +43,7 @@
   }
 
   p {
-    @apply px-5 pb-5 ui-text-3 text-light-200/60;
+    @apply px-5 pb-5 ui-muted;
   }
 }
 

@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 const LINKS: { label: string; to?: string; target?: string }[] = [
-  { label: "Product" },
+  { label: "Product", to: "/#product" },
   { label: "Community", to: DISCORD_URL, target: "_blank" },
   { label: "Pricing", to: "/#pricing" },
   { label: "Docs", to: "/docs" },

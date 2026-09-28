@@ -62,11 +62,11 @@
   }
 
   .roadmap-number {
-    @apply absolute top-6 left-6 ui-text-3 text-light-200/60;
+    @apply absolute top-6 left-6 ui-muted;
   }
 
   .roadmap-status {
-    @apply absolute bottom-6 ui-text-3 uppercase text-light-200/60;
+    @apply absolute bottom-6 ui-muted uppercase;
   }
 }
 </style>
@@ -105,15 +105,20 @@ const stages = [
   { label: "Timelines", icon: "i-carbon-movement", status: "polish" },
   { label: "States & Variables", icon: "i-carbon-parameter", status: "now" },
   { label: "3D/WebGL Module", icon: "i-carbon-cube", status: "now" },
+  {
+    label: "Discord Integration",
+    icon: "i-carbon-logo-discord",
+    status: "now",
+  },
+  {
+    label: "QoL for Presenters",
+    icon: "i-carbon-user-speaker",
+    status: "next",
+  },
   { label: "Interactivity", icon: "i-carbon-touch-1", status: "next" },
   {
     label: "Personalisation",
     icon: "i-carbon-color-palette",
-    status: "next",
-  },
-  {
-    label: "Discord Integration",
-    icon: "i-carbon-logo-discord",
     status: "next",
   },
   { label: "Templates", icon: "i-carbon-template", status: "next" },

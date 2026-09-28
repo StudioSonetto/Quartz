@@ -54,7 +54,7 @@
 
     .item {
       @apply flex items-center gap-3 px-3 py-2 border-rd;
-      @apply ui-text-3 text-light-200/60 transition-colors;
+      @apply ui-muted transition-colors;
       @apply hover:bg-light-200/5 hover:text-light-200;
 
       [class*="i-"] {

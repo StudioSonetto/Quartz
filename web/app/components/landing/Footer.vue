@@ -22,7 +22,7 @@
 
 <style scoped lang="postcss">
 footer {
-  @apply ui-section select-none bg-dark-800;
+  @apply ui-section lg:py-30 select-none bg-dark-800;
   @apply border-solid border-0 border-t-2 border-dark-200;
   @apply flex flex-col gap-12 md:flex-row md:justify-between;
 }
@@ -64,6 +64,7 @@ const groups: { title: string; links: Link[] }[] = [
   {
     title: "Product",
     links: [
+      { label: "Features", to: "/#product" },
       { label: "Pricing", to: "/#pricing" },
       { label: "Roadmap", to: "/#roadmap" },
       { label: "FAQ", to: "/#faq" },
