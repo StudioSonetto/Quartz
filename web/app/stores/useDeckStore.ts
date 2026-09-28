@@ -734,10 +734,8 @@ export const useDeckStore = defineStore("deck", () => {
     );
   }
 
-  function nextSiblingOrder(parentPath: string): number {
-    const siblings = currentFlat().filter(
-      (n) => n.path.split(".").slice(0, -1).join(".") === parentPath,
-    );
+  function nextSiblingOrder(parent: string): number {
+    const siblings = currentFlat().filter((n) => parentPath(n.path) === parent);
     return siblings.reduce((max, n) => Math.max(max, n.sort_order), -1) + 1;
   }
 
@@ -782,13 +780,13 @@ export const useDeckStore = defineStore("deck", () => {
     if (opts.parentId && !explicitParent) return;
 
     const parent = explicitParent ?? nearestAccepting(soleSelected.value, type);
-    const parentPath = parent?.path ?? ROOT_PATH;
+    const at = parent?.path ?? ROOT_PATH;
     const parentType: NodeType = parent?.type ?? "core.group";
 
     if (!canContain(parentType, type)) {
       throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
-    const path = childPath(parentPath, id);
+    const path = childPath(at, id);
 
     const node: NodeModel = {
       id,
@@ -799,7 +797,7 @@ export const useDeckStore = defineStore("deck", () => {
       reference: null,
       unsynced: null,
       locked: false,
-      sort_order: nextSiblingOrder(parentPath),
+      sort_order: nextSiblingOrder(at),
     };
 
     const defaultComponents = buildDefaultComponents(id, type);
@@ -1223,11 +1221,11 @@ export const useDeckStore = defineStore("deck", () => {
 
     const walk = (
       node: Tree,
-      parentPath: string,
+      parent: string,
       index: number,
       isRoot: boolean,
     ) => {
-      const newPath = isRoot ? ROOT_PATH : childPath(parentPath, node.id);
+      const newPath = isRoot ? ROOT_PATH : childPath(parent, node.id);
       const newOrder = isRoot ? node.sort_order : index;
       if (node.path !== newPath || node.sort_order !== newOrder) {
         node.path = newPath;

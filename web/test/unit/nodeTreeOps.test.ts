@@ -6,7 +6,7 @@ import {
   ungroupNodes,
   canonicaliseSortOrder,
 } from "~/utils/nodeTreeOps";
-import { childPath, nodeLabel, ROOT_PATH } from "~/utils/nodePath";
+import { childPath, nodeLabel, ROOT_PATH } from "#shared/utils/nodePath";
 import type { ComponentModel, NodeModel } from "#shared/types";
 
 const n = (

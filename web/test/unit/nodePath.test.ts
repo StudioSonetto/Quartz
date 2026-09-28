@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nodeLabel, childPath } from "~/utils/nodePath";
+import { childPath, nodeLabel, remapPath } from "#shared/utils/nodePath";
 
 // An ltree label allows only [A-Za-z0-9_], so a hyphen slipping through fails
 // at Postgres, not in the UI.
@@ -17,5 +17,15 @@ describe("nodePath", () => {
     expect(childPath("root.nabc", "11111111-1111-1111-1111-111111111111")).toBe(
       "root.nabc.n11111111111111111111111111111111",
     );
+  });
+
+  it("remapPath rewrites every ancestor label, not just the last", () => {
+    const labels = new Map([
+      ["na", "nx"],
+      ["nb", "ny"],
+      ["nc", "nz"],
+    ]);
+
+    expect(remapPath("root.na.nb.nc", labels)).toBe("root.nx.ny.nz");
   });
 });

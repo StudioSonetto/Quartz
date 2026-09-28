@@ -1,5 +1,4 @@
 import type { Tree } from "#shared/types";
-import { isDescendantPath } from "~/utils/nodePath";
 
 export type { Rect } from "#shared/types";
 

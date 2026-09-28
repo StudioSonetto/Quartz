@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mockNuxtImport } from "@nuxt/test-utils/runtime";
 import { setActivePinia, createPinia } from "pinia";
 import { buildTree } from "~/utils/tree";
-import { childPath, ROOT_PATH } from "~/utils/nodePath";
 import { useDeckStore } from "~/stores/useDeckStore";
 import { registerModule, __resetRegistry } from "~/modules/registry";
 
