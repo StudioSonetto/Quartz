@@ -133,6 +133,12 @@ export interface DragGesture extends HandleGesture {
   node: string;
 }
 
+export interface NavigateGesture {
+  orbit: (dx: number, dy: number) => void;
+  pan: (dx: number, dy: number) => void;
+  zoom: (delta: number) => void;
+}
+
 export interface NodeTypeDef {
   type: NodeType;
   label: string;
@@ -147,6 +153,7 @@ export interface NodeTypeDef {
   onDelete?: (nodeId: string) => void;
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
+  navigate?: (node: Tree, event: MouseEvent) => NavigateGesture | undefined;
   handles?: HandleDef;
   hitTest?: "element" | "contents";
   asset?: AssetDropDef;

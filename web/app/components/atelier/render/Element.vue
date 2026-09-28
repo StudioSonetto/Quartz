@@ -91,6 +91,12 @@ const isGridChild = computed(() => isNodeGridChild(props.node));
 
 const locked = computed(() => presenting.value || isNodeLocked(props.node));
 
+useNavigateGesture(
+  () => props.node,
+  element,
+  () => locked.value,
+);
+
 const {
   editing,
   editable,
