@@ -62,27 +62,6 @@
         :key="child.id"
         :node="child"
         @keydown.delete.stop="handleDelete"
-        @contextmenu.prevent="
-          useContextMenu().open($event, [
-            {
-              label: 'Lock / Unlock',
-              icon: 'i-carbon-locked',
-              shortcut: comboForCommand('core.node.lock'),
-              action: () => {
-                run('core.node.lock');
-              },
-            },
-            {
-              label: 'Delete',
-              icon: 'i-carbon-trash-can',
-              shortcut: '⌫',
-              danger: true,
-              action: () => {
-                run('core.node.delete');
-              },
-            },
-          ])
-        "
       />
     </ul>
   </li>
