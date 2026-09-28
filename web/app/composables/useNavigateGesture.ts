@@ -18,28 +18,24 @@ function swallowContextMenu() {
 }
 
 export function useNavigateGesture(
+  navigate: (node: Tree) => NavigateGesture | undefined,
   node: () => Tree,
   element: Readonly<Ref<HTMLElement | null>>,
   disabled: () => boolean,
 ) {
-  const target = computed(() =>
-    getNodeType(node().type)?.navigate ? element.value : null,
-  );
   const drag = usePointerDrag();
   const history = useHistoryStore();
   const atelier = useAtelierStore();
 
-  let dragging = false;
   let zoom = 0;
   let wheelFrame = 0;
 
-  const open = (event: MouseEvent) =>
-    getNodeType(node().type)?.navigate?.(node(), event);
+  const open = () => navigate(node());
 
-  useEventListener(target, "pointerdown", (event: PointerEvent) => {
+  useEventListener(element, "pointerdown", (event: PointerEvent) => {
     if ((event.button !== 1 && event.button !== 2) || disabled()) return;
 
-    const gesture = open(event);
+    const gesture = open();
 
     if (!gesture) return;
 
@@ -51,28 +47,22 @@ export function useNavigateGesture(
 
     let last = { x: event.clientX, y: event.clientY };
 
-    drag.start(
-      "Navigate",
-      (ev) => {
-        const dx = ev.clientX - last.x;
-        const dy = ev.clientY - last.y;
+    drag.start("Navigate", (ev) => {
+      const dx = ev.clientX - last.x;
+      const dy = ev.clientY - last.y;
 
-        if (pan) gesture.pan(dx, dy);
-        else gesture.orbit(dx, dy);
+      if (pan) gesture.pan(dx, dy);
+      else gesture.orbit(dx, dy);
 
-        last = { x: ev.clientX, y: ev.clientY };
-      },
-      () => (dragging = false),
-    );
-
-    dragging = true;
+      last = { x: ev.clientX, y: ev.clientY };
+    });
   });
 
   useEventListener(
-    target,
+    element,
     "wheel",
     (event: WheelEvent) => {
-      if (disabled() || dragging || atelier.isDragging) return;
+      if (disabled() || isPointerDragging() || atelier.isDragging) return;
 
       event.preventDefault();
 
@@ -84,7 +74,7 @@ export function useNavigateGesture(
       wheelFrame ||= requestAnimationFrame(() => {
         wheelFrame = 0;
 
-        const gesture = open(event);
+        const gesture = open();
 
         if (gesture) {
           history.captureCurrent(`navigate:${node().id}`);

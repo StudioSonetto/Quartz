@@ -3,6 +3,7 @@
     <div
       v-if="box"
       data-html2canvas-ignore
+      ref="selectionEl"
       class="selection"
       :style="{
         left: `${box.left}px`,
@@ -10,7 +11,8 @@
         width: `${box.width}px`,
         height: `${box.height}px`,
       }"
-      @pointerdown.stop.prevent="startMove"
+      @pointerdown.stop.prevent="onPress"
+      @wheel="forward"
     ></div>
   </Transition>
 </template>
@@ -28,7 +30,6 @@ const { selectedNodes, unlockedSelection } = storeToRefs(deck);
 const comps = useNodeComponents();
 const { scale } = useCanvasScale();
 const snapping = inject(snappingKey)!;
-const { arm } = useSuppressClickAfterDrag();
 
 const movable = computed(() =>
   outermostNodes(
@@ -62,27 +63,35 @@ const box = computed<Rect | null>(() => {
   return { left, top, width: right - left, height: bottom - top };
 });
 
-type DragState = {
-  startX: number;
-  startY: number;
-  starts: Map<string, { x: number; y: number }>;
-  union: Rect;
-  s: { x: number; y: number };
-};
+const selectionEl = useTemplateRef<HTMLElement>("selectionEl");
+const drag = usePointerDrag();
 
-const move = useHistoryGesture("Move");
+function onPress(e: PointerEvent) {
+  if (e.button !== 0) return forward(e);
+  if (box.value && movable.value.length) startMove(e, box.value);
+}
 
-let drag: DragState | null = null;
-let moveRaf = 0;
-let latest: PointerEvent | null = null;
+function navigable(el: Element) {
+  const type = el.id && deck.getNodeAsTree(el.id)?.type;
 
-function startMove(e: PointerEvent) {
+  return !!type && !!getNodeType(type)?.navigate;
+}
+
+function forward(e: PointerEvent | WheelEvent) {
+  if (isPointerDragging()) return;
+
+  const stack = document.elementsFromPoint(e.clientX, e.clientY);
+  let target = stack[stack.indexOf(selectionEl.value!) + 1] ?? null;
+
+  while (target && !navigable(target)) target = target.parentElement;
+
+  const copy = new (e.constructor as typeof PointerEvent)(e.type, e);
+
+  if (target && !target.dispatchEvent(copy)) e.preventDefault();
+}
+
+function startMove(e: PointerEvent, from: Rect) {
   const nodes = movable.value;
-
-  if (!nodes.length || !box.value) return;
-
-  move.start();
-
   const s = scale();
   const starts = new Map<string, { x: number; y: number }>();
 
@@ -92,78 +101,44 @@ function startMove(e: PointerEvent) {
     starts.set(n.id, { x: position.x, y: position.y });
   }
 
-  drag = {
-    startX: e.clientX,
-    startY: e.clientY,
-    starts,
-    union: {
-      left: box.value.left * s.x,
-      top: box.value.top * s.y,
-      width: box.value.width * s.x,
-      height: box.value.height * s.y,
-    },
-    s,
+  const union = {
+    left: from.left * s.x,
+    top: from.top * s.y,
+    width: from.width * s.x,
+    height: from.height * s.y,
   };
+
+  drag.start(
+    "Move",
+    (ev) => {
+      const snapped = snapping.apply({
+        ...union,
+        left: union.left + (ev.clientX - e.clientX) * s.x,
+        top: union.top + (ev.clientY - e.clientY) * s.y,
+      });
+
+      const dx = snapped.left - union.left;
+      const dy = snapped.top - union.top;
+
+      for (const [id, start] of starts) {
+        const t = comps.getNodeComponent(id, "core.transform");
+
+        if (!t) continue;
+
+        deck.updateComponent(
+          withData(t, {
+            position: {
+              ...t.data.position,
+              x: Math.round(start.x + dx),
+              y: Math.round(start.y + dy),
+            },
+          }),
+        );
+      }
+    },
+    () => snapping.end(),
+  );
 
   snapping.begin(nodes.map((n) => n.id));
 }
-
-function flushMove() {
-  moveRaf = 0;
-
-  if (!drag || !latest) return;
-
-  const dxRaw = (latest.clientX - drag.startX) * drag.s.x;
-  const dyRaw = (latest.clientY - drag.startY) * drag.s.y;
-
-  const snapped = snapping.apply({
-    left: drag.union.left + dxRaw,
-    top: drag.union.top + dyRaw,
-    width: drag.union.width,
-    height: drag.union.height,
-  });
-
-  const dx = snapped.left - drag.union.left;
-  const dy = snapped.top - drag.union.top;
-
-  for (const [id, start] of drag.starts) {
-    const t = comps.getNodeComponent(id, "core.transform");
-
-    if (!t) continue;
-
-    deck.updateComponent(
-      withData(t, {
-        position: {
-          ...t.data.position,
-          x: Math.round(start.x + dx),
-          y: Math.round(start.y + dy),
-        },
-      }),
-    );
-  }
-}
-
-useEventListener(window, "pointermove", (e: PointerEvent) => {
-  if (!drag) return;
-
-  latest = e;
-
-  if (!moveRaf) moveRaf = requestAnimationFrame(flushMove);
-});
-
-useEventListener(window, ["pointerup", "pointercancel"], () => {
-  if (!drag) return;
-
-  if (moveRaf) cancelAnimationFrame(moveRaf);
-
-  moveRaf = 0;
-  latest = null;
-
-  snapping.end();
-  move.stop();
-
-  drag = null;
-
-  arm();
-});
 </script>

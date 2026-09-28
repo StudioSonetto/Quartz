@@ -1,3 +1,7 @@
+let dragging = 0;
+
+export const isPointerDragging = () => dragging > 0;
+
 export function usePointerDrag() {
   const history = useHistoryStore();
 
@@ -13,6 +17,8 @@ export function usePointerDrag() {
     active?.();
 
     const end = label ? history.begin(label) : null;
+
+    dragging++;
 
     let raf = 0;
     let latest: PointerEvent | null = null;
@@ -45,6 +51,8 @@ export function usePointerDrag() {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
+
+      dragging--;
 
       onEnd?.();
       end?.();

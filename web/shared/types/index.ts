@@ -153,7 +153,7 @@ export interface NodeTypeDef {
   onDelete?: (nodeId: string) => void;
   pick?: (node: Tree, event: MouseEvent) => Tree | undefined;
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
-  navigate?: (node: Tree, event: MouseEvent) => NavigateGesture | undefined;
+  navigate?: (node: Tree) => NavigateGesture | undefined;
   handles?: HandleDef;
   hitTest?: "element" | "contents";
   asset?: AssetDropDef;
