@@ -80,6 +80,7 @@ export const decks = pgTable.withRLS(
     last_modified: timestamp("last_modified", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    is_template: boolean("is_template").notNull().default(false),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "slides_pkey" }),
