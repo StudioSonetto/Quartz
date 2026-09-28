@@ -7,9 +7,10 @@
     <div class="product-grid">
       <div v-for="feature in features" :key="feature.title">
         <div class="product-media">
-          <img
+          <NuxtImg
             v-if="feature.image"
             :src="feature.image"
+            sizes="100vw md:50vw"
             alt=""
             loading="lazy"
             decoding="async"
@@ -53,6 +54,7 @@ const features: { title: string; text: string; image?: string }[] = [
   {
     title: "Realtime 3D rendering.",
     text: "Import your 3D models or use basic shapes to enhance your story.",
+    image: "/images/product-3d.png",
   },
   {
     title: "Complex and interactive animations.",

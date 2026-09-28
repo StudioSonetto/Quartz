@@ -29,6 +29,7 @@
 
 ![Landing](https://github.com/user-attachments/assets/d3caa9ea-4b18-4101-a749-67c95be8ec46)
 ![Atelier](https://github.com/user-attachments/assets/dd3a378a-bf63-446f-844c-17bc443656f1)
+![3D Rendering](web/public/images/product-3d.png)
 
 <br />
 
