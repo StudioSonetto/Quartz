@@ -66,8 +66,8 @@ describe("createNode options", () => {
     registerModule({
       id: "core",
       nodeTypes: [
-        nodeType("core.group", { accepts: ["core.group", "core.image"] }),
-        nodeType("core.image", {
+        nodeType("core.group", { accepts: ["core.group", "core.media"] }),
+        nodeType("core.media", {
           parents: ["core.group"],
           defaultComponents: ["core.transform"],
           onCreate,
@@ -94,7 +94,7 @@ describe("createNode options", () => {
     seed(store);
     store.selectedNodeIds = [ROOT_ID];
 
-    const id = store.createNode("i", "core.image", { parentId: GROUP_ID });
+    const id = store.createNode("i", "core.media", { parentId: GROUP_ID });
 
     expect(id).toBeTruthy();
     expect(store.getNodeAsTree(id!)?.parent?.id).toBe(GROUP_ID);
@@ -110,7 +110,7 @@ describe("createNode options", () => {
     const before = store.currentFlat().length;
 
     expect(
-      store.createNode("i", "core.image", { parentId: "gone" }),
+      store.createNode("i", "core.media", { parentId: "gone" }),
     ).toBeUndefined();
     expect(store.currentFlat()).toHaveLength(before);
   });
@@ -119,7 +119,7 @@ describe("createNode options", () => {
     const store = useDeckStore();
     seed(store);
 
-    const id = store.createNode("i", "core.image", {
+    const id = store.createNode("i", "core.media", {
       position: { x: 40, y: 90 },
     });
 
@@ -135,10 +135,10 @@ describe("createNode options", () => {
 
     // Both pinned to root: creating a node selects it, so without parentId the
     // second call would parent into the first image and throw.
-    store.createNode("i", "core.image", { parentId: ROOT_ID });
+    store.createNode("i", "core.media", { parentId: ROOT_ID });
     expect(onCreate).toHaveBeenCalledTimes(1);
 
-    store.createNode("i", "core.image", { parentId: ROOT_ID, seed: true });
+    store.createNode("i", "core.media", { parentId: ROOT_ID, seed: true });
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
 });

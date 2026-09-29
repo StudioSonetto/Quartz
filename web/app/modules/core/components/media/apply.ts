@@ -1,20 +1,20 @@
 import { fitWithin } from "./size";
 
-export async function applyImageAsset(nodeIds: string[], name: string) {
+export async function applyMediaAsset(nodeIds: string[], name: string) {
   const { getNodeComponent } = useNodeComponents();
   const { updateComponent } = useDeckStore();
   const { canvasSize } = storeToRefs(useAtelierStore());
 
   const targets = nodeIds
-    .map((id) => getNodeComponent(id, "core.image"))
+    .map((id) => getNodeComponent(id, "core.media"))
     .filter(
-      (image): image is ComponentModel => !!image && image.data.src !== name,
+      (media): media is ComponentModel => !!media && media.data.src !== name,
     );
 
   if (targets.length === 0) return;
 
-  const started = targets.flatMap((image) => {
-    const transform = getNodeComponent(image.node, "core.transform");
+  const started = targets.flatMap((media) => {
+    const transform = getNodeComponent(media.node, "core.transform");
 
     return transform ? [{ transform, size: { ...transform.data.size } }] : [];
   });

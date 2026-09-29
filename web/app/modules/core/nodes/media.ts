@@ -1,6 +1,6 @@
 import { markRaw } from "vue";
-import Media from "../components/image/Media.vue";
-import { applyImageAsset } from "../components/image/apply";
+import Media from "../components/media/Media.vue";
+import { applyMediaAsset } from "../components/media/apply";
 
 const loadingStyle = {
   backgroundColor: "rgba(127, 127, 127, 0.08)",
@@ -8,40 +8,40 @@ const loadingStyle = {
 };
 
 export default {
-  type: "core.image",
+  type: "core.media",
   label: "Media",
-  icon: "i-carbon-image",
+  icon: "i-carbon-media-library",
   accepts: [],
   parents: ["core.group"],
   sizing: "fixed",
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 480, height: 270 } } },
-    "core.image",
+    "core.media",
   ],
   onCreate: (nodeId) => {
     const first = useAssetsStore().media[0]?.name;
 
-    if (first) applyImageAsset([nodeId], first);
+    if (first) applyMediaAsset([nodeId], first);
   },
   asset: {
     kind: ["image", "video"],
-    apply: (nodeId, name) => applyImageAsset([nodeId], name),
+    apply: (nodeId, name) => applyMediaAsset([nodeId], name),
   },
   renderer: {
     element: "div",
     render: (node, ctx) => {
-      const image = ctx.data(node, "core.image");
+      const media = ctx.data(node, "core.media");
       const transform = ctx.data(node, "core.transform");
-      const url = image.src ? ctx.assetUrl(image.src) : undefined;
+      const url = media.src ? ctx.assetUrl(media.src) : undefined;
 
       return {
         style: {
           ...boxStyle(transform, ctx.scale),
           width: `${transform.size.width}px`,
           height: `${transform.size.height}px`,
-          borderRadius: `${image.borderRadius}px`,
-          opacity: image.opacity,
+          borderRadius: `${media.borderRadius}px`,
+          opacity: media.opacity,
           overflow: "hidden",
           ...(url ? {} : loadingStyle),
         },
@@ -50,9 +50,9 @@ export default {
               component: markRaw(Media),
               props: {
                 url,
-                video: assetKind(image.src) === "video",
-                fit: image.fit,
-                timing: image,
+                video: assetKind(media.src) === "video",
+                fit: media.fit,
+                timing: media,
                 presenting: ctx.presenting,
               },
             }

@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { applyImageAsset } from "./apply";
+import { applyMediaAsset } from "./apply";
 
 const props = defineProps<{
   components: ComponentModel[];
@@ -54,7 +54,7 @@ const isVideo = computed(() =>
 );
 
 const setAsset = (name: string) =>
-  applyImageAsset(
+  applyMediaAsset(
     props.nodes.map((n) => n.id),
     name,
   );
