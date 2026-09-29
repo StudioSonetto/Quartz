@@ -1,4 +1,4 @@
-export const ROOT_PATH = ROOT_NODE_PATH;
+export const ROOT_PATH = "root";
 
 export function nodeLabel(id: string): string {
   return `n${id.replaceAll("-", "")}`;
@@ -21,4 +21,11 @@ export function isSelfOrDescendantPath(
   ancestor: string,
 ): boolean {
   return path === ancestor || isDescendantPath(path, ancestor);
+}
+
+export function remapPath(path: string, labels: Map<string, string>): string {
+  return path
+    .split(".")
+    .map((seg) => labels.get(seg) ?? seg)
+    .join(".");
 }

@@ -1,5 +1,4 @@
 import { fuzzyFilter } from "~/utils/fuzzy";
-import { ROOT_PATH } from "~/utils/nodePath";
 import type { Tree } from "#shared/types";
 
 export function useQuickSearch() {

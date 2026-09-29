@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nodeLabel, childPath } from "~/utils/nodePath";
+import { childPath, nodeLabel } from "#shared/utils/nodePath";
 
 // An ltree label allows only [A-Za-z0-9_], so a hyphen slipping through fails
 // at Postgres, not in the UI.

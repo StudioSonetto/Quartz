@@ -369,22 +369,44 @@ export const useDeckStore = defineStore("deck", () => {
     return deck;
   }
 
+  function deckLimitReached(err: FetchError) {
+    if (err.statusCode !== 403) throw err;
+
+    if (confirm("Basic includes 10 decks. Upgrade to Pro for unlimited?"))
+      window.location.assign("/api/billing/checkout");
+  }
+
   async function insertNewDeck() {
     const data = await apiFetch<{ id: string }>("/api/decks", {
       method: "POST",
-    }).catch((err: FetchError) => {
-      if (err.statusCode !== 403) throw err;
-
-      if (confirm("Basic includes 10 decks. Upgrade to Pro for unlimited?"))
-        window.location.assign("/api/billing/checkout");
-    });
+    }).catch(deckLimitReached);
 
     if (!data) return;
 
-    navigateTo(`/atelier/${data?.id}`, {
+    navigateTo(`/atelier/${data.id}`, {
       external: true,
       open: { target: "_blank" },
     });
+  }
+
+  function fetchTemplates() {
+    return apiFetch<{ id: string; title: string }[]>("/api/templates");
+  }
+
+  async function insertFromTemplate(id: string) {
+    const root = document.documentElement.classList;
+
+    root.add("copying-template");
+
+    const data = await apiFetch<{ id: string }>(`/api/templates/${id}`, {
+      method: "POST",
+    })
+      .catch((err: FetchError) => {
+        if (err.statusCode !== 404) deckLimitReached(err);
+      })
+      .finally(() => root.remove("copying-template"));
+
+    return data?.id;
   }
 
   async function updateDeckTitle(title: string) {
@@ -415,7 +437,8 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function deleteDeck(id: string) {
-    return apiFetch(`/api/decks/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/decks/${id}`, { method: "DELETE" });
+    await refreshNuxtData("decks");
   }
 
   async function fetchAllSlides(deck: string) {
@@ -734,10 +757,8 @@ export const useDeckStore = defineStore("deck", () => {
     );
   }
 
-  function nextSiblingOrder(parentPath: string): number {
-    const siblings = currentFlat().filter(
-      (n) => n.path.split(".").slice(0, -1).join(".") === parentPath,
-    );
+  function nextSiblingOrder(parent: string): number {
+    const siblings = currentFlat().filter((n) => parentPath(n.path) === parent);
     return siblings.reduce((max, n) => Math.max(max, n.sort_order), -1) + 1;
   }
 
@@ -782,13 +803,13 @@ export const useDeckStore = defineStore("deck", () => {
     if (opts.parentId && !explicitParent) return;
 
     const parent = explicitParent ?? nearestAccepting(soleSelected.value, type);
-    const parentPath = parent?.path ?? ROOT_PATH;
+    const at = parent?.path ?? ROOT_PATH;
     const parentType: NodeType = parent?.type ?? "core.group";
 
     if (!canContain(parentType, type)) {
       throw new Error(`A ${type} cannot be placed inside a ${parentType} node`);
     }
-    const path = childPath(parentPath, id);
+    const path = childPath(at, id);
 
     const node: NodeModel = {
       id,
@@ -799,7 +820,7 @@ export const useDeckStore = defineStore("deck", () => {
       reference: null,
       unsynced: null,
       locked: false,
-      sort_order: nextSiblingOrder(parentPath),
+      sort_order: nextSiblingOrder(at),
     };
 
     const defaultComponents = buildDefaultComponents(id, type);
@@ -1223,11 +1244,11 @@ export const useDeckStore = defineStore("deck", () => {
 
     const walk = (
       node: Tree,
-      parentPath: string,
+      parent: string,
       index: number,
       isRoot: boolean,
     ) => {
-      const newPath = isRoot ? ROOT_PATH : childPath(parentPath, node.id);
+      const newPath = isRoot ? ROOT_PATH : childPath(parent, node.id);
       const newOrder = isRoot ? node.sort_order : index;
       if (node.path !== newPath || node.sort_order !== newOrder) {
         node.path = newPath;
@@ -1454,6 +1475,8 @@ export const useDeckStore = defineStore("deck", () => {
     fetchAllDecks,
     fetchDeck,
     insertNewDeck,
+    fetchTemplates,
+    insertFromTemplate,
     deleteDeck,
     updateDeckTitle,
     fetchAllSlides,

@@ -9,12 +9,9 @@ export default defineEventHandler(async (event) => {
 
   await requireDeckOwner(id, user.id);
 
-  const [paths] = await Promise.all([
-    listSnapshots(event, id),
-    db
-      .delete(decks)
-      .where(and(eq(decks.id, id), eq(decks.lapidarist, user.id))),
-  ]);
+  await db
+    .delete(decks)
+    .where(and(eq(decks.id, id), eq(decks.lapidarist, user.id)));
 
-  await removeSnapshots(event, paths);
+  await removeDeckFiles(event, id);
 });

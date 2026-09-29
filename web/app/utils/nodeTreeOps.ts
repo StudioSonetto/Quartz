@@ -1,12 +1,4 @@
 import type { ComponentModel, NodeModel } from "#shared/types";
-import {
-  ROOT_PATH,
-  childPath,
-  isDescendantPath,
-  isSelfOrDescendantPath,
-  nodeLabel,
-  parentPath,
-} from "~/utils/nodePath";
 
 export function nearestCommonAncestor(paths: string[]): string {
   if (!paths.length) return ROOT_PATH;
@@ -55,26 +47,16 @@ export function cloneSubtree(
 
   for (const n of subtree) idMap.set(n.id, crypto.randomUUID());
 
-  const newRootPath = childPath(parentPath(root.path), idMap.get(rootId)!);
+  const labels = new Map(
+    subtree.map((n) => [nodeLabel(n.id), nodeLabel(idMap.get(n.id)!)]),
+  );
 
-  const nodes: NodeModel[] = subtree.map((n) => {
-    const newId = idMap.get(n.id)!;
-    const rel = n.path === root.path ? "" : n.path.slice(root.path.length); // ".nx.ny"
-    const relMapped = rel
-      .split(".")
-      .map((seg) => {
-        if (!seg) return seg;
-        const orig = subtree.find((s) => nodeLabel(s.id) === seg);
-        return orig ? nodeLabel(idMap.get(orig.id)!) : seg;
-      })
-      .join(".");
-    return {
-      ...n,
-      id: newId,
-      slides: opts.newSlides ?? n.slides,
-      path: newRootPath + relMapped,
-    };
-  });
+  const nodes: NodeModel[] = subtree.map((n) => ({
+    ...n,
+    id: idMap.get(n.id)!,
+    slides: opts.newSlides ?? n.slides,
+    path: remapPath(n.path, labels),
+  }));
 
   const newComponents: ComponentModel[] = [];
   for (const c of components) {

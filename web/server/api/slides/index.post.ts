@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
         .update(nodes)
         .set({ id: root })
         .where(
-          and(eq(nodes.slides, created.id), eq(nodes.path, ROOT_NODE_PATH)),
+          and(eq(nodes.slides, created.id), eq(nodes.path, ROOT_PATH)),
         );
 
     return created;
@@ -54,7 +54,7 @@ async function rootNode(slide: string) {
   const [root] = await db
     .select({ id: nodes.id })
     .from(nodes)
-    .where(and(eq(nodes.slides, slide), eq(nodes.path, ROOT_NODE_PATH)));
+    .where(and(eq(nodes.slides, slide), eq(nodes.path, ROOT_PATH)));
 
   return root?.id;
 }
