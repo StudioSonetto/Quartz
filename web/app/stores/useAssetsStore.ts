@@ -25,6 +25,16 @@ export const useAssetsStore = defineStore("assets", () => {
     return imageUrls.value.get(name);
   }
 
+  const media = computed(() =>
+    assets.value.filter((asset) => isImage(asset.name) || isVideo(asset.name)),
+  );
+
+  const mediaNames = computed(() => media.value.map((a) => a.name));
+
+  function mediaUrl(name: string) {
+    return isImage(name) || isVideo(name) ? cached.value.urls[name] : undefined;
+  }
+
   const fonts = computed<FontAsset[]>(() =>
     assets.value
       .filter((asset) => isFont(asset.name))
@@ -46,6 +56,7 @@ export const useAssetsStore = defineStore("assets", () => {
   const isImage = (name: string) => assetKind(name) === "image";
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
+  const isVideo = (name: string) => assetKind(name) === "video";
 
   async function fetchAssets(deck: string) {
     const names = await list(deck);
@@ -88,8 +99,20 @@ export const useAssetsStore = defineStore("assets", () => {
       [...assets.value.map((a) => a.name), ...(stored ?? [])].map(assetKey),
     );
 
+    const problems: string[] = [];
+
     const planned = files.flatMap((file) => {
-      if (!assetKind(file.name)) return [];
+      if (!assetKind(file.name)) {
+        problems.push(unsupportedFile(file.name));
+
+        return [];
+      }
+
+      if (assetKind(file.name) === "video" && file.size > MAX_VIDEO_BYTES) {
+        problems.push(`Can't use ${file.name}. Videos must be under 50 MB.`);
+
+        return [];
+      }
 
       const name = uniqueAssetName(file.name, taken);
 
@@ -108,11 +131,14 @@ export const useAssetsStore = defineStore("assets", () => {
 
         if (error) console.error(error);
         if (error?.message.includes("row-level security")) full = true;
+        else if (error)
+          problems.push(`Couldn't upload ${name}: ${error.message}`);
 
         return [file, error ? null : name] as const;
       }),
     );
 
+    if (problems.length) alert(problems.join("\n"));
     if (full) storageFull();
 
     const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));
@@ -172,6 +198,10 @@ export const useAssetsStore = defineStore("assets", () => {
     images,
     imageNames,
     imageUrl,
+    media,
+    mediaNames,
+    mediaUrl,
+    isVideo,
     fonts,
     models,
     modelUrl,

@@ -12,7 +12,7 @@ export type ComponentModel = typeof components.$inferSelect;
 export type NodeType = NodeModel["type"];
 export type ComponentType = ComponentModel["type"];
 
-export type AssetKind = "image" | "font" | "model";
+export type AssetKind = "image" | "video" | "font" | "model";
 
 export interface Tree extends NodeModel {
   type: NodeType;
@@ -63,6 +63,7 @@ export interface RenderResult {
   content?: string | RenderSpan[];
   style?: Record<string, string | number>;
   component?: Component;
+  inner?: { component: Component; props?: Record<string, unknown> };
   paint?: RenderPaint;
 }
 
@@ -94,6 +95,12 @@ export interface ComponentTypeDef {
   only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
   fonts?: (data: Record<string, any>) => (string | undefined)[];
+  // Fields auto-key never animates.
+  unkeyed?: string[];
+  // Makes the slide at least this long, like a key does.
+  clock?: (
+    data: Record<string, any>,
+  ) => { end: number; loops: boolean } | undefined;
 }
 
 export type DefaultComponent =
@@ -101,7 +108,7 @@ export type DefaultComponent =
   | { type: ComponentType; data: Record<string, any> };
 
 export interface AssetDropDef {
-  kind: AssetKind;
+  kind: AssetKind | AssetKind[];
   apply: (nodeId: string, name: string) => void | Promise<void>;
 }
 

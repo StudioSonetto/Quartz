@@ -12,6 +12,9 @@ const duration = computed(() =>
 
 const playable = computed(() => end.value > 0);
 
+// Only a slide that never ends can run past the visible timeline.
+const beyond = computed(() => time.value > duration.value);
+
 let frame = 0;
 
 function stop() {
@@ -21,7 +24,9 @@ function stop() {
 
 function play() {
   if (playing.value || !playable.value) return;
-  if (time.value >= end.value) time.value = 0;
+  // A slide that never ends restarts only from its end, not when joined past it.
+  if (endless.value ? time.value === end.value : time.value >= end.value)
+    time.value = 0;
 
   const startedAt = performance.now() - time.value;
 
@@ -39,14 +44,19 @@ function play() {
 
 function seek(to: number) {
   stop();
-  time.value = canPlay.value ? Math.min(Math.max(to, 0), duration.value) : 0;
+  const last = endless.value ? Infinity : duration.value;
+
+  time.value = canPlay.value ? Math.min(Math.max(to, 0), last) : 0;
 }
 
 const nodeTime = (anim?: any) =>
   playing.value ? loopTime(anim, time.value) : time.value;
 
+// Paused past the timeline, a key lands at the end rather than stretching it.
 const keyTime = (anim?: any) =>
-  playing.value ? roundTime(nodeTime(anim)) : Math.round(time.value);
+  playing.value
+    ? roundTime(nodeTime(anim))
+    : Math.round(beyond.value ? end.value : time.value);
 
 function setLength(ms: number, hasKeys: boolean, loops = false) {
   end.value = ms;
@@ -66,6 +76,7 @@ export function usePlayhead() {
     end: readonly(end),
     endless: readonly(endless),
     duration,
+    beyond,
     canPlay,
     playable,
     nodeTime,

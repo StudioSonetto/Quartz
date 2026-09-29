@@ -20,6 +20,7 @@ export function useNodeComponents() {
     return data ? ({ node, type, data } as ComponentModel) : undefined;
   }
 
+  // Current slide only: code resuming after an await should use the deck's getComponent.
   function getNodeComponent(node: string, type: ComponentType) {
     return stateComponent(node, type) ?? getStoredComponent(node, type);
   }

@@ -3,8 +3,8 @@ export function usePresentationControls(
   onEscape?: () => void,
 ) {
   const deck = useDeckStore();
-  const { currentTree } = storeToRefs(deck);
-  const { fireTree } = useEventDispatch();
+  const { currentTree, clockSpans } = storeToRefs(deck);
+  const { fireTree, hasAction } = useEventDispatch();
 
   useEventListener(window, "keydown", (event: KeyboardEvent) => {
     if (!enabled()) return;
@@ -19,7 +19,15 @@ export function usePresentationControls(
   });
 
   onScopeDispose(
-    deck.onSlideEnter((tree) => enabled() && fireTree(tree, "enter")),
+    deck.onSlideEnter((tree) => {
+      if (!enabled()) return;
+
+      fireTree(tree, "enter");
+
+      // A slide wired to start on a trigger is left to that trigger.
+      if (clockSpans.value.length && !hasAction(tree, "animate"))
+        usePlayhead().play();
+    }),
   );
 
   return {

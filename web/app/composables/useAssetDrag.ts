@@ -26,7 +26,6 @@ export function useAssetDrag() {
   const { canvasSize } = storeToRefs(useAtelierStore());
   const { findRenderEl } = useCanvasScale();
   const assets = useAssetsStore();
-  const { getNodeComponent } = useNodeComponents();
   const history = useHistoryStore();
 
   function start(name: string) {
@@ -146,11 +145,17 @@ export function useAssetDrag() {
 
     if (!rect || !deckId) return;
 
-    const planned = files.flatMap((file) => {
+    const planned: { file: File; kind: AssetKind }[] = [];
+    const unsupported: string[] = [];
+
+    for (const file of files) {
       const kind = assetKind(file.name);
 
-      return kind ? [{ file, kind }] : [];
-    });
+      if (kind) planned.push({ file, kind });
+      else unsupported.push(unsupportedFile(file.name));
+    }
+
+    if (unsupported.length) alert(unsupported.join("\n"));
 
     if (!planned.length) return;
 
@@ -265,7 +270,7 @@ export function useAssetDrag() {
     point: { x: number; y: number },
     rect: DOMRect,
   ) {
-    const transform = getNodeComponent(id, "core.transform");
+    const transform = deck.getComponent(id, "core.transform");
 
     if (!transform) return;
 

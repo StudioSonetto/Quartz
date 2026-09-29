@@ -7,7 +7,8 @@ export type DopesheetRow = {
 };
 
 export function useDopesheetRows() {
-  const { animatedComponents, unlockedSelection } = storeToRefs(useDeckStore());
+  const { animatedComponents, clockSpans, unlockedSelection } =
+    storeToRefs(useDeckStore());
 
   return computed<DopesheetRow[]>(() =>
     unlockedSelection.value.flatMap((node) => {
@@ -15,14 +16,15 @@ export function useDopesheetRows() {
         (c) => c.node === node.id,
       );
 
-      if (!component) return [];
+      if (!component && !clockSpans.value.some((s) => s.node === node.id))
+        return [];
 
       return {
         node: node.id,
         name: node.name ?? "Node",
-        tracks: (component.data.tracks ?? []) as Track[],
-        stateKeys: (component.data.stateKeys ?? []) as StateKey[],
-        loop: component.data.loop,
+        tracks: (component?.data.tracks ?? []) as Track[],
+        stateKeys: (component?.data.stateKeys ?? []) as StateKey[],
+        loop: component?.data.loop,
       };
     }),
   );

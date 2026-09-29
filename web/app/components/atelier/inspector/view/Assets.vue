@@ -34,12 +34,24 @@
         >
           <button
             v-if="store.isImage(asset.name)"
-            @click="openImageModal(asset)"
+            @click="openMediaModal(asset)"
           >
             <NuxtImg
               :src="asset.url"
               :alt="asset.name"
               @load="onImageLoad($event, asset.name)"
+            />
+          </button>
+          <button
+            v-else-if="store.isVideo(asset.name)"
+            @click="openMediaModal(asset)"
+          >
+            <video
+              :src="`${asset.url}#t=0.1`"
+              muted
+              playsinline
+              preload="metadata"
+              @loadedmetadata="onVideoLoad($event, asset.name)"
             />
           </button>
           <button
@@ -83,6 +95,14 @@
         @click="imagePreviewModal?.close()"
         :src="selectedAsset.url"
         alt="preview"
+      />
+      <video
+        v-else-if="openModal === 'video' && selectedAsset"
+        class="w-full h-full"
+        :src="selectedAsset.url"
+        controls
+        autoplay
+        playsinline
       />
     </Modal>
     <Modal
@@ -145,7 +165,8 @@
       @apply w-full h-full rounded-lg;
       @apply break-words;
 
-      img {
+      img,
+      video {
         @apply w-full h-full object-cover block;
       }
     }
@@ -212,9 +233,19 @@ let flushing = false;
 function onImageLoad(event: Event, name: string) {
   const img = event.target as HTMLImageElement | null;
 
-  if (!img?.naturalWidth || !img.naturalHeight) return;
+  setRatio(name, img?.naturalWidth, img?.naturalHeight);
+}
 
-  pending[name] = img.naturalWidth / img.naturalHeight;
+function onVideoLoad(event: Event, name: string) {
+  const video = event.target as HTMLVideoElement | null;
+
+  setRatio(name, video?.videoWidth, video?.videoHeight);
+}
+
+function setRatio(name: string, width?: number, height?: number) {
+  if (!width || !height) return;
+
+  pending[name] = width / height;
 
   if (flushing) return;
 
@@ -315,11 +346,11 @@ const selectedFamily = computed(
   () => store.fonts.find((f) => f.name === selectedAsset.value?.name)?.family,
 );
 
-const openModal = ref<"image" | "font" | "model">();
+const openModal = ref<"image" | "video" | "font" | "model">();
 
-function openImageModal(asset: Asset) {
+function openMediaModal(asset: Asset) {
   selectedAsset.value = asset;
-  openModal.value = "image";
+  openModal.value = store.isVideo(asset.name) ? "video" : "image";
 
   imagePreviewModal.value?.open();
 }

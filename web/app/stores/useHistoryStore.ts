@@ -96,8 +96,10 @@ export const useHistoryStore = defineStore("history", () => {
     if (slideId) capture(slideId, mergeKey);
   }
 
+  let silent = false;
+
   function capture(slideId: string, mergeKey?: string) {
-    if (replaying.value) return;
+    if (replaying.value || silent) return;
     if (open?.before.has(slideId)) return;
 
     const before = readSlide(slideId);
@@ -261,6 +263,17 @@ export const useHistoryStore = defineStore("history", () => {
     }
   }
 
+  // For facts learnt, not edits made: they must not become undo steps.
+  function untracked(run: () => void) {
+    silent = true;
+
+    try {
+      run();
+    } finally {
+      silent = false;
+    }
+  }
+
   const undo = () => enqueue(() => step(undoStack, redoStack, "undo"));
   const redo = () => enqueue(() => step(redoStack, undoStack, "redo"));
 
@@ -273,6 +286,7 @@ export const useHistoryStore = defineStore("history", () => {
     canUndo,
     canRedo,
     replaying,
+    untracked,
     pushLater,
     capture,
     captureCurrent,

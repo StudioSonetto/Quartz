@@ -22,7 +22,7 @@ const ltree = customType<{ data: string }>({ dataType: () => "ltree" });
 export const nodeType = pgEnum("node_type", [
   "core.code",
   "core.group",
-  "core.image",
+  "core.media",
   "core.shape",
   "core.text",
   "webgl.canvas",
@@ -34,7 +34,7 @@ export const componentType = pgEnum("component_type", [
   "core.animation",
   "core.base",
   "core.event",
-  "core.image",
+  "core.media",
   "core.layout",
   "core.path",
   "core.shape",

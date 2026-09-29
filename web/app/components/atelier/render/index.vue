@@ -23,6 +23,13 @@
     <div v-else class="loader">
       <p>Loading...</p>
     </div>
+    <button
+      v-if="!canEdit && soundBlocked"
+      class="media-sound"
+      @click.stop="unblockSound"
+    >
+      Click for sound
+    </button>
   </div>
 </template>
 
@@ -43,6 +50,11 @@
   .loader {
     @apply flex justify-center items-center h-full;
   }
+
+  .media-sound {
+    @apply absolute bottom-4 right-4 z-10 px-3 py-1 rounded-full;
+    @apply bg-dark-900/80 text-light-200 ui-text-3;
+  }
 }
 </style>
 
@@ -54,6 +66,7 @@ const { canvasSize } = storeToRefs(atelier);
 const { getNodeComponent } = useNodeComponents();
 const { imageUrl } = useAssetsStore();
 const assetDrag = useAssetDrag();
+const { blocked: soundBlocked, unblock: unblockSound } = useMediaSound();
 
 const { scopeFor } = useVariableScope();
 

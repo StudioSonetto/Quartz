@@ -7,6 +7,11 @@ describe("assetKind", () => {
     expect(assetKind("Satoshi.woff2")).toBe("font");
     expect(assetKind("chair.glb")).toBe("model");
     expect(assetKind("chair.fbx")).toBe("model");
+    expect(assetKind("loop.gif")).toBe("image");
+    expect(assetKind("still.webp")).toBe("image");
+    expect(assetKind("clip.mp4")).toBe("video");
+    expect(assetKind("clip.webm")).toBe("video");
+    expect(assetKind("clip.MOV")).toBe("video");
   });
 
   it("ignores case, so an upper-case extension is not silently unsupported", () => {
@@ -68,7 +73,7 @@ function registerTypes() {
     nodeTypes: [
       nodeType("core.group", { accepts: ["core.group", "core.text"] }),
       nodeType("core.text", { defaultComponents: ["core.transform"] }),
-      nodeType("core.image", {
+      nodeType("core.media", {
         parents: ["core.group"],
         defaultComponents: [
           {
@@ -121,7 +126,7 @@ describe("resolveAssetDrop", () => {
 
   it("gives an image node for an image dropped on a group", () => {
     expect(resolveAssetDrop("image", "core.group" as any)?.type).toBe(
-      "core.image",
+      "core.media",
     );
   });
 
@@ -149,7 +154,7 @@ describe("resolveAssetDrop", () => {
       id: "core",
       nodeTypes: [
         nodeType("core.group", { accepts: ["core.text"] }),
-        nodeType("core.image", {
+        nodeType("core.media", {
           parents: ["core.group"],
           asset: { kind: "image", apply: () => {} },
         }),
@@ -157,6 +162,24 @@ describe("resolveAssetDrop", () => {
       componentTypes: [],
     });
     expect(resolveAssetDrop("model", "core.group" as any)).toBeUndefined();
+  });
+
+  it("matches a def that lists several kinds", () => {
+    __resetRegistry();
+    registerModule({
+      id: "core",
+      nodeTypes: [
+        nodeType("core.group", { accepts: ["core.text"] }),
+        nodeType("core.media", {
+          parents: ["core.group"],
+          asset: { kind: ["image", "video"], apply: () => {} },
+        }),
+      ],
+      componentTypes: [],
+    });
+    expect(resolveAssetDrop("video", "core.group" as any)?.type).toBe(
+      "core.media",
+    );
   });
 });
 
@@ -169,7 +192,7 @@ describe("resolveDropTarget", () => {
   it("walks up to an ancestor that can hold the asset", () => {
     const hit = resolveDropTarget(text, "image");
     expect(hit?.parent.id).toBe("g");
-    expect(hit?.def.type).toBe("core.image");
+    expect(hit?.def.type).toBe("core.media");
   });
 
   it("stops at the node itself when it already qualifies", () => {
@@ -186,7 +209,7 @@ describe("defaultNodeSize", () => {
   beforeEach(registerTypes);
 
   it("reads the node type's own transform override", () => {
-    expect(defaultNodeSize("core.image" as any)).toEqual({
+    expect(defaultNodeSize("core.media" as any)).toEqual({
       width: 480,
       height: 270,
     });

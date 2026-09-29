@@ -106,14 +106,38 @@ export const useDeckStore = defineStore("deck", () => {
     ),
   );
 
+  const spanOf = (component?: ComponentModel) =>
+    component && getComponentType(component.type)?.clock?.(component.data);
+
+  // Opacity drags on media must not rebuild the slide clock every frame.
+  function movesClock(before?: ComponentModel, after?: ComponentModel) {
+    if ((before ?? after)?.type === "core.animation") return true;
+
+    const a = spanOf(before);
+    const b = spanOf(after);
+
+    return a?.end !== b?.end || a?.loops !== b?.loops;
+  }
+
+  const clockSpans = computed(() => {
+    animationVersion.value;
+
+    return toRaw(currentComponents.value ?? []).flatMap((component) => {
+      const span = getComponentType(component.type)?.clock?.(component.data);
+
+      return span ? [{ ...span, node: component.node }] : [];
+    });
+  });
+
   watch(
     [
-      slideDuration,
-      () => animatedComponents.value.length > 0,
+      () =>
+        Math.max(slideDuration.value, ...clockSpans.value.map((s) => s.end)),
+      () => animatedComponents.value.length > 0 || clockSpans.value.length > 0,
       () =>
         animatedComponents.value.some(
           (component) => component.data.loop && keyRange(component.data),
-        ),
+        ) || clockSpans.value.some((s) => s.loops),
     ],
     ([ms, armed, loops]) =>
       usePlayhead().setLength(ms as number, armed as boolean, loops as boolean),
@@ -1277,10 +1301,12 @@ export const useDeckStore = defineStore("deck", () => {
     const index = slideComponents.findIndex(
       (c) => c.node === component.node && c.type === component.type,
     );
+    const before = slideComponents[index];
+
     if (index !== -1) slideComponents[index] = component;
     else slideComponents.push(component);
 
-    if (component.type === "core.animation") animationVersion.value++;
+    if (movesClock(before, component)) animationVersion.value++;
 
     sync.enqueueComponent(component.node, component.type);
   }
@@ -1332,7 +1358,7 @@ export const useDeckStore = defineStore("deck", () => {
 
       let tracks = stored;
 
-      for (const path of changedPaths(before, component.data)) {
+      for (const path of keyedPaths(component.type, before, component.data)) {
         const value = at(component.data, path);
         const track = findTrack(tracks, component.type, path);
 
@@ -1411,9 +1437,9 @@ export const useDeckStore = defineStore("deck", () => {
     const index = slideComponents.findIndex(
       (c) => c.node === nodeId && c.type === type,
     );
-    if (index !== -1) slideComponents.splice(index, 1);
+    const [removed] = index !== -1 ? slideComponents.splice(index, 1) : [];
 
-    if (type === "core.animation") animationVersion.value++;
+    if (movesClock(removed)) animationVersion.value++;
 
     sync.enqueueComponentDelete(nodeId, type);
   }
@@ -1455,6 +1481,7 @@ export const useDeckStore = defineStore("deck", () => {
     currentComponents,
     animationVersion,
     slideDuration,
+    clockSpans,
     variablesByNode,
     builtins,
     selectedNodeIds,

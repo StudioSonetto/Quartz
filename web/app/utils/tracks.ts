@@ -196,6 +196,18 @@ export function changedPaths(a: any, b: any, path: string[] = []): string[][] {
   return [path];
 }
 
+export function keyedPaths(
+  type: ComponentType,
+  before: any,
+  after: any,
+): string[][] {
+  const unkeyed = getComponentType(type)?.unkeyed ?? [];
+
+  return changedPaths(before, after).filter(
+    (path) => !unkeyed.includes(path[0]!),
+  );
+}
+
 export function timeAtPointer(
   box: DOMRect,
   clientX: number,

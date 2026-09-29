@@ -107,5 +107,12 @@ export function useEventDispatch() {
     return ran;
   }
 
-  return { fire, fireTree };
+  const hasAction = (tree: Tree, action: EventAction) =>
+    flattenTree(tree).some((node) =>
+      EVENT_TRIGGERS.some((on) =>
+        handlersFor(node, on).some((handler) => handler.action === action),
+      ),
+    );
+
+  return { fire, fireTree, hasAction };
 }
