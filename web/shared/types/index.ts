@@ -63,6 +63,7 @@ export interface RenderResult {
   content?: string | RenderSpan[];
   style?: Record<string, string | number>;
   component?: Component;
+  inner?: { component: Component; props?: Record<string, unknown> };
   paint?: RenderPaint;
 }
 
@@ -94,6 +95,10 @@ export interface ComponentTypeDef {
   only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
   fonts?: (data: Record<string, any>) => (string | undefined)[];
+  // Makes the slide at least this long, like a key does.
+  clock?: (
+    data: Record<string, any>,
+  ) => { end: number; loops: boolean } | undefined;
 }
 
 export type DefaultComponent =

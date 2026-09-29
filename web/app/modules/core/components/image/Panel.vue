@@ -1,8 +1,8 @@
 <template>
-  <NodeComponent name="image" :icon="props.icon" :components="props.components">
+  <NodeComponent name="media" :icon="props.icon" :components="props.components">
     <NodeComponentRow name="asset" path="src" v-slot="{ value }">
       <NodeComponentRowFieldSelect
-        :options="['', ...imageNames]"
+        :options="['', ...mediaNames]"
         :value="value"
         @update:value="setAsset"
       />
@@ -34,6 +34,7 @@
     >
       <NodeComponentRowFieldNumber :value="value" @update:value="update" />
     </NodeComponentRow>
+    <NodeComponentMediaRows v-if="isVideo" />
   </NodeComponent>
 </template>
 
@@ -46,7 +47,13 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { imageNames } = storeToRefs(useAssetsStore());
+const { media } = storeToRefs(useAssetsStore());
+
+const mediaNames = computed(() => media.value.map((a) => a.name));
+
+const isVideo = computed(() =>
+  props.components.every((c) => assetKind(c.data.src ?? "") === "video"),
+);
 
 const setAsset = (name: string) =>
   applyImageAsset(

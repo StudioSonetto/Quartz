@@ -27,7 +27,11 @@
     @keydown="onKeydown"
     @paste="editInsert"
     @drop="editInsert"
-    ><AtelierRenderPaint v-if="render.paint" :paint="render.paint" /><template
+    ><component
+      v-if="render.inner"
+      :is="render.inner.component"
+      v-bind="render.inner.props"
+    /><AtelierRenderPaint v-if="render.paint" :paint="render.paint" /><template
       v-if="Array.isArray(render.content)"
       ><span
         v-for="(span, index) in render.content"

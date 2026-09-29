@@ -1,3 +1,5 @@
+import { markRaw } from "vue";
+import Media from "../components/image/Media.vue";
 import { applyImageAsset } from "../components/image/apply";
 
 const loadingStyle = {
@@ -7,7 +9,7 @@ const loadingStyle = {
 
 export default {
   type: "core.image",
-  label: "Image",
+  label: "Media",
   icon: "i-carbon-image",
   accepts: [],
   parents: ["core.group"],
@@ -18,12 +20,12 @@ export default {
     "core.image",
   ],
   onCreate: (nodeId) => {
-    const first = useAssetsStore().images[0]?.name;
+    const first = useAssetsStore().media[0]?.name;
 
     if (first) applyImageAsset([nodeId], first);
   },
   asset: {
-    kind: "image",
+    kind: ["image", "video"],
     apply: (nodeId, name) => applyImageAsset([nodeId], name),
   },
   renderer: {
@@ -31,6 +33,7 @@ export default {
     render: (node, ctx) => {
       const image = ctx.data(node, "core.image");
       const transform = ctx.data(node, "core.transform");
+      const url = image.src ? ctx.assetUrl(image.src) : undefined;
 
       return {
         style: {
@@ -39,13 +42,21 @@ export default {
           height: `${transform.size.height}px`,
           borderRadius: `${image.borderRadius}px`,
           opacity: image.opacity,
-          ...(image.src
-            ? backgroundStyle(
-                { type: "image", value: image.src, fit: image.fit },
-                ctx.assetUrl,
-              )
-            : loadingStyle),
+          overflow: "hidden",
+          ...(image.src ? {} : loadingStyle),
         },
+        inner: url
+          ? {
+              component: markRaw(Media),
+              props: {
+                url,
+                video: assetKind(image.src) === "video",
+                fit: image.fit,
+                timing: image,
+                presenting: ctx.presenting,
+              },
+            }
+          : undefined,
       };
     },
   },

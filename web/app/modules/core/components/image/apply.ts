@@ -1,9 +1,9 @@
-import { fitWithin, loadImageSize } from "./size";
+import { fitWithin } from "./size";
 
 export async function applyImageAsset(nodeIds: string[], name: string) {
   const { getNodeComponent } = useNodeComponents();
   const { updateComponent } = useDeckStore();
-  const { imageUrl } = useAssetsStore();
+  const { mediaUrl } = useAssetsStore();
   const { canvasSize } = storeToRefs(useAtelierStore());
 
   const targets = nodeIds
@@ -15,10 +15,10 @@ export async function applyImageAsset(nodeIds: string[], name: string) {
   if (targets.length === 0) return;
 
   for (const image of targets) {
-    updateComponent({ ...image, data: { ...image.data, src: name } });
+    updateComponent(withData(image, { src: name, duration: 0 }));
   }
 
-  const url = imageUrl(name);
+  const url = mediaUrl(name);
 
   if (!url) return;
 
@@ -28,9 +28,17 @@ export async function applyImageAsset(nodeIds: string[], name: string) {
     return transform ? [{ transform, size: { ...transform.data.size } }] : [];
   });
 
-  const natural = await loadImageSize(url);
+  const natural = await loadMediaMeta(url, name);
 
   if (!natural) return;
+
+  if (natural.duration)
+    for (const image of targets) {
+      const latest = getNodeComponent(image.node, "core.image") ?? image;
+
+      if (latest.data.src === name)
+        updateComponent(withData(latest, { duration: natural.duration }));
+    }
 
   const size = fitWithin(
     natural.width,
