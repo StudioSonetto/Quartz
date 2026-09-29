@@ -21,7 +21,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function register(
     email: string,
     password: string,
-    options: { username: string },
+    options: { username: string; captchaToken: string },
   ) {
     const { data, error } = await client.auth.signUp({
       email,
@@ -30,6 +30,7 @@ export const useAuthStore = defineStore("auth", () => {
         data: {
           username: options.username,
         },
+        captchaToken: options.captchaToken,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -39,10 +40,11 @@ export const useAuthStore = defineStore("auth", () => {
     return data;
   }
 
-  async function signIn(email: string, password: string) {
+  async function signIn(email: string, password: string, captchaToken: string) {
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
+      options: { captchaToken },
     });
 
     if (error) throw error;

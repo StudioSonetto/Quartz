@@ -22,7 +22,9 @@
       <FormInput name="password" type="password" placeholder="Password" />
     </div>
     <div class="whitespace"></div>
-    <UIButton type="submit" :disabled="!meta.valid">
+    <AuthCaptcha v-model="captchaToken" />
+    <div class="whitespace"></div>
+    <UIButton type="submit" :disabled="!meta.valid || !captchaToken">
       Sign In
       <div class="i-carbon-login" />
     </UIButton>
@@ -50,14 +52,20 @@ const { handleSubmit, meta } = useForm({
 });
 
 const error = ref("");
+const captchaToken = ref("");
 
 const onSubmit = handleSubmit(async (values) => {
   try {
     error.value = "";
 
-    await useAuthStore().signIn(values.email, values.password);
+    await useAuthStore().signIn(
+      values.email,
+      values.password,
+      captchaToken.value,
+    );
   } catch (err) {
     error.value = (err as Error).message;
+    captchaToken.value = "";
   }
 });
 

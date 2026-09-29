@@ -80,6 +80,7 @@ export default defineNuxtConfig({
     polarProProductId: "",
     public: {
       discordClientId: "",
+      turnstileSiteKey: "",
     },
   },
   supabase: {

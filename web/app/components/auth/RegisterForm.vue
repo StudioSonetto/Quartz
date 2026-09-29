@@ -18,7 +18,9 @@
       />
     </div>
     <div class="whitespace"></div>
-    <UIButton type="submit" :disabled="!meta.valid">
+    <AuthCaptcha v-model="captchaToken" />
+    <div class="whitespace"></div>
+    <UIButton type="submit" :disabled="!meta.valid || !captchaToken">
       Register
       <div class="i-carbon-login" />
     </UIButton>
@@ -65,6 +67,7 @@ const { handleSubmit, meta } = useForm({
 });
 
 const error = ref("");
+const captchaToken = ref("");
 
 const hasRegistered = ref(false);
 
@@ -74,11 +77,13 @@ const onSubmit = handleSubmit(async (values) => {
 
     await useAuthStore().register(values.email, values.password, {
       username: values.username,
+      captchaToken: captchaToken.value,
     });
 
     hasRegistered.value = true;
   } catch (err) {
     error.value = (err as Error).message;
+    captchaToken.value = "";
   }
 });
 </script>
