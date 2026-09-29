@@ -369,22 +369,38 @@ export const useDeckStore = defineStore("deck", () => {
     return deck;
   }
 
+  function deckLimitReached(err: FetchError) {
+    if (err.statusCode !== 403) throw err;
+
+    if (confirm("Basic includes 10 decks. Upgrade to Pro for unlimited?"))
+      window.location.assign("/api/billing/checkout");
+  }
+
   async function insertNewDeck() {
     const data = await apiFetch<{ id: string }>("/api/decks", {
       method: "POST",
-    }).catch((err: FetchError) => {
-      if (err.statusCode !== 403) throw err;
-
-      if (confirm("Basic includes 10 decks. Upgrade to Pro for unlimited?"))
-        window.location.assign("/api/billing/checkout");
-    });
+    }).catch(deckLimitReached);
 
     if (!data) return;
 
-    navigateTo(`/atelier/${data?.id}`, {
+    navigateTo(`/atelier/${data.id}`, {
       external: true,
       open: { target: "_blank" },
     });
+  }
+
+  function fetchTemplates() {
+    return apiFetch<{ id: string; title: string }[]>("/api/templates");
+  }
+
+  async function insertFromTemplate(id: string) {
+    const data = await apiFetch<{ id: string }>(`/api/templates/${id}`, {
+      method: "POST",
+    }).catch((err: FetchError) => {
+      if (err.statusCode !== 404) deckLimitReached(err);
+    });
+
+    return data?.id;
   }
 
   async function updateDeckTitle(title: string) {
@@ -1452,6 +1468,8 @@ export const useDeckStore = defineStore("deck", () => {
     fetchAllDecks,
     fetchDeck,
     insertNewDeck,
+    fetchTemplates,
+    insertFromTemplate,
     deleteDeck,
     updateDeckTitle,
     fetchAllSlides,

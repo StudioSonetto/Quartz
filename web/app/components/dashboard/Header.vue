@@ -1,12 +1,30 @@
 <template>
   <div class="dashboard-header">
     <p>Decks</p>
-    <UIButton @click="useDeckStore().insertNewDeck()">
-      New Deck
-      <div class="i-carbon-add"></div>
-    </UIButton>
+    <div class="dashboard-header-actions">
+      <UIButton v-if="template" @click="fromTemplate(template)">
+        New from template
+        <div class="i-carbon-template"></div>
+      </UIButton>
+      <UIButton @click="deck.insertNewDeck()">
+        New Deck
+        <div class="i-carbon-add"></div>
+      </UIButton>
+    </div>
   </div>
 </template>
+
+<script setup lang="ts">
+defineProps<{ template?: string }>();
+
+const deck = useDeckStore();
+
+async function fromTemplate(template: string) {
+  const id = await deck.insertFromTemplate(template);
+
+  if (id) navigateTo(`/atelier/${id}`);
+}
+</script>
 
 <style scoped lang="postcss">
 .dashboard-header {
@@ -16,6 +34,10 @@
 
   p {
     @apply text-base font-500;
+  }
+
+  .dashboard-header-actions {
+    @apply flex gap-2;
   }
 }
 </style>
