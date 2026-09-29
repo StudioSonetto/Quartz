@@ -54,6 +54,8 @@ export default {
                 fit: media.fit,
                 timing: media,
                 presenting: ctx.presenting,
+                anim: ctx.optional(node, "core.animation"),
+                node: node.id,
               },
             }
           : undefined,

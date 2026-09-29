@@ -29,3 +29,17 @@ describe("mediaTime", () => {
     });
   });
 });
+
+describe("mediaSpan", () => {
+  it("ends the slide on the 10 ms grid", () => {
+    expect(
+      mediaSpan({
+        start: 0,
+        duration: 4003,
+        loop: false,
+        volume: 1,
+        muted: false,
+      })?.end,
+    ).toBe(4000);
+  });
+});

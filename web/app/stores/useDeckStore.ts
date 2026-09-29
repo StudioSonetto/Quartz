@@ -106,8 +106,18 @@ export const useDeckStore = defineStore("deck", () => {
     ),
   );
 
-  const drivesClock = (type: ComponentType) =>
-    type === "core.animation" || !!getComponentType(type)?.clock;
+  const spanOf = (component?: ComponentModel) =>
+    component && getComponentType(component.type)?.clock?.(component.data);
+
+  // Opacity drags on media must not rebuild the slide clock every frame.
+  function movesClock(before?: ComponentModel, after?: ComponentModel) {
+    if ((before ?? after)?.type === "core.animation") return true;
+
+    const a = spanOf(before);
+    const b = spanOf(after);
+
+    return a?.end !== b?.end || a?.loops !== b?.loops;
+  }
 
   const clockSpans = computed(() => {
     animationVersion.value;
@@ -123,8 +133,7 @@ export const useDeckStore = defineStore("deck", () => {
     [
       () =>
         Math.max(slideDuration.value, ...clockSpans.value.map((s) => s.end)),
-      () =>
-        animatedComponents.value.length > 0 || clockSpans.value.length > 0,
+      () => animatedComponents.value.length > 0 || clockSpans.value.length > 0,
       () =>
         animatedComponents.value.some(
           (component) => component.data.loop && keyRange(component.data),
@@ -1292,10 +1301,12 @@ export const useDeckStore = defineStore("deck", () => {
     const index = slideComponents.findIndex(
       (c) => c.node === component.node && c.type === component.type,
     );
+    const before = slideComponents[index];
+
     if (index !== -1) slideComponents[index] = component;
     else slideComponents.push(component);
 
-    if (drivesClock(component.type)) animationVersion.value++;
+    if (movesClock(before, component)) animationVersion.value++;
 
     sync.enqueueComponent(component.node, component.type);
   }
@@ -1426,9 +1437,9 @@ export const useDeckStore = defineStore("deck", () => {
     const index = slideComponents.findIndex(
       (c) => c.node === nodeId && c.type === type,
     );
-    if (index !== -1) slideComponents.splice(index, 1);
+    const [removed] = index !== -1 ? slideComponents.splice(index, 1) : [];
 
-    if (drivesClock(type)) animationVersion.value++;
+    if (movesClock(removed)) animationVersion.value++;
 
     sync.enqueueComponentDelete(nodeId, type);
   }

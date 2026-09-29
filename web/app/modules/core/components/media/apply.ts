@@ -1,12 +1,11 @@
 import { fitWithin } from "./size";
 
 export async function applyMediaAsset(nodeIds: string[], name: string) {
-  const { getNodeComponent } = useNodeComponents();
-  const { updateComponent } = useDeckStore();
+  const { getComponent, updateComponent } = useDeckStore();
   const { canvasSize } = storeToRefs(useAtelierStore());
 
   const targets = nodeIds
-    .map((id) => getNodeComponent(id, "core.media"))
+    .map((id) => getComponent(id, "core.media"))
     .filter(
       (media): media is ComponentModel => !!media && media.data.src !== name,
     );
@@ -14,7 +13,7 @@ export async function applyMediaAsset(nodeIds: string[], name: string) {
   if (targets.length === 0) return;
 
   const started = targets.flatMap((media) => {
-    const transform = getNodeComponent(media.node, "core.transform");
+    const transform = getComponent(media.node, "core.transform");
 
     return transform ? [{ transform, size: { ...transform.data.size } }] : [];
   });
@@ -31,8 +30,7 @@ export async function applyMediaAsset(nodeIds: string[], name: string) {
   );
 
   for (const { transform, size: before } of started) {
-    const latest =
-      getNodeComponent(transform.node, "core.transform") ?? transform;
+    const latest = getComponent(transform.node, "core.transform") ?? transform;
 
     if (
       latest.data.size.width !== before.width ||

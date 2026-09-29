@@ -99,13 +99,17 @@ export const useAssetsStore = defineStore("assets", () => {
       [...assets.value.map((a) => a.name), ...(stored ?? [])].map(assetKey),
     );
 
-    const tooBig: string[] = [];
+    const problems: string[] = [];
 
     const planned = files.flatMap((file) => {
-      if (!assetKind(file.name)) return [];
+      if (!assetKind(file.name)) {
+        problems.push(unsupportedFile(file.name));
+
+        return [];
+      }
 
       if (assetKind(file.name) === "video" && file.size > MAX_VIDEO_BYTES) {
-        tooBig.push(file.name);
+        problems.push(`Can't use ${file.name}. Videos must be under 50 MB.`);
 
         return [];
       }
@@ -117,9 +121,6 @@ export const useAssetsStore = defineStore("assets", () => {
       return [{ file, name }];
     });
 
-    if (tooBig.length)
-      alert(`Videos must be under 100 MB: ${tooBig.join(", ")}`);
-
     let full = false;
 
     const entries = await Promise.all(
@@ -130,11 +131,14 @@ export const useAssetsStore = defineStore("assets", () => {
 
         if (error) console.error(error);
         if (error?.message.includes("row-level security")) full = true;
+        else if (error)
+          problems.push(`Couldn't upload ${name}: ${error.message}`);
 
         return [file, error ? null : name] as const;
       }),
     );
 
+    if (problems.length) alert(problems.join("\n"));
     if (full) storageFull();
 
     const names = new Set(entries.flatMap(([, name]) => (name ? [name] : [])));

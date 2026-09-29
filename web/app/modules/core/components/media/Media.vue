@@ -32,6 +32,8 @@ const props = defineProps<{
   fit: "cover" | "contain" | "fill";
   timing: MediaTiming;
   presenting: boolean;
+  node: string;
+  anim?: any;
 }>();
 
 const video = useTemplateRef<HTMLVideoElement>("video");
@@ -45,6 +47,10 @@ watch(
       useMediaClock(el, {
         timing: () => props.timing,
         audible: () => props.presenting,
+        onLength: (ms) => {
+          if (!props.presenting) saveMediaLength(props.node, "core.media", ms);
+        },
+        anim: () => props.anim,
       }),
     );
   },

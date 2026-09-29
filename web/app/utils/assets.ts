@@ -7,7 +7,11 @@ const EXTENSIONS: Record<AssetKind, string[]> = {
   model: [".fbx", ".glb", ".gltf", ".obj", ".stl"],
 };
 
-export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
+// Supabase's default per-file upload limit.
+export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+export const unsupportedFile = (name: string) =>
+  `Can't use ${name}. Use an image, an .mp4, .webm or .mov video, a font, or a 3D model.`;
 
 export const ASSET_ACCEPT = Object.values(EXTENSIONS).flat().join(",");
 

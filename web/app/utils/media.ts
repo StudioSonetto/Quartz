@@ -40,28 +40,40 @@ export function mediaTime(
 export function mediaSpan(timing: MediaTiming) {
   if (!(timing.duration > 0)) return undefined;
 
-  return { end: timing.start + timing.duration, loops: !!timing.loop };
+  return {
+    end: roundTime(timing.start + timing.duration),
+    loops: !!timing.loop,
+  };
 }
 
+const META_TIMEOUT_MS = 15_000;
+
+// Resolves null on error or timeout, so callers holding an undo group never hang.
 export function loadMediaMeta(
   url: string,
   name: string,
 ): Promise<{ width: number; height: number; duration: number } | null> {
   return new Promise((resolve) => {
-    if (assetKind(name) === "video") {
-      const video = document.createElement("video");
+    const video =
+      assetKind(name) === "video" ? document.createElement("video") : null;
 
+    const done = (meta: Awaited<ReturnType<typeof loadMediaMeta>>) => {
+      clearTimeout(timer);
+      resolve(meta);
+      video?.removeAttribute("src");
+      video?.load();
+    };
+    const timer = setTimeout(() => done(null), META_TIMEOUT_MS);
+
+    if (video) {
       video.preload = "metadata";
-      video.onloadedmetadata = () => {
-        resolve({
+      video.onloadedmetadata = () =>
+        done({
           width: video.videoWidth,
           height: video.videoHeight,
           duration: videoMs(video),
         });
-        video.removeAttribute("src");
-        video.load();
-      };
-      video.onerror = () => resolve(null);
+      video.onerror = () => done(null);
       video.src = url;
 
       return;
@@ -70,24 +82,19 @@ export function loadMediaMeta(
     const img = new Image();
 
     img.onload = () =>
-      resolve({
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        duration: 0,
-      });
-    img.onerror = () => resolve(null);
+      done({ width: img.naturalWidth, height: img.naturalHeight, duration: 0 });
+    img.onerror = () => done(null);
     img.src = url;
   });
 }
 
-// Sets the asset, then its length once known, unless it changed meanwhile.
-export async function applyMedia(
+// The length arrives later, from the element that plays it (saveMediaLength).
+export function applyMedia(
   components: ComponentModel[],
   field: string,
   name: string,
   extra: Record<string, unknown> = {},
 ) {
-  const { getNodeComponent } = useNodeComponents();
   const { updateComponent } = useDeckStore();
 
   for (const component of components)
@@ -96,15 +103,16 @@ export async function applyMedia(
     );
 
   const url = useAssetsStore().mediaUrl(name);
-  const meta = url ? await loadMediaMeta(url, name) : null;
 
-  if (meta?.duration)
-    for (const { node, type } of components) {
-      const latest = getNodeComponent(node, type);
+  return url ? loadMediaMeta(url, name) : Promise.resolve(null);
+}
 
-      if (latest?.data[field] === name)
-        updateComponent(withData(latest, { duration: meta.duration }));
-    }
+export function saveMediaLength(node: string, type: ComponentType, ms: number) {
+  const component = useNodeComponents().getStoredComponent(node, type);
 
-  return meta;
+  if (!component || component.data.duration === ms) return;
+
+  useHistoryStore().untracked(() =>
+    useDeckStore().updateComponent(withData(component, { duration: ms })),
+  );
 }

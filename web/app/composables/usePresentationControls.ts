@@ -4,7 +4,7 @@ export function usePresentationControls(
 ) {
   const deck = useDeckStore();
   const { currentTree, clockSpans } = storeToRefs(deck);
-  const { fireTree } = useEventDispatch();
+  const { fireTree, hasAction } = useEventDispatch();
 
   useEventListener(window, "keydown", (event: KeyboardEvent) => {
     if (!enabled()) return;
@@ -24,7 +24,9 @@ export function usePresentationControls(
 
       fireTree(tree, "enter");
 
-      if (clockSpans.value.length) usePlayhead().play();
+      // A slide wired to start on a trigger is left to that trigger.
+      if (clockSpans.value.length && !hasAction(tree, "animate"))
+        usePlayhead().play();
     }),
   );
 

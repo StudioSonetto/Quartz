@@ -133,4 +133,89 @@ describe("useMediaClock", () => {
 
     expect(video.currentTime).toBe(1);
   });
+
+  it("reports the real length when it differs from the stored one", async () => {
+    const video = fakeVideo({ duration: 5 });
+    const lengths: number[] = [];
+
+    stop = useMediaClock(video, {
+      timing: () => ({ ...timing, duration: 0 }),
+      audible: () => false,
+      onLength: (ms) => lengths.push(ms),
+    });
+    video.listeners.loadedmetadata();
+
+    expect(lengths).toEqual([5000]);
+  });
+
+  it("measures a recorded WebM that starts with no length", async () => {
+    const video = fakeVideo({ duration: Infinity });
+    const lengths: number[] = [];
+
+    stop = useMediaClock(video, {
+      timing: () => ({ ...timing, duration: 0 }),
+      audible: () => false,
+      onLength: (ms) => lengths.push(ms),
+    });
+    video.listeners.loadedmetadata();
+
+    expect(lengths).toEqual([]);
+    expect(video.currentTime).toBeGreaterThan(1000);
+
+    video.duration = 7;
+    video.listeners.durationchange();
+
+    expect(lengths).toEqual([7000]);
+  });
+
+  it("follows its node's own animation loop", async () => {
+    const video = fakeVideo();
+    const anim = {
+      loop: "on",
+      tracks: [
+        {
+          type: "core.media",
+          path: ["opacity"],
+          keys: [
+            { t: 0, value: 0 },
+            { t: 2000, value: 1 },
+          ],
+        },
+      ],
+    };
+
+    playing.value = true;
+    time.value = 2500;
+    stop = useMediaClock(video, {
+      timing: () => timing,
+      audible: () => false,
+      anim: () => anim,
+    });
+    await nextTick();
+
+    expect(video.currentTime).toBe(0.5);
+  });
+
+  it("stops retrying a video the browser cannot play", async () => {
+    const video = fakeVideo({
+      play: () => {
+        video.plays++;
+
+        return Promise.reject(new DOMException("", "NotSupportedError"));
+      },
+    });
+
+    playing.value = true;
+    time.value = 1000;
+    stop = useMediaClock(video, {
+      timing: () => timing,
+      audible: () => true,
+    });
+    await nextTick();
+    await Promise.resolve();
+    time.value = 1016;
+    await nextTick();
+
+    expect(video.plays).toBe(1);
+  });
 });

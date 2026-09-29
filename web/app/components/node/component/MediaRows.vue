@@ -27,12 +27,7 @@
       @update:value="(v) => update(v === 'true')"
     />
   </NodeComponentRow>
-  <NodeComponentRow
-    name="start (ms)"
-    path="start"
-    kind="number"
-    v-slot="{ value, update }"
-  >
+  <NodeComponentRow name="start (ms)" path="start" v-slot="{ value, update }">
     <NodeComponentRowFieldNumber :value="value" @update:value="update" />
   </NodeComponentRow>
 </template>
