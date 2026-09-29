@@ -10,7 +10,9 @@ export async function copyDeck(
   owner: string,
 ) {
   const storage = serverSupabaseServiceRole(event).storage;
-  const assetNames = listFolder(storage.from("assets"), source.id);
+  const assetNames = listFolder(storage.from("assets"), source.id).catch(
+    () => null,
+  );
 
   const [sourceSlides, allNodes, allComponents, unlocked] = await Promise.all([
     db.select().from(slides).where(eq(slides.deck, source.id)),
@@ -54,7 +56,6 @@ export async function copyDeck(
       .returning()
       .then(([d]) => d!);
 
-    // The deck trigger adds a blank slide 0; the template brings its own.
     await tx.delete(slides).where(eq(slides.deck, deck.id));
 
     if (sourceSlides.length)
@@ -117,17 +118,26 @@ export async function copyDeck(
         if (error) console.error("template file copy failed", from, error);
       });
 
+  const used = JSON.stringify(sourceComponents.map((c) => c.data));
+  const trimmed = new Set(
+    allNodes.filter((n) => !nodeIds.has(n.id)).map((n) => n.slides),
+  );
+
   await Promise.all([
-    ...((await assetNames) ?? []).map((name) =>
-      copy("assets", `${source.id}/${name}`, `${deck.id}/${name}`),
-    ),
-    ...sourceSlides.map((s) =>
-      copy(
-        "snapshots",
-        `${source.id}/${s.id}.png`,
-        `${deck.id}/${slideIds.get(s.id)}.png`,
+    ...((await assetNames) ?? [])
+      .filter((name) => used.includes(name.replace(/\.[^.]+$/, "")))
+      .map((name) =>
+        copy("assets", `${source.id}/${name}`, `${deck.id}/${name}`),
       ),
-    ),
+    ...sourceSlides
+      .filter((s) => !trimmed.has(s.id))
+      .map((s) =>
+        copy(
+          "snapshots",
+          `${source.id}/${s.id}.png`,
+          `${deck.id}/${slideIds.get(s.id)}.png`,
+        ),
+      ),
   ]);
 
   return deck;

@@ -394,11 +394,17 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function insertFromTemplate(id: string) {
+    const root = document.documentElement.classList;
+
+    root.add("copying-template");
+
     const data = await apiFetch<{ id: string }>(`/api/templates/${id}`, {
       method: "POST",
-    }).catch((err: FetchError) => {
-      if (err.statusCode !== 404) deckLimitReached(err);
-    });
+    })
+      .catch((err: FetchError) => {
+        if (err.statusCode !== 404) deckLimitReached(err);
+      })
+      .finally(() => root.remove("copying-template"));
 
     return data?.id;
   }

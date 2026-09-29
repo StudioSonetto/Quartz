@@ -19,6 +19,11 @@ body {
   @apply font-azeret-mono;
 }
 
+html.copying-template,
+html.copying-template * {
+  @apply cursor-progress!;
+}
+
 button,
 code,
 input,

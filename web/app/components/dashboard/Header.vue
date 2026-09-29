@@ -2,7 +2,11 @@
   <div class="dashboard-header">
     <p>Decks</p>
     <div class="dashboard-header-actions">
-      <UIButton v-if="template" @click="fromTemplate(template)">
+      <UIButton
+        v-if="template"
+        :disabled="copying"
+        @click="fromTemplate(template)"
+      >
         New from template
         <div class="i-carbon-template"></div>
       </UIButton>
@@ -19,8 +23,14 @@ defineProps<{ template?: string }>();
 
 const deck = useDeckStore();
 
+const copying = ref(false);
+
 async function fromTemplate(template: string) {
-  const id = await deck.insertFromTemplate(template);
+  copying.value = true;
+
+  const id = await deck
+    .insertFromTemplate(template)
+    .finally(() => (copying.value = false));
 
   if (id) navigateTo(`/atelier/${id}`);
 }

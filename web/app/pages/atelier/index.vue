@@ -19,6 +19,7 @@
 
 <script setup lang="ts">
 const client = useSupabaseClient();
+const route = useRoute();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
@@ -43,8 +44,9 @@ onMounted(() => {
     useDeckStore()
       .insertFromTemplate(template.value)
       .then((id) => {
-        if (id) navigateTo(`/live/${id}`);
-      });
+        if (id && route.path === "/atelier") navigateTo(`/live/${id}`);
+      })
+      .catch((err) => console.error("onboarding copy failed", err));
 
   const userId = useAuthStore().user?.id;
 
