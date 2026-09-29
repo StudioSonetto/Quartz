@@ -106,14 +106,26 @@ export const useDeckStore = defineStore("deck", () => {
     ),
   );
 
+  const clockSpans = computed(() => {
+    animationVersion.value;
+
+    return toRaw(currentComponents.value ?? []).flatMap((component) => {
+      const span = getComponentType(component.type)?.clock?.(component.data);
+
+      return span ? [span] : [];
+    });
+  });
+
   watch(
     [
-      slideDuration,
-      () => animatedComponents.value.length > 0,
+      () =>
+        Math.max(slideDuration.value, ...clockSpans.value.map((s) => s.end)),
+      () =>
+        animatedComponents.value.length > 0 || clockSpans.value.length > 0,
       () =>
         animatedComponents.value.some(
           (component) => component.data.loop && keyRange(component.data),
-        ),
+        ) || clockSpans.value.some((s) => s.loops),
     ],
     ([ms, armed, loops]) =>
       usePlayhead().setLength(ms as number, armed as boolean, loops as boolean),
@@ -1280,7 +1292,11 @@ export const useDeckStore = defineStore("deck", () => {
     if (index !== -1) slideComponents[index] = component;
     else slideComponents.push(component);
 
-    if (component.type === "core.animation") animationVersion.value++;
+    if (
+      component.type === "core.animation" ||
+      getComponentType(component.type)?.clock
+    )
+      animationVersion.value++;
 
     sync.enqueueComponent(component.node, component.type);
   }
@@ -1413,7 +1429,8 @@ export const useDeckStore = defineStore("deck", () => {
     );
     if (index !== -1) slideComponents.splice(index, 1);
 
-    if (type === "core.animation") animationVersion.value++;
+    if (type === "core.animation" || getComponentType(type)?.clock)
+      animationVersion.value++;
 
     sync.enqueueComponentDelete(nodeId, type);
   }

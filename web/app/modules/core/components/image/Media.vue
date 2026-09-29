@@ -29,7 +29,7 @@
 const props = defineProps<{
   url: string;
   video: boolean;
-  fit: string;
+  fit: "cover" | "contain" | "fill";
   timing: MediaTiming;
   presenting: boolean;
 }>();
