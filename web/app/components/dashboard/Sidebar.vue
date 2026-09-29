@@ -13,10 +13,6 @@
         <div class="i-carbon-rocket"></div>
         Get Started
       </NuxtLink>
-      <div class="item disabled">
-        <div class="i-carbon-folder"></div>
-        Templates
-      </div>
       <a v-if="billing" :href="upgradeHref" class="item">
         <div class="i-carbon-star"></div>
         {{ isPro ? "Billing" : "Upgrade" }}
@@ -59,10 +55,6 @@
 
       [class*="i-"] {
         @apply ui-text-4 flex-shrink-0;
-      }
-
-      &.disabled {
-        @apply opacity-60;
       }
 
       &.active {
