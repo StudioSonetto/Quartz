@@ -163,6 +163,24 @@ describe("resolveAssetDrop", () => {
     });
     expect(resolveAssetDrop("model", "core.group" as any)).toBeUndefined();
   });
+
+  it("matches a def that lists several kinds", () => {
+    __resetRegistry();
+    registerModule({
+      id: "core",
+      nodeTypes: [
+        nodeType("core.group", { accepts: ["core.text"] }),
+        nodeType("core.image", {
+          parents: ["core.group"],
+          asset: { kind: ["image", "video"], apply: () => {} },
+        }),
+      ],
+      componentTypes: [],
+    });
+    expect(resolveAssetDrop("video", "core.group" as any)?.type).toBe(
+      "core.image",
+    );
+  });
 });
 
 describe("resolveDropTarget", () => {

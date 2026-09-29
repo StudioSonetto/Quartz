@@ -3,7 +3,10 @@ export function resolveAssetDrop(
   targetType: NodeType,
 ): NodeTypeDef | undefined {
   return allNodeTypes().find(
-    (def) => def.asset?.kind === kind && canContain(targetType, def.type),
+    (def) =>
+      !!def.asset &&
+      [def.asset.kind].flat().includes(kind) &&
+      canContain(targetType, def.type),
   );
 }
 export function resolveDropTarget(

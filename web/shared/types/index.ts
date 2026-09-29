@@ -101,7 +101,7 @@ export type DefaultComponent =
   | { type: ComponentType; data: Record<string, any> };
 
 export interface AssetDropDef {
-  kind: AssetKind;
+  kind: AssetKind | AssetKind[];
   apply: (nodeId: string, name: string) => void | Promise<void>;
 }
 
