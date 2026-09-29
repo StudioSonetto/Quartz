@@ -431,7 +431,8 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   async function deleteDeck(id: string) {
-    return apiFetch(`/api/decks/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/decks/${id}`, { method: "DELETE" });
+    await refreshNuxtData("decks");
   }
 
   async function fetchAllSlides(deck: string) {
