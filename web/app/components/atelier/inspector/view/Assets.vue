@@ -42,6 +42,15 @@
               @load="onImageLoad($event, asset.name)"
             />
           </button>
+          <button v-else-if="store.isVideo(asset.name)">
+            <video
+              :src="`${asset.url}#t=0.1`"
+              muted
+              playsinline
+              preload="metadata"
+              @loadedmetadata="onVideoLoad($event, asset.name)"
+            />
+          </button>
           <button
             v-else-if="store.isFont(asset.name)"
             class="px-3"
@@ -145,7 +154,8 @@
       @apply w-full h-full rounded-lg;
       @apply break-words;
 
-      img {
+      img,
+      video {
         @apply w-full h-full object-cover block;
       }
     }
@@ -212,9 +222,19 @@ let flushing = false;
 function onImageLoad(event: Event, name: string) {
   const img = event.target as HTMLImageElement | null;
 
-  if (!img?.naturalWidth || !img.naturalHeight) return;
+  setRatio(name, img?.naturalWidth, img?.naturalHeight);
+}
 
-  pending[name] = img.naturalWidth / img.naturalHeight;
+function onVideoLoad(event: Event, name: string) {
+  const video = event.target as HTMLVideoElement | null;
+
+  setRatio(name, video?.videoWidth, video?.videoHeight);
+}
+
+function setRatio(name: string, width?: number, height?: number) {
+  if (!width || !height) return;
+
+  pending[name] = width / height;
 
   if (flushing) return;
 

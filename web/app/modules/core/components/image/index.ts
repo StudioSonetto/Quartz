@@ -15,6 +15,7 @@ export default {
     start: 0,
     duration: 0,
   }),
+  unkeyed: ["start", "duration"],
   clock: (data: Record<string, any>) =>
     assetKind(data.src ?? "") === "video"
       ? mediaSpan(data as MediaTiming)

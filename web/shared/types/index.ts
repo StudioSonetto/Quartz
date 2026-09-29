@@ -95,6 +95,8 @@ export interface ComponentTypeDef {
   only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
   fonts?: (data: Record<string, any>) => (string | undefined)[];
+  // Fields auto-key never animates.
+  unkeyed?: string[];
   // Makes the slide at least this long, like a key does.
   clock?: (
     data: Record<string, any>,

@@ -1348,7 +1348,7 @@ export const useDeckStore = defineStore("deck", () => {
 
       let tracks = stored;
 
-      for (const path of changedPaths(before, component.data)) {
+      for (const path of keyedPaths(component.type, before, component.data)) {
         const value = at(component.data, path);
         const track = findTrack(tracks, component.type, path);
 

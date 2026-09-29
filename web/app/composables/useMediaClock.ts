@@ -31,13 +31,20 @@ export function useMediaClock(
         duration: known.value || timing.duration,
       });
       const seconds = at / 1000;
+      const length = (known.value || timing.duration) / 1000;
 
       video.volume = Math.min(Math.max(timing.volume ?? 1, 0), 1);
       video.muted = !options.audible() || !!timing.muted || blocked.value;
+      video.loop = !!timing.loop;
 
-      if (playing.value && running && options.shown?.() !== false) {
-        if (Math.abs(video.currentTime - seconds) > 0.15)
-          video.currentTime = seconds;
+      if (options.shown?.() === false) return video.pause();
+
+      if (playing.value && running) {
+        const off = Math.abs(video.currentTime - seconds);
+        const drift = video.loop ? Math.min(off, length - off) : off;
+        const ready = !video.seeking && video.readyState >= 3;
+
+        if (ready && drift > 0.15) video.currentTime = seconds;
 
         if (video.paused)
           video.play().catch((error: DOMException) => {
