@@ -15,7 +15,13 @@ export async function liveSession(instanceId: string, reader?: string) {
 
   const here = (id: string) => users.includes(id);
 
-  return here(session.presenter) && (!reader || here(reader)) ? session : null;
+  if (!here(session.presenter)) {
+    await db.delete(discordSessions).where(eq(discordSessions.id, instanceId));
+
+    return null;
+  }
+
+  return !reader || here(reader) ? session : null;
 }
 
 export async function quartzUserFor(discordId: string) {
