@@ -12,7 +12,7 @@ export type ComponentModel = typeof components.$inferSelect;
 export type NodeType = NodeModel["type"];
 export type ComponentType = ComponentModel["type"];
 
-export type AssetKind = "image" | "font" | "model";
+export type AssetKind = "image" | "video" | "font" | "model";
 
 export interface Tree extends NodeModel {
   type: NodeType;

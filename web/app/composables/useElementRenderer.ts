@@ -7,7 +7,7 @@ export const interactiveKey: InjectionKey<Ref<boolean>> = Symbol("interactive");
 
 export function useElementRenderer() {
   const { getStoredComponent, stagedData } = useNodeComponents();
-  const { imageUrl } = useAssetsStore();
+  const { mediaUrl } = useAssetsStore();
 
   function findComponent(node: Tree, type: ComponentType) {
     return getStoredComponent(node.id, type);
@@ -54,7 +54,7 @@ export function useElementRenderer() {
 
         return api;
       },
-      assetUrl: imageUrl,
+      assetUrl: mediaUrl,
     };
 
     return { element: def.renderer.element, ...def.renderer.render(node, ctx) };

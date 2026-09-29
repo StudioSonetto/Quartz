@@ -25,6 +25,20 @@ export const useAssetsStore = defineStore("assets", () => {
     return imageUrls.value.get(name);
   }
 
+  const videos = computed(() =>
+    assets.value.filter((asset) => isVideo(asset.name)),
+  );
+
+  const media = computed(() => [...images.value, ...videos.value]);
+
+  const mediaUrls = computed(
+    () => new Map(media.value.map((a) => [a.name, a.url])),
+  );
+
+  function mediaUrl(name: string) {
+    return mediaUrls.value.get(name);
+  }
+
   const fonts = computed<FontAsset[]>(() =>
     assets.value
       .filter((asset) => isFont(asset.name))
@@ -46,6 +60,7 @@ export const useAssetsStore = defineStore("assets", () => {
   const isImage = (name: string) => assetKind(name) === "image";
   const isFont = (name: string) => assetKind(name) === "font";
   const isModel = (name: string) => assetKind(name) === "model";
+  const isVideo = (name: string) => assetKind(name) === "video";
 
   async function fetchAssets(deck: string) {
     const names = await list(deck);
@@ -88,8 +103,16 @@ export const useAssetsStore = defineStore("assets", () => {
       [...assets.value.map((a) => a.name), ...(stored ?? [])].map(assetKey),
     );
 
+    const tooBig: string[] = [];
+
     const planned = files.flatMap((file) => {
       if (!assetKind(file.name)) return [];
+
+      if (assetKind(file.name) === "video" && file.size > MAX_VIDEO_BYTES) {
+        tooBig.push(file.name);
+
+        return [];
+      }
 
       const name = uniqueAssetName(file.name, taken);
 
@@ -97,6 +120,9 @@ export const useAssetsStore = defineStore("assets", () => {
 
       return [{ file, name }];
     });
+
+    if (tooBig.length)
+      alert(`Videos must be under 100 MB: ${tooBig.join(", ")}`);
 
     let full = false;
 
@@ -172,6 +198,10 @@ export const useAssetsStore = defineStore("assets", () => {
     images,
     imageNames,
     imageUrl,
+    videos,
+    media,
+    mediaUrl,
+    isVideo,
     fonts,
     models,
     modelUrl,

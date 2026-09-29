@@ -7,6 +7,11 @@ describe("assetKind", () => {
     expect(assetKind("Satoshi.woff2")).toBe("font");
     expect(assetKind("chair.glb")).toBe("model");
     expect(assetKind("chair.fbx")).toBe("model");
+    expect(assetKind("loop.gif")).toBe("image");
+    expect(assetKind("still.webp")).toBe("image");
+    expect(assetKind("clip.mp4")).toBe("video");
+    expect(assetKind("clip.webm")).toBe("video");
+    expect(assetKind("clip.MOV")).toBe("video");
   });
 
   it("ignores case, so an upper-case extension is not silently unsupported", () => {

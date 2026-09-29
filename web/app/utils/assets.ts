@@ -1,10 +1,13 @@
 import type { AssetKind } from "#shared/types";
 
 const EXTENSIONS: Record<AssetKind, string[]> = {
-  image: [".png", ".jpg", ".jpeg"],
+  image: [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+  video: [".mp4", ".webm", ".mov"],
   font: [".ttf", ".otf", ".woff", ".woff2"],
   model: [".fbx", ".glb", ".gltf", ".obj", ".stl"],
 };
+
+export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 export const ASSET_ACCEPT = Object.values(EXTENSIONS).flat().join(",");
 
