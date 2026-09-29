@@ -85,7 +85,7 @@ onMounted(async () => {
     .channel(`live:${id}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "decks" },
+      { event: "*", schema: "public", table: "decks", filter: `id=eq.${id}` },
       () => refreshDeck(),
     )
     .subscribe();
