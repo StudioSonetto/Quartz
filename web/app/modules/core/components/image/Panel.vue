@@ -47,9 +47,7 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { media } = storeToRefs(useAssetsStore());
-
-const mediaNames = computed(() => media.value.map((a) => a.name));
+const { mediaNames } = storeToRefs(useAssetsStore());
 
 const isVideo = computed(() =>
   props.components.every((c) => assetKind(c.data.src ?? "") === "video"),

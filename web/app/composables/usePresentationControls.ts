@@ -3,7 +3,7 @@ export function usePresentationControls(
   onEscape?: () => void,
 ) {
   const deck = useDeckStore();
-  const { currentTree } = storeToRefs(deck);
+  const { currentTree, clockSpans } = storeToRefs(deck);
   const { fireTree } = useEventDispatch();
 
   useEventListener(window, "keydown", (event: KeyboardEvent) => {
@@ -19,7 +19,13 @@ export function usePresentationControls(
   });
 
   onScopeDispose(
-    deck.onSlideEnter((tree) => enabled() && fireTree(tree, "enter")),
+    deck.onSlideEnter((tree) => {
+      if (!enabled()) return;
+
+      fireTree(tree, "enter");
+
+      if (clockSpans.value.length) usePlayhead().play();
+    }),
   );
 
   return {

@@ -25,18 +25,14 @@ export const useAssetsStore = defineStore("assets", () => {
     return imageUrls.value.get(name);
   }
 
-  const videos = computed(() =>
-    assets.value.filter((asset) => isVideo(asset.name)),
+  const media = computed(() =>
+    assets.value.filter((asset) => isImage(asset.name) || isVideo(asset.name)),
   );
 
-  const media = computed(() => [...images.value, ...videos.value]);
-
-  const mediaUrls = computed(
-    () => new Map(media.value.map((a) => [a.name, a.url])),
-  );
+  const mediaNames = computed(() => media.value.map((a) => a.name));
 
   function mediaUrl(name: string) {
-    return mediaUrls.value.get(name);
+    return isImage(name) || isVideo(name) ? cached.value.urls[name] : undefined;
   }
 
   const fonts = computed<FontAsset[]>(() =>
@@ -198,8 +194,8 @@ export const useAssetsStore = defineStore("assets", () => {
     images,
     imageNames,
     imageUrl,
-    videos,
     media,
+    mediaNames,
     mediaUrl,
     isVideo,
     fonts,

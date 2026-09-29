@@ -106,13 +106,16 @@ export const useDeckStore = defineStore("deck", () => {
     ),
   );
 
+  const drivesClock = (type: ComponentType) =>
+    type === "core.animation" || !!getComponentType(type)?.clock;
+
   const clockSpans = computed(() => {
     animationVersion.value;
 
     return toRaw(currentComponents.value ?? []).flatMap((component) => {
       const span = getComponentType(component.type)?.clock?.(component.data);
 
-      return span ? [span] : [];
+      return span ? [{ ...span, node: component.node }] : [];
     });
   });
 
@@ -1292,11 +1295,7 @@ export const useDeckStore = defineStore("deck", () => {
     if (index !== -1) slideComponents[index] = component;
     else slideComponents.push(component);
 
-    if (
-      component.type === "core.animation" ||
-      getComponentType(component.type)?.clock
-    )
-      animationVersion.value++;
+    if (drivesClock(component.type)) animationVersion.value++;
 
     sync.enqueueComponent(component.node, component.type);
   }
@@ -1429,8 +1428,7 @@ export const useDeckStore = defineStore("deck", () => {
     );
     if (index !== -1) slideComponents.splice(index, 1);
 
-    if (type === "core.animation" || getComponentType(type)?.clock)
-      animationVersion.value++;
+    if (drivesClock(type)) animationVersion.value++;
 
     sync.enqueueComponentDelete(nodeId, type);
   }
@@ -1472,6 +1470,7 @@ export const useDeckStore = defineStore("deck", () => {
     currentComponents,
     animationVersion,
     slideDuration,
+    clockSpans,
     variablesByNode,
     builtins,
     selectedNodeIds,

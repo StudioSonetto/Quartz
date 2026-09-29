@@ -34,7 +34,7 @@
         >
           <button
             v-if="store.isImage(asset.name)"
-            @click="openImageModal(asset)"
+            @click="openMediaModal(asset)"
           >
             <NuxtImg
               :src="asset.url"
@@ -42,7 +42,10 @@
               @load="onImageLoad($event, asset.name)"
             />
           </button>
-          <button v-else-if="store.isVideo(asset.name)">
+          <button
+            v-else-if="store.isVideo(asset.name)"
+            @click="openMediaModal(asset)"
+          >
             <video
               :src="`${asset.url}#t=0.1`"
               muted
@@ -92,6 +95,14 @@
         @click="imagePreviewModal?.close()"
         :src="selectedAsset.url"
         alt="preview"
+      />
+      <video
+        v-else-if="openModal === 'video' && selectedAsset"
+        class="w-full h-full"
+        :src="selectedAsset.url"
+        controls
+        autoplay
+        playsinline
       />
     </Modal>
     <Modal
@@ -335,11 +346,11 @@ const selectedFamily = computed(
   () => store.fonts.find((f) => f.name === selectedAsset.value?.name)?.family,
 );
 
-const openModal = ref<"image" | "font" | "model">();
+const openModal = ref<"image" | "video" | "font" | "model">();
 
-function openImageModal(asset: Asset) {
+function openMediaModal(asset: Asset) {
   selectedAsset.value = asset;
-  openModal.value = "image";
+  openModal.value = store.isVideo(asset.name) ? "video" : "image";
 
   imagePreviewModal.value?.open();
 }

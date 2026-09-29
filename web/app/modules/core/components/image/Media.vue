@@ -7,7 +7,7 @@
     :style="{ objectFit: props.fit }"
     crossorigin="anonymous"
     playsinline
-    preload="auto"
+    :preload="props.presenting ? 'auto' : 'metadata'"
   />
   <img
     v-else

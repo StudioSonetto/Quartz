@@ -14,9 +14,12 @@ const fakeVideo = (extra: Record<string, any> = {}) => {
     muted: true,
     volume: 1,
     seeks: 0,
-    play: () => ((video.paused = false), Promise.resolve()),
+    plays: 0,
+    listeners: {} as Record<string, () => void>,
+    play: () => (video.plays++, (video.paused = false), Promise.resolve()),
     pause: () => (video.paused = true),
-    addEventListener: () => {},
+    addEventListener: (name: string, fn: () => void) =>
+      (video.listeners[name] = fn),
     removeEventListener: () => {},
     ...extra,
   };
@@ -87,5 +90,47 @@ describe("useMediaClock", () => {
     await nextTick();
 
     expect(video.seeks).toBe(0);
+  });
+
+  it("retries a refused play only after the slide pauses", async () => {
+    const video = fakeVideo({
+      play: () => {
+        video.plays++;
+
+        return Promise.reject(new DOMException("", "NotAllowedError"));
+      },
+    });
+
+    playing.value = true;
+    time.value = 1000;
+    stop = useMediaClock(video, {
+      timing: () => timing,
+      audible: () => false,
+    });
+    await nextTick();
+    await Promise.resolve();
+    time.value = 1016;
+    await nextTick();
+
+    expect(video.plays).toBe(1);
+  });
+
+  it("forgets the old length when the source changes", async () => {
+    const video = fakeVideo({ duration: 10 });
+
+    time.value = 5000;
+    stop = useMediaClock(video, {
+      timing: () => ({ ...timing, loop: true }),
+      audible: () => false,
+    });
+    video.listeners.loadedmetadata();
+    await nextTick();
+
+    expect(video.currentTime).toBe(5);
+
+    video.listeners.emptied();
+    await nextTick();
+
+    expect(video.currentTime).toBe(1);
   });
 });

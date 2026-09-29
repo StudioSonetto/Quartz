@@ -43,7 +43,7 @@ export default {
           borderRadius: `${image.borderRadius}px`,
           opacity: image.opacity,
           overflow: "hidden",
-          ...(image.src ? {} : loadingStyle),
+          ...(url ? {} : loadingStyle),
         },
         inner: url
           ? {
