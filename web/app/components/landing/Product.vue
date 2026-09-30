@@ -6,7 +6,7 @@
   >
     <div class="product-grid">
       <div v-for="feature in features" :key="feature.title">
-        <div class="product-media">
+        <div data-reveal class="product-media">
           <NuxtImg
             v-if="feature.image"
             :src="feature.image"
@@ -16,8 +16,8 @@
             decoding="async"
           />
         </div>
-        <h3>{{ feature.title }}</h3>
-        <p>{{ feature.text }}</p>
+        <h3 data-reveal>{{ feature.title }}</h3>
+        <p data-reveal>{{ feature.text }}</p>
       </div>
     </div>
   </LandingSection>

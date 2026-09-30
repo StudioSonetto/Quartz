@@ -11,7 +11,7 @@
         <col class="w-1.25/4" />
       </colgroup>
       <thead>
-        <tr>
+        <tr data-reveal>
           <th></th>
           <th>
             <h3>Basic</h3>
@@ -24,14 +24,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="row.label">
+        <tr v-for="row in rows" :key="row.label" data-reveal>
           <td class="feature">{{ row.label }}</td>
           <td v-for="(cell, i) in [row.free, row.paid]" :key="i" class="value">
             <div v-if="cell === true" class="text-xl i-carbon-checkmark"></div>
             <template v-else>{{ cell || "—" }}</template>
           </td>
         </tr>
-        <tr class="actions">
+        <tr data-reveal class="actions">
           <td class="feature"></td>
           <td>
             <UIButton to="/auth">Start free</UIButton>

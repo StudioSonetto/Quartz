@@ -7,7 +7,7 @@
     </template>
     <div class="faq-grid">
       <div v-for="(column, i) in columns" :key="i" class="faq-column">
-        <div v-for="item in column" :key="item.q" class="faq-item">
+        <div v-for="item in column" :key="item.q" data-reveal class="faq-item">
           <button :aria-expanded="opened.has(item.q)" @click="toggle(item.q)">
             {{ item.q }}
             <div class="faq-icon i-carbon-add" />

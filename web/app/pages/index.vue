@@ -7,8 +7,10 @@
     <LandingFAQ />
     <LandingSection title="cta">
       <div class="flex flex-col items-center gap-8 text-center">
-        <p class="ui-text-6">Pitch ambitiously.</p>
-        <UIButton variant="solid" to="/auth">Start free</UIButton>
+        <p data-reveal class="ui-text-6">Pitch ambitiously.</p>
+        <div data-reveal>
+          <UIButton variant="solid" to="/auth">Start free</UIButton>
+        </div>
       </div>
     </LandingSection>
   </LandingHero>

@@ -11,6 +11,7 @@
             v-for="(stage, i) in stages"
             :key="stage.label"
             :class="`roadmap-tile--${stage.status}`"
+            data-reveal
             class="roadmap-tile"
           >
             <span class="roadmap-number">{{

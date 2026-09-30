@@ -1,8 +1,8 @@
 <template>
-  <section>
+  <section ref="root">
     <div v-if="props.description || $slots.description" class="info">
-      <h2 class="title">{{ props.title }}/</h2>
-      <p class="description">
+      <h2 data-reveal class="title">{{ props.title }}/</h2>
+      <p data-reveal class="description">
         <slot name="description">{{ props.description }}</slot>
       </p>
     </div>
@@ -38,4 +38,6 @@ const props = defineProps<{
   title: string;
   description?: string;
 }>();
+
+useReveal(useTemplateRef<HTMLElement>("root"));
 </script>

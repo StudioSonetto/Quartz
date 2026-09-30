@@ -1,15 +1,15 @@
 <template>
-  <footer>
+  <footer ref="root">
     <div class="footer-about">
-      <NuxtLink to="/" class="footer-brand">quartz</NuxtLink>
-      <p>Open-core slides engine for ambitious presentations.</p>
-      <p class="footer-copyright">© {{ new Date().getFullYear() }} Sonetto</p>
+      <NuxtLink to="/" data-reveal class="footer-brand">quartz</NuxtLink>
+      <p data-reveal>Open-core slides engine for ambitious presentations.</p>
+      <p data-reveal class="footer-copyright">© {{ new Date().getFullYear() }} Sonetto</p>
     </div>
     <nav class="footer-links">
       <div v-for="group in groups" :key="group.title">
-        <p>{{ group.title }}</p>
+        <p data-reveal>{{ group.title }}</p>
         <ul>
-          <li v-for="link in group.links" :key="link.label">
+          <li v-for="link in group.links" :key="link.label" data-reveal>
             <NuxtLink :to="link.to" :target="link.target">{{
               link.label
             }}</NuxtLink>
@@ -58,6 +58,8 @@ footer {
 </style>
 
 <script setup lang="ts">
+useReveal(useTemplateRef<HTMLElement>("root"));
+
 type Link = { label: string; to: string; target?: string };
 
 const groups: { title: string; links: Link[] }[] = [
