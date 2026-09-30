@@ -140,6 +140,11 @@ export default defineEventHandler(async (event) => {
       for (const node of stored) storedNodes.set(node.id, node);
     }
 
+    // A new linked node may hold stale data, so it adopts instead of pushing.
+    const created = new Set(
+      keyedUpserts.map((node) => node.id).filter((id) => !storedNodes.has(id)),
+    );
+
     const renamed = keyedUpserts.filter(
       (node) => storedNodes.get(node.id)?.name !== node.name,
     );
@@ -192,7 +197,7 @@ export default defineEventHandler(async (event) => {
         ...renamed.map((node) => node.id),
         ...relocked.map((node) => node.id),
       ]),
-    ];
+    ].filter((id) => !created.has(id));
     const peerIds = new Map<string, string[]>();
     const unsynced = new Map<string, string[]>();
 
@@ -301,6 +306,9 @@ export default defineEventHandler(async (event) => {
           set: { data: sql`excluded.data` },
         });
     }
+
+    if (created.size)
+      await adoptFromPeers(tx, (t) => inArray(t.id, [...created]));
 
     const deletesByType = new Map<
       (typeof componentType.enumValues)[number],

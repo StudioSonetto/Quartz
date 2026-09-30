@@ -1,8 +1,7 @@
-import { and, asc, eq, isNotNull, ne, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~~/server/db";
-import { components, nodes, slides } from "~~/server/db/schema";
+import { nodes, slides } from "~~/server/db/schema";
 
 const bodySchema = z.object({
   deck: z.string().uuid(),
@@ -33,12 +32,12 @@ export default defineEventHandler(async (event) => {
           and(eq(nodes.slides, created.id), eq(nodes.path, ROOT_PATH)),
         );
 
+    if (created) await adoptFromPeers(tx, (t) => eq(t.slides, created.id));
+
     return created;
   });
 
-  if (slide) {
-    await adoptFromPeers(slide);
-  } else if (id) {
+  if (!slide && id) {
     [slide] = await db
       .select()
       .from(slides)
@@ -57,58 +56,4 @@ async function rootNode(slide: string) {
     .where(and(eq(nodes.slides, slide), eq(nodes.path, ROOT_PATH)));
 
   return root?.id;
-}
-
-async function adoptFromPeers(slide: { id: string; deck: string }) {
-  const peer = alias(nodes, "peer");
-  const peerSlides = alias(slides, "peer_slides");
-
-  const rows = await db
-    .select({
-      node: nodes.id,
-      type: components.type,
-      data: components.data,
-      path: nodes.path,
-      unsynced: nodes.unsynced,
-    })
-    .from(nodes)
-    .innerJoin(
-      peer,
-      and(eq(peer.reference, nodes.reference), eq(peer.type, nodes.type)),
-    )
-    .innerJoin(peerSlides, eq(peerSlides.id, peer.slides))
-    .innerJoin(components, eq(components.node, peer.id))
-    .where(
-      and(
-        eq(nodes.slides, slide.id),
-        isNotNull(nodes.reference),
-        ne(nodes.reference, ""),
-        eq(peerSlides.deck, slide.deck),
-        ne(peerSlides.id, slide.id),
-      ),
-    )
-    .orderBy(asc(peerSlides.index));
-
-  const adopted = new Map<
-    string,
-    Pick<(typeof rows)[number], "node" | "type" | "data">
-  >();
-
-  for (const row of rows) {
-    const key = `${row.node}:${row.type}`;
-
-    if (adopted.has(key) || !syncs(row, row.type)) continue;
-
-    adopted.set(key, { node: row.node, type: row.type, data: row.data });
-  }
-
-  if (!adopted.size) return;
-
-  await db
-    .insert(components)
-    .values([...adopted.values()])
-    .onConflictDoUpdate({
-      target: [components.node, components.type],
-      set: { data: sql`excluded.data` },
-    });
 }

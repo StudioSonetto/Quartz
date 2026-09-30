@@ -15,6 +15,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   const flushing = ref(false);
 
   let backoff = 0;
+  let again = false;
 
   const hasPending = computed(
     () =>
@@ -109,7 +110,15 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   async function flush(): Promise<void> {
-    if (flushing.value || !hasPending.value) return;
+    if (flushing.value) {
+      again = true;
+
+      return;
+    }
+
+    if (!hasPending.value) return;
+
+    again = false;
 
     const snapshot = currentSnapshot();
     const payload = buildPayloadFor(snapshot);
@@ -136,7 +145,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
       status.value = hasPending.value ? "saving" : "saved";
 
-      if (hasPending.value) scheduleFlush();
+      if (again) setTimeout(flush);
+      else if (hasPending.value) scheduleFlush();
     } catch (err) {
       const code =
         (err as FetchError)?.statusCode ??

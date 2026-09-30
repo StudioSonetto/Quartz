@@ -1192,10 +1192,52 @@ export const useDeckStore = defineStore("deck", () => {
     deleteSelectedNodes();
   }
 
+  // Must pick peers like the server's adoptFromPeers.
+  function withLivePeers(entry: ClipboardEntry) {
+    const fresh = entry.nodes.map((node) => ({
+      node,
+      peers: node.reference
+        ? peersOf(node.id, null, { node: node as Tree, slideIndex: -1 }).map(
+            (p) => p.node,
+          )
+        : [],
+    }));
+
+    return {
+      nodes: fresh.map(({ node, peers: [first] }) =>
+        first
+          ? {
+              ...node,
+              unsynced: first.unsynced,
+              name: syncs(first, "name") ? first.name : node.name,
+              locked: syncs(first, "locked") ? first.locked : node.locked,
+            }
+          : node,
+      ),
+      components: fresh.flatMap(({ node, peers: [first, ...rest] }) => {
+        const own = entry.components.filter((c) => c.node === node.id);
+
+        if (!first) return own;
+
+        const theirs = [first, ...rest].flatMap((p) => componentsOf(p.id));
+        const types = new Set([...own, ...theirs].map((c) => c.type));
+
+        return [...types].flatMap((type) => {
+          const c =
+            (syncs(first, type) && theirs.find((t) => t.type === type)) ||
+            own.find((o) => o.type === type);
+
+          return c ? [{ ...c, node: node.id }] : [];
+        });
+      }),
+    };
+  }
+
   function paste() {
     if (!clipboard.value?.length || !currentSlides.value) return;
 
     const newIds: string[] = [];
+    let linked = false;
 
     const destination = (type: NodeType) => {
       const parent = nearestAccepting(soleSelected.value, type);
@@ -1226,12 +1268,16 @@ export const useDeckStore = defineStore("deck", () => {
       const sameSlide = source.slides === currentSlides.value.id;
       const detach = sameSlide || wouldDuplicatePeer;
 
+      linked ||= !detach;
+
       const slotKey = `${entry.rootId}:${currentSlides.value.id}`;
       const steps = pasteSlots.get(slotKey) ?? (detach ? 1 : 0);
       pasteSlots.set(slotKey, steps + 1);
 
-      const clone = cloneSubtree(entry.nodes, entry.components, entry.rootId, {
-        offset: steps
+      const src = detach ? entry : withLivePeers(entry);
+
+      const clone = cloneSubtree(src.nodes, src.components, entry.rootId, {
+        offset: detach
           ? { x: CLONE_OFFSET.x * steps, y: CLONE_OFFSET.y * steps }
           : undefined,
       });
@@ -1243,6 +1289,9 @@ export const useDeckStore = defineStore("deck", () => {
       if (id) newIds.push(id);
     }
     selectNodes(newIds);
+
+    // Otherwise the server's adoption overwrites an edit batched with it.
+    if (linked) sync.flush();
   }
 
   function selectAll() {
