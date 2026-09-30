@@ -1,4 +1,12 @@
-import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  ne,
+  notInArray,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "~~/server/db";
@@ -62,28 +70,12 @@ export default defineEventHandler(async (event) => {
     componentsToDelete,
   } = await validateBody(event, bodySchema);
 
-  await requireModules(user.id, [
-    ...nodesToUpsert.map((node) => node.type),
-    ...componentsToUpsert.map((component) => component.type),
-  ]);
-
   const slideIds = [
     ...new Set([
       ...nodesToUpsert.map((node) => node.slides),
       ...nodesToDelete.map((node) => node.slides),
     ]),
   ];
-
-  if (slideIds.length) {
-    const owned = await db
-      .select({ id: slides.id })
-      .from(slides)
-      .innerJoin(decks, eq(slides.deck, decks.id))
-      .where(and(inArray(slides.id, slideIds), eq(decks.lapidarist, user.id)));
-
-    if (owned.length !== slideIds.length)
-      throw createError({ statusCode: 403 });
-  }
 
   const upsertIds = new Set(nodesToUpsert.map((node) => node.id));
   const componentNodeIds = [
@@ -95,19 +87,40 @@ export default defineEventHandler(async (event) => {
   ];
   const foreignNodeIds = componentNodeIds.filter((id) => !upsertIds.has(id));
 
-  if (foreignNodeIds.length) {
-    const owned = await db
-      .select({ id: nodes.id })
-      .from(nodes)
-      .innerJoin(slides, eq(nodes.slides, slides.id))
-      .innerJoin(decks, eq(slides.deck, decks.id))
-      .where(
-        and(inArray(nodes.id, foreignNodeIds), eq(decks.lapidarist, user.id)),
-      );
+  const [, ownedSlides, ownedNodes] = await Promise.all([
+    requireModules(user.id, [
+      ...nodesToUpsert.map((node) => node.type),
+      ...componentsToUpsert.map((component) => component.type),
+    ]),
+    slideIds.length
+      ? db
+          .select({ id: slides.id })
+          .from(slides)
+          .innerJoin(decks, eq(slides.deck, decks.id))
+          .where(
+            and(inArray(slides.id, slideIds), eq(decks.lapidarist, user.id)),
+          )
+      : [],
+    foreignNodeIds.length
+      ? db
+          .select({ id: nodes.id })
+          .from(nodes)
+          .innerJoin(slides, eq(nodes.slides, slides.id))
+          .innerJoin(decks, eq(slides.deck, decks.id))
+          .where(
+            and(
+              inArray(nodes.id, foreignNodeIds),
+              eq(decks.lapidarist, user.id),
+            ),
+          )
+      : [],
+  ]);
 
-    if (owned.length !== foreignNodeIds.length)
-      throw createError({ statusCode: 403 });
-  }
+  if (
+    ownedSlides.length !== slideIds.length ||
+    ownedNodes.length !== foreignNodeIds.length
+  )
+    throw createError({ statusCode: 403 });
 
   await db.transaction(async (tx) => {
     const keyedUpserts = nodesToUpsert.filter((node) => !!node.reference);
@@ -138,7 +151,7 @@ export default defineEventHandler(async (event) => {
     });
 
     if (nodesToUpsert.length) {
-      await tx
+      const written = await tx
         .insert(nodes)
         .values(nodesToUpsert)
         .onConflictDoUpdate({
@@ -152,7 +165,13 @@ export default defineEventHandler(async (event) => {
             type: sql`excluded.type`,
             sort_order: sql`excluded.sort_order`,
           },
-        });
+          // Without this, an id from another user's deck overwrites their node.
+          setWhere: sql`${nodes.slides} = excluded.slides`,
+        })
+        .returning({ id: nodes.id });
+
+      if (written.length !== nodesToUpsert.length)
+        throw createError({ statusCode: 403 });
     }
 
     for (const node of nodesToDelete) {
@@ -162,6 +181,7 @@ export default defineEventHandler(async (event) => {
           and(
             eq(nodes.slides, node.slides),
             sql`${nodes.path} <@ ${node.path}::ltree`,
+            notInArray(nodes.id, [...upsertIds]),
           ),
         );
     }
