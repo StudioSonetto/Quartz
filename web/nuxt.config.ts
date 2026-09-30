@@ -87,7 +87,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: "/auth",
       callback: "/auth/callback",
-      exclude: ["/", "/docs*", "/legal/*", "/discord"],
+      exclude: ["/", "/docs*", "/legal/*", "/discord", "/live/*"],
       saveRedirectToCookie: true,
     },
   },

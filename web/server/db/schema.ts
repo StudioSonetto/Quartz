@@ -81,6 +81,7 @@ export const decks = pgTable.withRLS(
       .defaultNow()
       .notNull(),
     is_template: boolean("is_template").notNull().default(false),
+    is_public: boolean("is_public").notNull().default(false),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "slides_pkey" }),

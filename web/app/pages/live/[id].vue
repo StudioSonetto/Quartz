@@ -1,6 +1,6 @@
 <template>
-  <Title>{{ deck?.title ?? "404" }} | Quartz</Title>
-  <div v-if="!deck">
+  <Title>{{ status === "error" ? "404" : deckTitle }} | Quartz</Title>
+  <div v-if="status === 'error'">
     <p>Either the deck does not exist or you do not have access.</p>
     <NuxtLink to="/atelier">Return</NuxtLink>
   </div>
@@ -41,8 +41,8 @@ const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
-const { fetchDeck, fetchAllSlides, enterSlide } = useDeckStore();
-const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
+const { fetchDeck, fetchAllSlides, openDeck, enterSlide } = useDeckStore();
+const { slides, currentSlidesIndex, deckTitle } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -61,32 +61,31 @@ function onCursorMoved() {
 }
 
 function leavePresentation() {
-  navigateTo(`/atelier/${deck.value?.id}`);
+  if (mine.value) navigateTo(`/atelier/${id}`);
 }
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
-const { data: deck, refresh: refreshDeck } = await useAsyncData(
-  "deck",
-  async () => await fetchDeck(useRoute().params.id as string),
-);
+const id = useRoute().params.id as string;
 
-const { refresh: refreshSlides } = await useAsyncData(
-  "slides",
-  async () => await fetchAllSlides(useRoute().params.id as string),
-);
+const { data: mine, status } = await useAsyncData("deck", () => openDeck(id));
 
 onMounted(async () => {
+  if (status.value === "error") return;
+
   enterSlide();
 
-  const id = useRoute().params.id as string;
+  // Realtime channels are private, so only the owner gets live edits.
+  if (!mine.value) return;
+
+  fetchAssets(id);
 
   deckRC = client
     .channel(`live:${id}:decks`, { config: { private: true } })
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "decks", filter: `id=eq.${id}` },
-      () => refreshDeck(),
+      () => fetchDeck(id),
     )
     .subscribe();
 
@@ -98,9 +97,9 @@ onMounted(async () => {
         event: "INSERT",
         schema: "public",
         table: "slides",
-        filter: `deck=eq.${deck.value?.id}`,
+        filter: `deck=eq.${id}`,
       },
-      () => refreshSlides(),
+      () => fetchAllSlides(id),
     )
     .on(
       "postgres_changes",
@@ -109,11 +108,9 @@ onMounted(async () => {
         schema: "public",
         table: "slides",
       },
-      () => refreshSlides(),
+      () => fetchAllSlides(id),
     )
     .subscribe();
-
-  if (deck.value?.id) await fetchAssets(deck.value.id);
 });
 
 onUnmounted(() => {

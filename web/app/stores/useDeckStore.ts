@@ -12,6 +12,9 @@ export const useDeckStore = defineStore("deck", () => {
   const slides = ref<SlidesModel[]>([]);
 
   const deckTitle = ref("");
+  const isDeckPublic = ref(false);
+  // A public-deck visitor: no owner routes, no saves.
+  const visitor = ref(false);
 
   const currentSlideId = ref<string | null>(null);
 
@@ -220,7 +223,13 @@ export const useDeckStore = defineStore("deck", () => {
   watch(
     () => currentSlides.value?.id,
     async (id) => {
-      if (!id || currentTree.value?.id || slidesInLoading.value.has(id)) return;
+      if (
+        !id ||
+        visitor.value ||
+        currentTree.value?.id ||
+        slidesInLoading.value.has(id)
+      )
+        return;
 
       await Promise.all([
         fetchAllNodes(currentSlidesIndex.value),
@@ -388,7 +397,10 @@ export const useDeckStore = defineStore("deck", () => {
   async function fetchDeck(id: string) {
     const deck = await apiFetch<DeckModel>(`/api/decks/${id}`);
 
+    visitor.value = false;
+
     deckTitle.value = deck?.title ?? "";
+    isDeckPublic.value = deck?.is_public ?? false;
 
     return deck;
   }
@@ -451,13 +463,21 @@ export const useDeckStore = defineStore("deck", () => {
     });
   }
 
+  const patchDeck = (
+    id: string,
+    body: Partial<Pick<DeckModel, "title" | "is_public">>,
+  ) => apiFetch(`/api/decks/${id}`, { method: "PATCH", body });
+
   async function writeDeckTitle(id: string, title: string) {
-    await apiFetch(`/api/decks/${id}`, {
-      method: "PATCH",
-      body: { title },
-    });
+    await patchDeck(id, { title });
 
     deckTitle.value = title;
+  }
+
+  async function setDeckPublic(id: string, value: boolean) {
+    await patchDeck(id, { is_public: value });
+
+    isDeckPublic.value = value;
   }
 
   async function deleteDeck(id: string) {
@@ -469,20 +489,39 @@ export const useDeckStore = defineStore("deck", () => {
     const data = await apiFetch<SlidesModel[]>("/api/slides", {
       query: { deck },
     });
-    if (data) {
-      slides.value = data;
+    if (data) setSlides(data);
 
-      const live = new Set(data.map((s) => s.id));
-
-      const known = [
-        ...trees.value.keys(),
-        ...components.value.keys(),
-        ...slidesInLoading.value,
-      ];
-
-      for (const id of known) if (!live.has(id)) forgetSlide(id);
-    }
     return data;
+  }
+
+  function setSlides(data: SlidesModel[]) {
+    slides.value = data;
+
+    const live = new Set(data.map((s) => s.id));
+
+    const known = [
+      ...trees.value.keys(),
+      ...components.value.keys(),
+      ...slidesInLoading.value,
+    ];
+
+    for (const id of known) if (!live.has(id)) forgetSlide(id);
+  }
+
+  // The owner's copy, else the public one; resolves to whether it's the owner's.
+  async function openDeck(id: string) {
+    try {
+      await Promise.all([fetchDeck(id), fetchAllSlides(id)]);
+
+      return true;
+    } catch (err) {
+      if (![401, 403, 404].includes((err as FetchError).statusCode ?? 0))
+        throw err;
+
+      await loadPublicDeck(id);
+
+      return false;
+    }
   }
 
   async function fetchSlides(deck: string, index: number) {
@@ -729,27 +768,52 @@ export const useDeckStore = defineStore("deck", () => {
     if (data) {
       if (!slides.value.some((s) => s.id === id)) return [];
 
-      const relocated: ComponentModel[] = [];
-
-      const slideComponents = normaliseComponents(
-        data,
-        fetchedComponents ?? [],
-        relocated,
-      );
-      const tree = buildTree(data);
-
-      components.value.set(id, slideComponents);
-      trees.value.set(id, tree);
+      const { tree, relocated } = storeSlide(id, data, fetchedComponents ?? []);
 
       // Nothing else rewrites a migrated row, so an unsaved migration is lost
       // on the next load.
       for (const c of relocated) sync.enqueueComponent(c.node, c.type);
 
-      ensureFonts(fontsInComponents(slideComponents));
-
       return tree.children;
     }
     return [];
+  }
+
+  function storeSlide(id: string, data: NodeModel[], raw: ComponentModel[]) {
+    const relocated: ComponentModel[] = [];
+    const slideComponents = normaliseComponents(data, raw, relocated);
+    const tree = buildTree(data);
+
+    components.value.set(id, slideComponents);
+    trees.value.set(id, tree);
+
+    ensureFonts(fontsInComponents(slideComponents));
+
+    return { tree, relocated };
+  }
+
+  // Visitors can't save, so nothing is queued.
+  async function loadPublicDeck(id: string) {
+    const deck = await apiFetch(`/api/public/decks/${id}`);
+
+    const nodesBySlide = Map.groupBy(deck.nodes, (n) => n.slides);
+    const componentsBySlide = Map.groupBy(deck.components, (c) => c.slide);
+
+    visitor.value = true;
+
+    setSlides(deck.slides);
+
+    for (const { id: slide } of deck.slides)
+      storeSlide(
+        slide,
+        nodesBySlide.get(slide) ?? [],
+        componentsBySlide.get(slide) ?? [],
+      );
+
+    deckTitle.value = deck.title;
+    isDeckPublic.value = true;
+
+    await useAssetsStore().setSignedUrls(id, deck.assets);
   }
 
   async function fetchNodeComponents(node: string) {
@@ -1521,6 +1585,10 @@ export const useDeckStore = defineStore("deck", () => {
     whenEntered,
     slides,
     deckTitle,
+    isDeckPublic,
+    setDeckPublic,
+    openDeck,
+    visitor,
     currentSlideId,
     currentSlides,
     currentSlidesIndex,

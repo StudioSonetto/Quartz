@@ -4,7 +4,9 @@ export const useDeckSync = defineStore("deck-sync", () => {
   const apiFetch = useRequestFetch();
 
   // Discord passes can't write, so nothing gets queued inside the activity.
-  const readOnly = inDiscordActivity();
+  const readOnly = computed(
+    () => inDiscordActivity() || useDeckStore().visitor,
+  );
 
   const dirtyNodes = ref<Set<string>>(new Set());
   const deletedNodes = ref<DeleteNode[]>([]);
@@ -26,7 +28,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   );
 
   function enqueueNode(id: string) {
-    if (readOnly) return;
+    if (readOnly.value) return;
 
     dirtyNodes.value.add(id);
 
@@ -34,7 +36,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueComponent(node: string, type: string) {
-    if (readOnly) return;
+    if (readOnly.value) return;
 
     const key = componentKey(node, type);
 
@@ -45,7 +47,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueComponentDelete(node: string, type: string) {
-    if (readOnly) return;
+    if (readOnly.value) return;
 
     const key = componentKey(node, type);
 
@@ -72,7 +74,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   }
 
   function enqueueDelete(del: DeleteNode, nodeId: string) {
-    if (readOnly) return;
+    if (readOnly.value) return;
 
     dropNode(nodeId);
 

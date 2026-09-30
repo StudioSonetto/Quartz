@@ -1,5 +1,4 @@
 import { eq, sql } from "drizzle-orm";
-import type { H3Event } from "h3";
 import { db } from "~~/server/db";
 import { discordSessions } from "~~/server/db/schema";
 
@@ -46,13 +45,4 @@ export function sessionView({ id, deck, presenter }: Session, viewer: string) {
     publicKey,
     ...(viewer === presenter && { privateKey }),
   };
-}
-
-export async function requireLiveSession(event: H3Event) {
-  const { instanceId, discordId } = requireDiscordToken(event);
-  const session = await liveSession(instanceId, discordId);
-
-  if (!session) throw createError({ statusCode: 404 });
-
-  return session;
 }

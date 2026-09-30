@@ -29,11 +29,23 @@
         </div>
         <div class="side">
           <div>
-            <h5>Online (WIP)</h5>
+            <h5>Public presentation link</h5>
             <div class="whitespace"></div>
-            <p>Audience can join the presentation, and interact with you.</p>
+            <p v-if="isDeckPublic">
+              Anyone with the link can watch at their own pace.
+            </p>
+            <p v-else>
+              This deck is currently private only, only you can view this deck.
+            </p>
           </div>
-          <UIButton :disabled="true">Confirm</UIButton>
+          <div class="flex flex-col gap-2">
+            <UIButton v-if="isDeckPublic" @click="copy(link)">
+              {{ copied ? "Copied" : "Copy link" }}
+            </UIButton>
+            <UIButton @click="setDeckPublic(id, !isDeckPublic)">
+              {{ isDeckPublic ? "Make private" : "Make public" }}
+            </UIButton>
+          </div>
         </div>
       </form>
     </Modal>
@@ -91,7 +103,8 @@
 <script setup lang="ts">
 import type Modal from "@/components/Modal.vue";
 
-const { updateDeckTitle } = useDeckStore();
+const { updateDeckTitle, setDeckPublic } = useDeckStore();
+const { isDeckPublic } = storeToRefs(useDeckStore());
 const { clear } = useNodeSelection();
 
 const props = defineProps<{
@@ -126,11 +139,15 @@ function commit() {
   updateDeckTitle(trimmed);
 }
 
+const id = useRoute().params.id as string;
+const link = `${useRequestURL().origin}/live/${id}`;
+const { copy, copied } = useClipboard({ copiedDuring: 2000 });
+
 async function onSubmit() {
   modal.value?.close();
 
   clear();
 
-  await navigateTo(`/live/${useRoute().params.id}`);
+  await navigateTo(`/live/${id}`);
 }
 </script>

@@ -108,7 +108,7 @@ async function show(next: Session | null) {
     sync.trust(next),
     fetchDeck(deck),
     fetchAllSlides(deck),
-    $fetch<Record<string, string>>("/api/discord/assets").then((urls) =>
+    $fetch<Record<string, string>>(`/api/decks/${deck}/assets`).then((urls) =>
       setSignedUrls(deck, urls),
     ),
   ]);
