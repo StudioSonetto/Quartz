@@ -11,25 +11,44 @@ function download(blob: Blob, name: string) {
 
 // Shared so a remounted Exports tab can't start a second run.
 const progress = ref<string | null>(null);
+const moment = ref("start");
 
 export function useExport() {
-  const { slides, currentSlideId, currentSlidesIndex, deckTitle } =
-    storeToRefs(useDeckStore());
+  const {
+    slides,
+    currentSlideId,
+    currentSlidesIndex,
+    animatedComponents,
+    deckTitle,
+  } = storeToRefs(useDeckStore());
   const { whenEntered } = useDeckStore();
   const { canvasSize } = storeToRefs(useAtelierStore());
+  const playhead = usePlayhead();
 
   const { render } = useSnapshot();
 
   const fileName = () => deckTitle.value.trim() || "deck";
 
-  const renderSlide = async (id: string, type?: string) => {
+  // 1x looks soft on high-DPI screens.
+  const capture = (type?: string) => render(canvasSize.value.width * 2, type);
+
+  const enter = async (id: string) => {
     currentSlideId.value = id;
 
     await nextTick();
     await whenEntered();
+  };
 
-    // 1x looks soft on high-DPI screens.
-    return render(canvasSize.value.width * 2, type);
+  const times = () => {
+    if (moment.value === "start") return [0];
+    if (moment.value === "end") return [playhead.end.value];
+
+    return [
+      ...new Set([
+        0,
+        ...animatedComponents.value.flatMap((c) => keyTimes(c.data)),
+      ]),
+    ].sort((a, b) => a - b);
   };
 
   const run = async (label: string, job: () => Promise<void>) => {
@@ -49,17 +68,17 @@ export function useExport() {
 
   const png = () =>
     run("…", async () => {
-      const index = currentSlidesIndex.value;
-      const blob = await renderSlide(slides.value[index]!.id);
+      const blob = await capture();
 
       if (!blob) return alert("Nothing to export on this slide.");
 
-      download(blob, `${fileName()}-${index + 1}.png`);
+      download(blob, `${fileName()}-${currentSlidesIndex.value + 1}.png`);
     });
 
   const pdf = () =>
     run("…", async () => {
-      const start = currentSlideId.value;
+      const start = slides.value[currentSlidesIndex.value]?.id;
+      const time = playhead.time.value;
       const list = [...slides.value];
       const { width, height } = canvasSize.value;
       const { jsPDF } = await import("jspdf");
@@ -71,31 +90,43 @@ export function useExport() {
         hotfixes: ["px_scaling"],
       });
 
+      let pages = 0;
+
       try {
         for (const [i, slide] of list.entries()) {
           progress.value = `${i + 1} / ${list.length}`;
 
-          if (i > 0) doc.addPage();
+          await enter(slide.id);
 
-          // JPEG goes into the PDF as-is; PNG gets decoded and re-packed in JS.
-          const blob = await renderSlide(slide.id, "image/jpeg");
-          if (!blob) continue;
+          for (const t of times()) {
+            if (pages++) doc.addPage();
 
-          doc.addImage(
-            new Uint8Array(await blob.arrayBuffer()),
-            "JPEG",
-            0,
-            0,
-            width,
-            height,
-          );
+            playhead.seek(t);
+
+            await nextTick();
+
+            const blob = await capture("image/jpeg");
+
+            if (!blob) continue;
+
+            doc.addImage(
+              new Uint8Array(await blob.arrayBuffer()),
+              "JPEG",
+              0,
+              0,
+              width,
+              height,
+            );
+          }
         }
 
         download(doc.output("blob"), `${fileName()}.pdf`);
       } finally {
-        currentSlideId.value = start;
+        if (start) await enter(start);
+
+        playhead.seek(time);
       }
     });
 
-  return { png, pdf, progress };
+  return { png, pdf, progress, moment };
 }
