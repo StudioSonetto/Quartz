@@ -1,12 +1,11 @@
 export const SNAPSHOT_WIDTH = 768;
-export const SNAPSHOT_HEIGHT = (SNAPSHOT_WIDTH / 16) * 9;
 
 export type Size = { width: number; height: number };
 
-export function snapshotScale(rect: Size) {
+export function snapshotScale(rect: Size, width: number) {
   if (rect.width <= 0 || rect.height <= 0) return null;
 
-  return SNAPSHOT_WIDTH / rect.width;
+  return width / rect.width;
 }
 
 export function snapshotSource(clone: Size, scale: number, canvas: Size) {
