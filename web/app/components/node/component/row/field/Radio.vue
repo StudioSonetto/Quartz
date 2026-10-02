@@ -10,7 +10,9 @@
         :aria-label="option.label ?? option.value"
         class="option"
         :key="option.value"
-      />
+      >
+        {{ option.icon ? "" : (option.label ?? option.value) }}
+      </button>
     </fieldset>
   </div>
 </template>
@@ -41,7 +43,7 @@ const props = defineProps<{
   value?: string | string[];
   options: {
     value: string;
-    icon: string;
+    icon?: string;
     label?: string;
   }[];
   toggleMode?: boolean;

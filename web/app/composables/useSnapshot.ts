@@ -45,13 +45,22 @@ export function useSnapshot() {
 
     if (!el || !tree || isEmptyTree(tree)) return;
 
-    // html2canvas paints unloaded images blank and unloaded fonts as fallbacks.
+    // html2canvas paints unloaded images blank, unloaded fonts as fallbacks and
+    // a seeking video at its previous frame.
     await Promise.race([
       Promise.all([
         document.fonts.ready,
         ...[...el.querySelectorAll("img")].map((img) =>
           img.decode().catch(() => {}),
         ),
+        ...[...el.querySelectorAll("video")]
+          .filter((video) => video.seeking)
+          .map(
+            (video) =>
+              new Promise((resolve) =>
+                video.addEventListener("seeked", resolve, { once: true }),
+              ),
+          ),
       ]),
       new Promise((resolve) => setTimeout(resolve, 5000)),
     ]);

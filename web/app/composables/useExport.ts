@@ -10,20 +10,25 @@ function download(blob: Blob, name: string) {
 }
 
 // Shared so a remounted Exports tab can't start a second run.
-const progress = ref<string | null>(null);
+const busy = ref(false);
+const progress = ref("");
 const moment = ref("start");
+const format = ref("png");
 
 export function useExport() {
   const {
     slides,
     currentSlideId,
     currentSlidesIndex,
+    currentTree,
     animatedComponents,
     deckTitle,
   } = storeToRefs(useDeckStore());
   const { whenEntered } = useDeckStore();
   const { canvasSize } = storeToRefs(useAtelierStore());
   const playhead = usePlayhead();
+  const rows = useDopesheetRows();
+  const display = usePlayheadDisplay(() => rows.value);
 
   const { render } = useSnapshot();
 
@@ -51,10 +56,10 @@ export function useExport() {
     ].sort((a, b) => a - b);
   };
 
-  const run = async (label: string, job: () => Promise<void>) => {
-    if (progress.value) return;
+  const run = async (job: () => Promise<void>) => {
+    if (busy.value) return;
 
-    progress.value = label;
+    busy.value = true;
 
     try {
       await job();
@@ -62,12 +67,18 @@ export function useExport() {
       console.error(error);
       alert("Export failed.");
     } finally {
-      progress.value = null;
+      busy.value = false;
+      progress.value = "";
     }
   };
 
   const png = () =>
-    run("…", async () => {
+    run(async () => {
+      if (playhead.playing.value) {
+        display.pauseHere();
+        await nextTick();
+      }
+
       const blob = await capture();
 
       if (!blob) return alert("Nothing to export on this slide.");
@@ -76,9 +87,10 @@ export function useExport() {
     });
 
   const pdf = () =>
-    run("…", async () => {
+    run(async () => {
       const start = slides.value[currentSlidesIndex.value]?.id;
       const time = playhead.time.value;
+      const wasPlaying = playhead.playing.value;
       const list = [...slides.value];
       const { width, height } = canvasSize.value;
       const { jsPDF } = await import("jspdf");
@@ -91,6 +103,7 @@ export function useExport() {
       });
 
       let pages = 0;
+      let missed = 0;
 
       try {
         for (const [i, slide] of list.entries()) {
@@ -105,9 +118,16 @@ export function useExport() {
 
             await nextTick();
 
-            const blob = await capture("image/jpeg");
+            if (currentTree.value && isEmptyTree(currentTree.value)) continue;
 
-            if (!blob) continue;
+            // A capture is dropped if the slide changes mid-wait; one retry covers that.
+            const blob =
+              (await capture("image/jpeg")) ?? (await capture("image/jpeg"));
+
+            if (!blob) {
+              missed++;
+              continue;
+            }
 
             doc.addImage(
               new Uint8Array(await blob.arrayBuffer()),
@@ -121,12 +141,29 @@ export function useExport() {
         }
 
         download(doc.output("blob"), `${fileName()}.pdf`);
-      } finally {
-        if (start) await enter(start);
 
-        playhead.seek(time);
+        if (missed)
+          alert(`${missed} page(s) couldn't be captured and are blank.`);
+      } finally {
+        try {
+          if (start) await enter(start);
+        } finally {
+          playhead.seek(time);
+
+          if (wasPlaying) playhead.play();
+        }
       }
     });
 
-  return { png, pdf, progress, moment };
+  return {
+    png,
+    pdf,
+    busy,
+    progress,
+    moment,
+    format,
+    slides,
+    shownTime: display.shownTime,
+    overrun: display.overrun,
+  };
 }
