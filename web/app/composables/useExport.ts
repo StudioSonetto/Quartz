@@ -75,7 +75,7 @@ export function useExport() {
   const png = () =>
     run(async () => {
       if (playhead.playing.value) {
-        display.pauseHere();
+        playhead.pause();
         await nextTick();
       }
 
@@ -91,6 +91,7 @@ export function useExport() {
       const start = slides.value[currentSlidesIndex.value]?.id;
       const time = playhead.time.value;
       const wasPlaying = playhead.playing.value;
+      const wasHeld = playhead.held.value;
       const list = [...slides.value];
       const { width, height } = canvasSize.value;
       const { jsPDF } = await import("jspdf");
@@ -148,7 +149,7 @@ export function useExport() {
         try {
           if (start) await enter(start);
         } finally {
-          playhead.seek(time);
+          playhead.seek(time, wasHeld);
 
           if (wasPlaying) playhead.play();
         }

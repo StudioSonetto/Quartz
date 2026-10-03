@@ -2,6 +2,7 @@ const MIN_SPAN = 5000;
 
 const time = ref(0);
 const playing = ref(false);
+const held = ref(false);
 const end = ref(0);
 const canPlay = ref(false);
 const endless = ref(false);
@@ -12,14 +13,21 @@ const duration = computed(() =>
 
 const playable = computed(() => end.value > 0);
 
-// Only a slide that never ends can run past the visible timeline.
-const beyond = computed(() => time.value > duration.value);
-
 let frame = 0;
 
 function stop() {
   cancelAnimationFrame(frame);
   playing.value = false;
+  held.value = false;
+}
+
+// Keeps the raw time, so a mirror loop resumes in the direction it was going.
+function pause() {
+  if (!playing.value) return;
+
+  stop();
+  time.value = roundTime(time.value);
+  held.value = true;
 }
 
 function play() {
@@ -31,6 +39,7 @@ function play() {
   const startedAt = performance.now() - time.value;
 
   playing.value = true;
+  held.value = false;
 
   frame = requestAnimationFrame(function tick(now) {
     const t = now - startedAt;
@@ -42,21 +51,25 @@ function play() {
   });
 }
 
-function seek(to: number) {
+function seek(to: number, hold = false) {
   stop();
   const last = endless.value ? Infinity : duration.value;
 
   time.value = canPlay.value ? Math.min(Math.max(to, 0), last) : 0;
+  held.value = hold && canPlay.value;
 }
 
 const nodeTime = (anim?: any) =>
-  playing.value ? loopTime(anim, time.value) : time.value;
+  playing.value || held.value ? loopTime(anim, time.value) : time.value;
 
 // Paused past the timeline, a key lands at the end rather than stretching it.
-const keyTime = (anim?: any) =>
-  playing.value
-    ? roundTime(nodeTime(anim))
-    : Math.round(beyond.value ? end.value : time.value);
+function keyTime(anim?: any) {
+  const t = nodeTime(anim);
+
+  if (playing.value) return roundTime(t);
+
+  return Math.round(t > (held.value ? end : duration).value ? end.value : t);
+}
 
 function setLength(ms: number, hasKeys: boolean, loops = false) {
   end.value = ms;
@@ -73,16 +86,17 @@ export function usePlayhead() {
   return {
     time,
     playing,
+    held: readonly(held),
     end: readonly(end),
     endless: readonly(endless),
     duration,
-    beyond,
     canPlay,
     playable,
     nodeTime,
     keyTime,
     setLength,
     play,
+    pause,
     seek,
     reset,
   };
