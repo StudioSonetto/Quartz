@@ -1,5 +1,5 @@
 export function usePlayheadDisplay(rows: () => DopesheetRow[]) {
-  const { time, end, endless, beyond, nodeTime, seek } = usePlayhead();
+  const { time, end, endless, nodeTime } = usePlayhead();
 
   const loop = computed(() => {
     const [first, ...rest] = rows();
@@ -28,10 +28,5 @@ export function usePlayheadDisplay(rows: () => DopesheetRow[]) {
     overrun.value ? end.value : nodeTime(loop.value),
   );
 
-  // Past the timeline, pausing keeps the real time so looping media holds its frame.
-  function pauseHere() {
-    seek(roundTime(beyond.value ? time.value : shownTime.value));
-  }
-
-  return { shownTime, overrun, pauseHere };
+  return { shownTime, overrun };
 }

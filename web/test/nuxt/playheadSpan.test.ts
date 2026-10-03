@@ -67,13 +67,13 @@ describe("playhead span arms on presence, not on a nonzero furthest key", () => 
 
   it("pauses past the end where it is, but keys at the end", () => {
     const { time, playing, setLength, keyTime, reset } = usePlayhead();
-    const { pauseHere, shownTime } = usePlayheadDisplay(() => []);
+    const { shownTime } = usePlayheadDisplay(() => []);
 
     reset();
     setLength(2000, true, true);
     playing.value = true;
     time.value = 60000;
-    pauseHere();
+    usePlayhead().pause();
 
     expect(time.value).toBe(60000);
     expect(shownTime.value).toBe(2000);

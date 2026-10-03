@@ -4,7 +4,7 @@
       :rows="rows"
       :shown-time="shownTime"
       :overrun="overrun"
-      @pause="pauseHere"
+      @pause="pause"
     />
     <div class="dopesheet-scroll">
       <div class="dopesheet-rows">
@@ -82,8 +82,8 @@
 const props = defineProps<{ rows: DopesheetRow[] }>();
 
 const { patchAnimation } = useDeckStore();
-const { duration } = usePlayhead();
-const { shownTime, overrun, pauseHere } = usePlayheadDisplay(() => props.rows);
+const { duration, pause } = usePlayhead();
+const { shownTime, overrun } = usePlayheadDisplay(() => props.rows);
 
 function onRemoveKey(node: string, track: Track, t: number) {
   patchAnimation(node, (data) => ({

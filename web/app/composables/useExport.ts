@@ -75,7 +75,7 @@ export function useExport() {
   const png = () =>
     run(async () => {
       if (playhead.playing.value) {
-        display.pauseHere();
+        playhead.pause();
         await nextTick();
       }
 
