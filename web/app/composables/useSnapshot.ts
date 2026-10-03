@@ -45,25 +45,26 @@ export function useSnapshot() {
 
     if (!el || !tree || isEmptyTree(tree)) return;
 
-    // html2canvas paints unloaded images blank, unloaded fonts as fallbacks and
-    // a seeking video at its previous frame.
+    const nodes = flattenTree(tree);
+    const deadline = AbortSignal.timeout(15000);
+
     await Promise.race([
       Promise.all([
         document.fonts.ready,
         ...[...el.querySelectorAll("img")].map((img) =>
           img.decode().catch(() => {}),
         ),
-        ...[...el.querySelectorAll("video")]
-          .filter((video) => video.seeking)
-          .map(
-            (video) =>
-              new Promise((resolve) =>
-                video.addEventListener("seeked", resolve, { once: true }),
-              ),
-          ),
+        ...nodes.map((node) =>
+          Promise.resolve()
+            .then(() => getNodeType(node.type)?.ready?.(node.id))
+            .catch(() => {}),
+        ),
       ]),
-      new Promise((resolve) => setTimeout(resolve, 5000)),
+      new Promise((resolve) => deadline.addEventListener("abort", resolve)),
     ]);
+
+    await nextTick();
+    await document.fonts.ready;
 
     if (currentTree.value !== tree) return;
 
@@ -79,7 +80,7 @@ export function useSnapshot() {
     let capturing: Promise<HTMLCanvasElement>;
 
     try {
-      for (const node of flattenTree(tree)) {
+      for (const node of nodes) {
         const restore = getNodeType(node.type)?.snapshot?.(node.id);
 
         if (restore) restores.push(restore);

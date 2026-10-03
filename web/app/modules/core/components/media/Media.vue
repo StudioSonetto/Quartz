@@ -7,7 +7,7 @@
     :style="{ objectFit: props.fit }"
     crossorigin="anonymous"
     playsinline
-    :preload="props.presenting ? 'auto' : 'metadata'"
+    :preload="props.presenting || wantsFrame(props.node) ? 'auto' : 'metadata'"
   />
   <img
     v-else
@@ -26,6 +26,8 @@
 </style>
 
 <script setup lang="ts">
+import { wantsFrame } from "./frame";
+
 const props = defineProps<{
   url: string;
   video: boolean;

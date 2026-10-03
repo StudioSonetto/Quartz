@@ -10,9 +10,13 @@ const ITALIC = 1;
 const BOLD = 2;
 const UNDERLINE = 4;
 
-const pairs = shallowReactive(new Map<string, boolean>());
+const pairs = shallowReactive(new Set<string>());
 
 const cache = new Map<string, { key: string; value: Highlighted }>();
+const loads = new Map<string, Promise<void>>();
+const pending = new Map<string, Promise<void>>();
+
+export const highlightPending = (id: string) => pending.get(id);
 
 let highlighter: Highlighter | undefined;
 
@@ -30,21 +34,32 @@ function tokenStyle(token: { color?: string; fontStyle?: number }) {
   return style;
 }
 
-function load(key: string, language: string, theme: string) {
-  if (pairs.has(key)) return;
+const pairKey = (language: string, theme: string) =>
+  `${language}\u0000${theme}`;
 
-  pairs.set(key, false);
+export function highlightReady(language: string, theme: string) {
+  const key = pairKey(language, theme);
+  let loading = loads.get(key);
 
-  import("shiki")
+  if (loading) return loading;
+
+  loading = import("shiki")
     .then(({ getSingletonHighlighter }) =>
       getSingletonHighlighter({ langs: [language], themes: [theme] }),
     )
     .then((loaded) => {
       highlighter = loaded;
 
-      pairs.set(key, true);
+      pairs.add(key);
     })
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      console.error(error);
+      loads.delete(key);
+    });
+
+  loads.set(key, loading);
+
+  return loading;
 }
 
 export function highlight(
@@ -53,10 +68,10 @@ export function highlight(
   language: string,
   theme: string,
 ): Highlighted | undefined {
-  const pair = `${language}\u0000${theme}`;
+  const pair = pairKey(language, theme);
 
-  if (!pairs.get(pair) || !highlighter) {
-    load(pair, language, theme);
+  if (!pairs.has(pair) || !highlighter) {
+    pending.set(id, highlightReady(language, theme));
 
     return undefined;
   }
