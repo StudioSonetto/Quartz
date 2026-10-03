@@ -5,6 +5,24 @@
       <p v-if="!props.count" class="component-list-empty">none</p>
     </div>
     <div class="component-list-footer">
+      <template v-if="props.movable">
+        <UIButton
+          variant="icon"
+          title="Move up"
+          :disabled="!selected"
+          @click="move(-1)"
+        >
+          <div class="i-carbon-arrow-up"></div>
+        </UIButton>
+        <UIButton
+          variant="icon"
+          title="Move down"
+          :disabled="selected === null || selected === props.count - 1"
+          @click="move(1)"
+        >
+          <div class="i-carbon-arrow-down"></div>
+        </UIButton>
+      </template>
       <UIButton variant="icon" title="Add" @click="add">
         <div class="i-carbon-add"></div>
       </UIButton>
@@ -41,12 +59,14 @@
 <script setup lang="ts">
 const props = defineProps<{
   count: number;
+  movable?: boolean;
 }>();
 
 const emit = defineEmits<{
   add: [];
   remove: [index: number];
   select: [index: number];
+  move: [from: number, to: number];
 }>();
 
 const selected = ref<number | null>(null);
@@ -77,6 +97,21 @@ function add() {
 
   selected.value = index;
   open.value.add(index);
+}
+
+function move(by: number) {
+  const from = selected.value;
+
+  if (from === null) return;
+
+  const to = from + by;
+
+  emit("move", from, to);
+
+  open.value = new Set(
+    [...open.value].map((i) => (i === from ? to : i === to ? from : i)),
+  );
+  selected.value = to;
 }
 
 function remove() {
