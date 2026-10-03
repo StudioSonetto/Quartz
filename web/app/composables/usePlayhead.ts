@@ -40,6 +40,7 @@ function play() {
   const startedAt = performance.now() - time.value;
 
   playing.value = true;
+  held.value = false;
 
   frame = requestAnimationFrame(function tick(now) {
     const t = now - startedAt;
@@ -51,11 +52,12 @@ function play() {
   });
 }
 
-function seek(to: number) {
+function seek(to: number, hold = false) {
   stop();
   const last = endless.value ? Infinity : duration.value;
 
   time.value = canPlay.value ? Math.min(Math.max(to, 0), last) : 0;
+  held.value = hold && canPlay.value;
 }
 
 const nodeTime = (anim?: any) =>
@@ -85,6 +87,7 @@ export function usePlayhead() {
   return {
     time,
     playing,
+    held: readonly(held),
     end: readonly(end),
     endless: readonly(endless),
     duration,
