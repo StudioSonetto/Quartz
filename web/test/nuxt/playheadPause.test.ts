@@ -45,6 +45,17 @@ describe("pausing a looping slide", () => {
     expect(time.value).toBe(5300);
   });
 
+  it("keys at the end when paused past it on a slide that never ends", () => {
+    const { time, playing, setLength, pause, keyTime } = usePlayhead();
+
+    setLength(1000, true, true);
+    playing.value = true;
+    time.value = 3400;
+    pause();
+
+    expect(keyTime()).toBe(1000);
+  });
+
   it("stops holding once scrubbed", () => {
     const { time, playing, setLength, pause, seek, nodeTime } = usePlayhead();
 

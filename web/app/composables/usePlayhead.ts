@@ -2,7 +2,6 @@ const MIN_SPAN = 5000;
 
 const time = ref(0);
 const playing = ref(false);
-// Paused by the user: loops still wrap, so the frame on screen stays put.
 const held = ref(false);
 const end = ref(0);
 const canPlay = ref(false);
@@ -69,7 +68,7 @@ function keyTime(anim?: any) {
 
   if (playing.value) return roundTime(t);
 
-  return Math.round(t > duration.value ? end.value : t);
+  return Math.round(t > (held.value ? end : duration).value ? end.value : t);
 }
 
 function setLength(ms: number, hasKeys: boolean, loops = false) {

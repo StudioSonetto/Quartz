@@ -101,10 +101,10 @@ function add() {
 
 function move(by: number) {
   const from = selected.value;
+  const to = (from ?? -1) + by;
 
-  if (from === null) return;
-
-  const to = from + by;
+  if (from === null || from >= props.count || to < 0 || to >= props.count)
+    return;
 
   emit("move", from, to);
 
