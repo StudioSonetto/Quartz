@@ -1,4 +1,4 @@
-import { highlight } from "../components/syntax/highlight";
+import { highlight, highlightPending } from "../components/syntax/highlight";
 import { typographyStyle } from "../components/typography/style";
 
 const SAMPLE = `function greet(name: string) {\n  return \`Hello, \${name}\`;\n}`;
@@ -9,6 +9,7 @@ export default {
   icon: "i-carbon-code",
   accepts: [],
   parents: ["core.group"],
+  ready: highlightPending,
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 720, height: "auto" } } },
