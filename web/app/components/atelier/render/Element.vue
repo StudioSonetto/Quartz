@@ -7,7 +7,7 @@
   <Component
     v-else-if="render?.element"
     :is="render.element"
-    :key="props.node.path"
+    :key="`${props.node.path}:${saves}`"
     :style="[elementStyle]"
     :id="props.node.id"
     :class="{ root: props.node.path === ROOT_PATH }"
@@ -107,6 +107,7 @@ if (navigate)
 
 const {
   editing,
+  saves,
   editable,
   start: startEditing,
   save: saveEditing,

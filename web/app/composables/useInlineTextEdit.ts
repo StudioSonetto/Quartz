@@ -70,6 +70,8 @@ export function useInlineTextEdit(
 
   const editing = computed(() => atelier.editingNodeId === node().id);
 
+  const saves = ref(0);
+
   onScopeDispose(() => {
     if (atelier.editingNodeId === node().id) atelier.editingNodeId = null;
   });
@@ -109,9 +111,11 @@ export function useInlineTextEdit(
 
     if (["mod+b", "mod+i", "mod+u"].includes(eventToCombo(event))) {
       event.preventDefault();
-    } else if (event.key === "Enter" && !event.shiftKey) {
+    } else if (event.key === "Enter" && !event.isComposing) {
       event.preventDefault();
-      document.execCommand("insertText", false, "\n");
+
+      if (!document.execCommand("insertLineBreak"))
+        document.execCommand("insertText", false, "\n");
     }
   }
 
@@ -124,13 +128,19 @@ export function useInlineTextEdit(
       "clipboardData" in event ? event.clipboardData : event.dataTransfer;
     const text = source?.getData("text/plain");
 
-    if (text) document.execCommand("insertText", false, text);
+    if (text)
+      document.execCommand(
+        "insertHTML",
+        false,
+        text.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
+      );
   }
 
   function save() {
     if (!editing.value) return;
 
     atelier.editingNodeId = null;
+    saves.value++;
 
     window.getSelection()?.removeAllRanges();
 
@@ -138,6 +148,9 @@ export function useInlineTextEdit(
     const el = element();
 
     if (!component || !el) return;
+
+    if (document.activeElement === el)
+      nextTick(() => element()?.focus({ preventScroll: true }));
 
     const runs = readRuns(el, toRuns(component.data.content));
 
@@ -151,5 +164,5 @@ export function useInlineTextEdit(
     }
   }
 
-  return { editing, editable, start, save, keydown, insert };
+  return { editing, saves, editable, start, save, keydown, insert };
 }
