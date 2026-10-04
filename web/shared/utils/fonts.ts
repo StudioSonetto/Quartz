@@ -40,7 +40,7 @@ export const fonts = [
   "Lora",
   "Manrope",
   "Melodrama",
-  "Merriweather",
+  "Merriweather Sans",
   "Montserrat",
   "Neco",
   "New Title",

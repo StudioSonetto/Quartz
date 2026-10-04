@@ -2,24 +2,12 @@ import { FONTSHARE_CSS, fonts } from "~~/shared/utils/fonts";
 
 const CATALOGUE: ReadonlySet<string> = new Set<string>(fonts);
 
-const served = new Set<string>();
+const served = reactive(new Map<string, boolean>());
 
-function unservedFonts(
-  families: readonly (string | null | undefined)[],
-  alreadyServed: ReadonlySet<string>,
-): string[] {
-  return [...new Set(families)].filter(
-    (family): family is string =>
-      !!family && CATALOGUE.has(family) && !alreadyServed.has(family),
-  );
-}
-
-function fontshareCssUrl(families: readonly string[]): string {
-  const query = families.map((f) => `f[]=${fontSlug(f)}@1`).join("&");
-
+function fontshareCssUrl(family: string): string {
   const base = inDiscordActivity() ? "/api/discord/fonts" : FONTSHARE_CSS;
 
-  return `${base}?${query}&display=swap`;
+  return `${base}?f[]=${fontSlug(family)}&display=swap`;
 }
 
 export function fontsInComponents(
@@ -35,25 +23,40 @@ export function fontsInComponents(
   );
 }
 
+export function fontWeights(family: string): [number, number][] | null {
+  if (!import.meta.client || !served.get(family)) return null;
+
+  const ranges: [number, number][] = [];
+
+  for (const face of document.fonts) {
+    if (face.family.replace(/["']/g, "") !== family) continue;
+    if (face.weight === "normal") return null;
+
+    const [min, max = min] = face.weight.split(" ").map(Number);
+
+    ranges.push([min!, max!]);
+  }
+
+  return ranges.length ? ranges : null;
+}
+
 export function ensureFonts(
   families: readonly (string | null | undefined)[],
 ): void {
   if (!import.meta.client) return;
 
-  const pending = unservedFonts(families, served);
+  for (const family of families) {
+    if (!family || !CATALOGUE.has(family) || served.has(family)) continue;
 
-  if (!pending.length) return;
+    served.set(family, false);
 
-  for (const family of pending) served.add(family);
+    const link = document.createElement("link");
 
-  const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = fontshareCssUrl(family);
+    link.onload = () => served.set(family, true);
+    link.onerror = () => served.delete(family);
 
-  link.rel = "stylesheet";
-  link.href = fontshareCssUrl(pending);
-
-  link.onerror = () => {
-    for (const family of pending) served.delete(family);
-  };
-
-  document.head.appendChild(link);
+    document.head.appendChild(link);
+  }
 }

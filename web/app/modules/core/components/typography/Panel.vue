@@ -49,7 +49,13 @@
       :override="marks?.weight"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldSelect
+        :options="weightOptions(value)"
+        :value="
+          typeof value === 'number' ? String(Math.round(value)) : undefined
+        "
+        @update:value="(weight: string) => update(Number(weight))"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="line height"
@@ -150,7 +156,7 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { set } = useMergedFields(() => props.components);
+const { set, field } = useMergedFields(() => props.components);
 const { textSelection } = storeToRefs(useAtelierStore());
 
 const hasRuns = computed(() =>
@@ -167,8 +173,6 @@ const fontAssets = computed(() =>
   useAssetsStore().fonts.map((font) => font.family),
 );
 
-// The field edits runs as plain text, so the edit is spliced in rather than
-// replacing the content and losing every mark with it.
 const text = computed(() => {
   const component = sole.value;
   const current = runs.value;
@@ -180,8 +184,6 @@ const text = computed(() => {
     update: (next: unknown) => {
       set(["content"], fromRuns(spliceText(current, String(next))));
 
-      // Character offsets taken before this edit no longer point at the same
-      // characters.
       textSelection.value = null;
     },
   };
@@ -233,6 +235,41 @@ const marks = computed(() => {
     ]),
   ) as Record<(typeof MARK_KEYS)[number], Override>;
 });
+
+const WEIGHTS: Record<number, string> = {
+  100: "Thin",
+  200: "Extra Light",
+  300: "Light",
+  400: "Regular",
+  500: "Medium",
+  600: "Semi Bold",
+  700: "Bold",
+  800: "Extra Bold",
+  900: "Black",
+};
+
+function weightOptions(value: unknown) {
+  const font = marks.value ? marks.value.font.value : field(["font"]);
+  const ranges = typeof font === "string" ? fontWeights(font) : null;
+  const current = typeof value === "number" ? Math.round(value) : undefined;
+
+  const weights = Object.keys(WEIGHTS)
+    .map(Number)
+    .filter(
+      (weight) =>
+        !ranges || ranges.some(([min, max]) => weight >= min && weight <= max),
+    );
+
+  if (current !== undefined && !weights.includes(current))
+    weights.push(current);
+
+  return weights
+    .sort((a, b) => a - b)
+    .map((weight) => ({
+      value: String(weight),
+      label: `${weight} ${WEIGHTS[weight] ?? ""}`.trim(),
+    }));
+}
 
 function setFont(font: string, update: (next: unknown) => void) {
   ensureFonts([font]);
