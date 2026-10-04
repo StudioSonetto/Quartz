@@ -5,11 +5,35 @@ const DECORATION: Record<string, string> = {
   strikethrough: "line-through",
 };
 
+const KEYWORDS = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "emoji",
+  "math",
+  "fangsong",
+  "inherit",
+  "initial",
+  "unset",
+  "revert",
+]);
+
+function fontFamily(font: string) {
+  return !font || /[,"']/.test(font) || KEYWORDS.has(font) ? font : `"${font}"`;
+}
+
 export function typographyStyle(marks: Partial<TypographyMarks> = {}) {
   const style: Record<string, string | number> = {};
 
   if (marks.colour !== undefined) style.color = marks.colour;
-  if (marks.font !== undefined) style.fontFamily = marks.font;
+  if (marks.font !== undefined) style.fontFamily = fontFamily(marks.font);
   if (marks.size !== undefined) style.fontSize = `${marks.size}px`;
   if (marks.weight !== undefined) style.fontWeight = marks.weight;
   if (marks.textTransform !== undefined) {

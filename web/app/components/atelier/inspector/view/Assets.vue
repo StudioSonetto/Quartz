@@ -1,3 +1,5 @@
+<!-- Definitely need to split out the file ltr on lol  -->
+
 <template>
   <AtelierInspectorView
     name="Assets"
@@ -27,7 +29,7 @@
                 danger: true,
                 action: () =>
                   currentSlides &&
-                  deleteSelectedAsset(currentSlides.deck, asset),
+                  deleteAssets(currentSlides.deck, filesOf(asset)),
               },
             ])
           "
@@ -55,11 +57,20 @@
             />
           </button>
           <button
-            v-else-if="store.isFont(asset.name)"
+            v-else-if="familyOf.has(asset.name)"
             class="px-3"
-            @click="openFontModal(asset)"
+            @click="openFontModal(familyOf.get(asset.name)!)"
           >
-            <p>{{ asset.name }}</p>
+            <p
+              class="text-xl"
+              :style="typographyStyle({ font: familyOf.get(asset.name) })"
+            >
+              {{ familyOf.get(asset.name) }}
+            </p>
+            <p class="ui-text-3 opacity-60">
+              {{ filesOf(asset).length }}
+              {{ filesOf(asset).length === 1 ? "variant" : "variants" }}
+            </p>
           </button>
           <button
             v-else-if="store.isModel(asset.name)"
@@ -107,16 +118,23 @@
     </Modal>
     <Modal
       ref="fontPreviewModal"
-      :title="`${selectedAsset?.name}`"
+      :title="`${selectedFamily}`"
       @close="closeModal"
     >
-      <p
-        v-if="openModal === 'font' && selectedAsset"
-        class="text-3xl"
-        :style="{ fontFamily: selectedFamily }"
+      <div
+        v-if="openModal === 'font' && selectedFamily"
+        class="flex flex-col gap-4"
       >
-        A lazy fox jumps over the lazy dog.
-      </p>
+        <div
+          v-for="font in store.fontFamilies.get(selectedFamily)"
+          :key="font.name"
+        >
+          <p class="ui-text-3 opacity-60">{{ font.name }}</p>
+          <p class="text-3xl" :style="fontStyle(font)">
+            A lazy fox jumps over the lazy dog.
+          </p>
+        </div>
+      </div>
     </Modal>
     <Modal
       ref="modelPreviewModal"
@@ -183,6 +201,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 
 import type Modal from "@/components/Modal.vue";
+import { typographyStyle } from "~/modules/core/components/typography/style";
 
 const { currentSlides } = storeToRefs(useDeckStore());
 
@@ -210,7 +229,7 @@ function onDragStart(event: DragEvent, name: string) {
   assetDrag.start(name);
 }
 
-const { deleteSelectedAsset, uploadAssets } = store;
+const { deleteAssets, uploadAssets } = store;
 const { assets } = storeToRefs(store);
 
 const GAP = 12;
@@ -259,7 +278,35 @@ function setRatio(name: string, width?: number, height?: number) {
   });
 }
 
-const placed = computed(() => (panelWidth.value ? assets.value : []));
+const familyOf = computed(
+  () =>
+    new Map(
+      [...store.fontFamilies].map(([family, files]) => [
+        files[0]!.name,
+        family,
+      ]),
+    ),
+);
+
+const placed = computed(() =>
+  panelWidth.value
+    ? assets.value.filter(
+        (asset) => !store.isFont(asset.name) || familyOf.value.has(asset.name),
+      )
+    : [],
+);
+
+function filesOf(asset: Asset): Asset[] {
+  const family = familyOf.value.get(asset.name);
+
+  return (family !== undefined && store.fontFamilies.get(family)) || [asset];
+}
+
+const fontStyle = (font: FontAsset) => ({
+  ...typographyStyle({ font: font.family }),
+  fontWeight: font.weight,
+  fontStyle: font.style,
+});
 
 const layout = computed(() => {
   const boxes: Record<string, Record<string, string>> = {};
@@ -342,9 +389,7 @@ function previewObject(data: any) {
 
 const selectedAsset = ref<Asset>();
 
-const selectedFamily = computed(
-  () => store.fonts.find((f) => f.name === selectedAsset.value?.name)?.family,
-);
+const selectedFamily = ref<string>();
 
 const openModal = ref<"image" | "video" | "font" | "model">();
 
@@ -355,8 +400,8 @@ function openMediaModal(asset: Asset) {
   imagePreviewModal.value?.open();
 }
 
-function openFontModal(asset: Asset) {
-  selectedAsset.value = asset;
+function openFontModal(family: string) {
+  selectedFamily.value = family;
   openModal.value = "font";
 
   fontPreviewModal.value?.open();

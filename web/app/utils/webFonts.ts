@@ -24,12 +24,14 @@ export function fontsInComponents(
 }
 
 export function fontWeights(family: string): [number, number][] | null {
-  if (!import.meta.client || !served.get(family)) return null;
+  if (!import.meta.client || (CATALOGUE.has(family) && !served.get(family)))
+    return null;
 
   const ranges: [number, number][] = [];
 
   for (const face of document.fonts) {
     if (face.family.replace(/["']/g, "") !== family) continue;
+    if (face.style !== "normal") continue;
     if (face.weight === "normal") return null;
 
     const [min, max = min] = face.weight.split(" ").map(Number);

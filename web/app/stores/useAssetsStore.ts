@@ -1,6 +1,6 @@
 export type Asset = { name: string; url: string };
 
-export type FontAsset = Asset & { family: string };
+export type FontAsset = Asset & FontMeta;
 
 export const useAssetsStore = defineStore("assets", () => {
   const client = useSupabaseClient();
@@ -35,10 +35,35 @@ export const useAssetsStore = defineStore("assets", () => {
     return isImage(name) || isVideo(name) ? cached.value.urls[name] : undefined;
   }
 
+  const faceKey = (deck: string, name: string) => `${deck}/${name}`;
+
+  const faces = ref<Record<string, FontMeta>>({});
+  const fontFaces = new Map<string, FontFace | null>();
+
   const fonts = computed<FontAsset[]>(() =>
     assets.value
       .filter((asset) => isFont(asset.name))
-      .map((asset) => ({ ...asset, family: assetStem(asset.name) })),
+      .map((asset) => ({
+        ...asset,
+        ...(faces.value[faceKey(cached.value.deck, asset.name)] ??
+          fontFromName(asset.name)),
+      })),
+  );
+
+  const fontFamilies = computed(
+    () =>
+      new Map(
+        [...Map.groupBy(fonts.value, (font) => font.family)].map(
+          ([family, files]) => [
+            family,
+            files.sort(
+              (a, b) =>
+                (parseInt(a.weight) || 400) - (parseInt(b.weight) || 400) ||
+                a.style.localeCompare(b.style),
+            ),
+          ],
+        ),
+      ),
   );
 
   const models = computed(() => {
@@ -157,35 +182,62 @@ export const useAssetsStore = defineStore("assets", () => {
     return new Map(entries);
   }
 
-  async function deleteSelectedAsset(deck: string, asset: Asset) {
+  async function deleteAssets(deck: string, removed: Asset[]) {
     const { error } = await client.storage
       .from("assets")
-      .remove([`${deck}/${asset.name}`]);
+      .remove(removed.map((asset) => `${deck}/${asset.name}`));
 
     if (error) {
       return console.error(error);
     }
 
+    for (const asset of removed) {
+      const key = faceKey(deck, asset.name);
+      const face = fontFaces.get(key);
+
+      if (face) document.fonts.delete(face);
+
+      fontFaces.delete(key);
+      delete faces.value[key];
+    }
+
     await fetchAssets(deck);
   }
 
-  const served = new Set<string>();
-
   async function serveFonts(deck: string) {
-    const key = (name: string) => `${deck}/${name}`;
-
-    const pending = fonts.value.filter((f) => !served.has(key(f.name)));
+    const pending = fonts.value.filter(
+      (f) => !fontFaces.has(faceKey(deck, f.name)),
+    );
 
     await Promise.all(
       pending.map(async (font) => {
+        const key = faceKey(deck, font.name);
+
+        fontFaces.set(key, null);
+
         try {
-          const fontFace = new FontFace(font.family, `url(${font.url})`);
+          const response = await fetch(font.url);
+
+          if (!response.ok)
+            throw new Error(`${font.name}: HTTP ${response.status}`);
+
+          const buffer = await response.arrayBuffer();
+          const meta = (await readFontMeta(buffer)) ?? fontFromName(font.name);
+          const fontFace = new FontFace(meta.family, buffer, {
+            weight: meta.weight,
+            style: meta.style,
+          });
 
           await fontFace.load();
 
+          // Deleted while loading.
+          if (!fontFaces.has(key)) return;
+
           document.fonts.add(fontFace);
-          served.add(key(font.name));
+          fontFaces.set(key, fontFace);
+          faces.value[key] = meta;
         } catch (error) {
+          fontFaces.delete(key);
           console.error(error);
         }
       }),
@@ -203,6 +255,7 @@ export const useAssetsStore = defineStore("assets", () => {
     mediaUrl,
     isVideo,
     fonts,
+    fontFamilies,
     models,
     modelUrl,
     isImage,
@@ -210,6 +263,6 @@ export const useAssetsStore = defineStore("assets", () => {
     isModel,
     fetchAssets,
     uploadAssets,
-    deleteSelectedAsset,
+    deleteAssets,
   };
 });

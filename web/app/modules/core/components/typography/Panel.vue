@@ -28,7 +28,7 @@
       v-slot="{ value, update }"
     >
       <NodeComponentRowFieldDropdown
-        :options="[...fonts, ...fontAssets].sort()"
+        :options="[...new Set([...fonts, ...fontAssets])].sort()"
         :value="value"
         @update:value="(font: string) => setFont(font, update)"
       />
@@ -170,7 +170,7 @@ const sole = computed(() =>
 const runs = computed(() => toRuns(sole.value?.data.content));
 
 const fontAssets = computed(() =>
-  useAssetsStore().fonts.map((font) => font.family),
+  [...useAssetsStore().fontFamilies.keys()],
 );
 
 const text = computed(() => {
