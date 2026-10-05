@@ -13,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { authenticatedRole } from "drizzle-orm/supabase";
@@ -165,6 +166,9 @@ export const nodes = pgTable.withRLS(
       .onUpdate("cascade"),
     index("nodes_slides_idx").on(t.slides),
     index("nodes_path_idx").using("gist", t.path),
+    uniqueIndex("nodes_one_root")
+      .on(t.slides)
+      .where(sql`${t.path} = 'root'`),
     pgPolicy("nodes_select_own", {
       for: "select",
       to: authenticatedRole,

@@ -6,10 +6,14 @@ export default defineEventHandler(async (event) => {
 
   await requireDeckRoom(user.id);
 
-  const [deck] = await db
-    .insert(decks)
-    .values({ lapidarist: user.id, title: "Unnamed Deck" })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [deck] = await tx
+      .insert(decks)
+      .values({ lapidarist: user.id, title: "Unnamed Deck" })
+      .returning();
 
-  return deck;
+    await insertBlankSlide(tx, deck!.id, 0);
+
+    return deck;
+  });
 });

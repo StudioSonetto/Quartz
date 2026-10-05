@@ -688,6 +688,84 @@ export const useDeckStore = defineStore("deck", () => {
     currentSlideId.value = id;
   }
 
+  const slideClipboard = ref<
+    (SlideState & { deck: string; assets: string[] }) | null
+  >(null);
+
+  async function copySlide(id: string) {
+    const index = slides.value.findIndex((s) => s.id === id);
+    const deck = slides.value[index]?.deck;
+
+    if (!deck) return;
+
+    if (!trees.value.get(id)?.id) await fetchAllNodes(index);
+
+    const state = history.readSlide(id);
+
+    if (!state) return;
+
+    const used = JSON.stringify(state.components.map((c) => c.data));
+
+    slideClipboard.value = {
+      deck,
+      ...state,
+      assets: useAssetsStore()
+        .assets.map((a) => a.name)
+        .filter((name) => used.includes(assetStem(name))),
+    };
+  }
+
+  async function pasteSlide(afterIndex: number) {
+    const copied = slideClipboard.value;
+    const deck = slides.value[0]?.deck;
+    const root = copied?.nodes.find((n) => n.path === ROOT_PATH);
+
+    if (!copied || !deck || !root) return;
+
+    const record = history.pushLater();
+    const id = crypto.randomUUID();
+
+    const renamed = await useAssetsStore().copyAssets(
+      copied.deck,
+      deck,
+      copied.assets,
+    );
+
+    const clone = cloneSubtree(copied.nodes, copied.components, root.id, {
+      newSlides: id,
+    });
+
+    // Roots are linked deck-wide; the source background would overwrite the target deck's.
+    const { nodes, components } = withLivePeers({
+      ...clone,
+      components: clone.components.map((c) => ({
+        ...c,
+        data: JSON.parse(JSON.stringify(c.data), (_, v) =>
+          typeof v === "string" ? (renamed.get(v) ?? v) : v,
+        ),
+      })),
+    });
+
+    const order = slides.value.map((s) => s.id);
+
+    order.splice(afterIndex + 1, 0, id);
+
+    const snapshot: SlideSnapshot = { deck, order, nodes, components };
+
+    ensureFonts(fontsInComponents(components));
+
+    await restoreSlide(id, snapshot);
+
+    record({
+      label: "Paste Slide",
+      undo: async () => {
+        if (!(await deleteSlides(id)))
+          throw new Error("Paste Slide undo did not remove the slide");
+      },
+      redo: () => restoreSlide(id, snapshot),
+    });
+  }
+
   const reorderingSlides = ref(false);
   let resaveWanted = false;
   let inFlightReorder: Promise<void> | null = null;
@@ -1635,6 +1713,9 @@ export const useDeckStore = defineStore("deck", () => {
     insertingSlides,
     applySlideOrder,
     deleteSlides,
+    slideClipboard,
+    copySlide,
+    pasteSlide,
     reorderSlides,
     fetchAllNodes,
     fetchNodeComponents,
