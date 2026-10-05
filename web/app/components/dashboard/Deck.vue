@@ -42,7 +42,7 @@
   }
 
   .preview {
-    @apply relative w-full aspect-video bg-light-200;
+    @apply relative w-full aspect-video;
   }
 
   .info {

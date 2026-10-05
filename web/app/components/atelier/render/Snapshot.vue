@@ -1,12 +1,21 @@
 <template>
-  <div v-if="url" class="snapshot">
-    <NuxtImg :src="url" :alt="`snapshot of ${props.deck}`" loading="lazy" />
+  <div class="snapshot" :class="{ 'snapshot-empty': !url }">
+    <NuxtImg
+      v-if="url"
+      :src="url"
+      :alt="`snapshot of ${props.deck}`"
+      loading="lazy"
+    />
   </div>
 </template>
 
 <style scoped lang="postcss">
 .snapshot {
-  @apply relative w-full h-full border-rd overflow-hidden;
+  @apply relative w-full h-full;
+
+  &.snapshot-empty {
+    @apply bg-light-200;
+  }
 
   img {
     @apply absolute w-full h-full object-cover;

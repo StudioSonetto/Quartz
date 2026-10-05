@@ -24,8 +24,8 @@
 
 <style scoped lang="postcss">
 .slide-thumb {
-  @apply bg-light-200 aspect-video min-w-[100px];
-  @apply transition-opacity transform-gpu border-rd;
+  @apply aspect-video min-w-[100px];
+  @apply transition-opacity transform-gpu border-rd overflow-hidden;
 
   .overlay {
     @apply text-dark-900;
