@@ -40,7 +40,11 @@
       :override="marks?.size"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="1"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="weight"
@@ -63,7 +67,12 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :step="0.01"
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="letter spacing"
@@ -72,7 +81,11 @@
       :override="marks?.letterSpacing"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :step="0.1"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="transform"
@@ -98,7 +111,13 @@
       :override="marks?.opacity"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :step="0.01"
+        :min="0"
+        :max="1"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="colour"

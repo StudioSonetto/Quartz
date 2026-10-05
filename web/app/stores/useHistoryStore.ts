@@ -24,7 +24,6 @@ export const useHistoryStore = defineStore("history", () => {
 
   const EMPTY_SLIDE: SlideState = { nodes: [], components: [] };
 
-  // Currently it clones whole slides per edit, may cause performance issues in future.
   function readSlide(slideId: string): SlideState | null {
     const deck = useDeckStore();
     const tree = deck.trees.get(slideId);
@@ -181,7 +180,15 @@ export const useHistoryStore = defineStore("history", () => {
 
   let depth = 0;
 
+  function release() {
+    const active = document.activeElement as HTMLElement | null;
+
+    if (isEditableTarget(active)) transact("Edit", () => active!.blur());
+  }
+
   function begin(label: string): () => void {
+    if (!open) release();
+
     if (!open) open = { label, before: new Map(), focus: readFocus() };
     else if (!depth) open.label = label;
 
@@ -195,6 +202,7 @@ export const useHistoryStore = defineStore("history", () => {
 
     return () => {
       if (done) return;
+
       done = true;
 
       depth = Math.max(0, depth - 1);
@@ -213,6 +221,7 @@ export const useHistoryStore = defineStore("history", () => {
     if (merged) undoStack.value[undoStack.value.length - 1] = merged;
     else {
       undoStack.value.push({ ...entry, at: now });
+
       if (undoStack.value.length > LIMIT) undoStack.value.shift();
     }
 
@@ -229,6 +238,7 @@ export const useHistoryStore = defineStore("history", () => {
 
   function enqueue(run: () => Promise<void>): Promise<void> {
     queue = queue.then(run, run);
+
     return queue;
   }
 
@@ -293,6 +303,7 @@ export const useHistoryStore = defineStore("history", () => {
     readSlide,
     applySlides,
     transact,
+    release,
     begin,
     undo,
     redo,

@@ -5,7 +5,13 @@
     kind="number"
     v-slot="{ value, update }"
   >
-    <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+    <NodeComponentRowFieldNumber
+      :step="0.01"
+      :min="0"
+      :max="1"
+      :value="value"
+      @update:value="update"
+    />
   </NodeComponentRow>
   <NodeComponentRow name="sound" path="muted" v-slot="{ value, update }">
     <NodeComponentRowFieldRadio
@@ -28,6 +34,10 @@
     />
   </NodeComponentRow>
   <NodeComponentRow name="start (ms)" path="start" v-slot="{ value, update }">
-    <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+    <NodeComponentRowFieldNumber
+      :min="0"
+      :value="value"
+      @update:value="update"
+    />
   </NodeComponentRow>
 </template>

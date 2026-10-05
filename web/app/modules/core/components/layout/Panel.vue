@@ -62,6 +62,7 @@
     </NodeComponentRow>
     <NodeComponentRow name="padding">
       <NodeComponentRowFieldNumber
+        :min="0"
         :value="field(['padding'])"
         @update:value="(v) => set(['padding'], v)"
       />
@@ -71,12 +72,14 @@
       name="columns"
     >
       <NodeComponentRowFieldNumber
+        :min="1"
         :value="field(['columns'])"
         @update:value="(v) => set(['columns'], v)"
       />
     </NodeComponentRow>
     <NodeComponentRow name="gap">
       <NodeComponentRowFieldNumber
+        :min="0"
         :value="field(['gap'])"
         @update:value="(v) => set(['gap'], v)"
       />

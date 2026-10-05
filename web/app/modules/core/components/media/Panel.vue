@@ -24,7 +24,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="opacity"
@@ -32,7 +36,13 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :step="0.01"
+        :min="0"
+        :max="1"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentMediaRows v-if="isVideo" />
   </NodeComponent>

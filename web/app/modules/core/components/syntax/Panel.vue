@@ -47,7 +47,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       name="radius"
@@ -55,7 +59,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
   </NodeComponent>
 </template>

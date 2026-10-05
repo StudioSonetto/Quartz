@@ -50,7 +50,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       v-if="kind === 'rect'"
@@ -59,7 +63,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :min="0"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
     <NodeComponentRow
       v-if="kind === 'polygon'"

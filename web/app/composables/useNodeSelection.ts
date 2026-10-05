@@ -9,6 +9,7 @@ export function useNodeSelection() {
   const deck = useDeckStore();
   const { selectedNodeIds, anchorId, currentTree } = storeToRefs(deck);
   const atelier = useAtelierStore();
+  const { release } = useHistoryStore();
 
   function commitFocus(soleId: string | null) {
     atelier.setHighlighted(soleId);
@@ -22,6 +23,7 @@ export function useNodeSelection() {
   function select(node: Tree, { handOffFocus = true } = {}) {
     if (deck.soleSelected?.id === node.id) return;
 
+    release();
     selectedNodeIds.value = [node.id];
     anchorId.value = node.id;
 
@@ -32,6 +34,7 @@ export function useNodeSelection() {
   function toggle(node: Tree) {
     const ids = selectedNodeIds.value;
 
+    release();
     selectedNodeIds.value = ids.includes(node.id)
       ? ids.filter((id) => id !== node.id)
       : [...ids, node.id];
@@ -51,6 +54,7 @@ export function useNodeSelection() {
     const order = flattenTree(currentTree.value).map((n) => n.id);
     const ids = rangeIds(order, anchor, node.id);
 
+    release();
     selectedNodeIds.value = ids.length ? ids : [node.id];
 
     commitFocus(deck.soleSelected?.id ?? null);
@@ -59,6 +63,7 @@ export function useNodeSelection() {
   function extendSelection(nodes: Tree[]) {
     const add = unlockedOnly(nodes).map((n) => n.id);
 
+    release();
     selectedNodeIds.value = [...new Set([...selectedNodeIds.value, ...add])];
 
     commitFocus(deck.soleSelected?.id ?? null);
@@ -80,6 +85,7 @@ export function useNodeSelection() {
   }
 
   function clear() {
+    release();
     selectedNodeIds.value = [];
     anchorId.value = null;
     atelier.setHighlighted(null);

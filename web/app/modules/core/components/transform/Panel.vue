@@ -33,6 +33,7 @@
       />
       <NodeComponentRowFieldNumber
         v-if="widthMode === 'fixed'"
+        :min="0"
         :disabled="sizeLocked"
         :value="field(['size', 'width'])"
         @update:value="(v) => set(['size', 'width'], v)"
@@ -50,6 +51,7 @@
       />
       <NodeComponentRowFieldNumber
         v-if="heightMode === 'fixed'"
+        :min="0"
         :disabled="sizeLocked"
         :value="field(['size', 'height'])"
         @update:value="(v) => set(['size', 'height'], v)"
@@ -72,7 +74,11 @@
       kind="number"
       v-slot="{ value, update }"
     >
-      <NodeComponentRowFieldNumber :value="value" @update:value="update" />
+      <NodeComponentRowFieldNumber
+        :step="0.01"
+        :value="value"
+        @update:value="update"
+      />
     </NodeComponentRow>
   </NodeComponent>
 </template>
