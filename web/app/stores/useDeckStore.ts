@@ -532,6 +532,23 @@ export const useDeckStore = defineStore("deck", () => {
 
   type CreatedSlide = SlidesModel & { root?: string };
 
+  async function createSlide(deck: string, id?: string, root?: string) {
+    const slide = await apiFetch<CreatedSlide>("/api/slides", {
+      method: "POST",
+      body: {
+        deck,
+        index: slides.value.length,
+        ...(id ? { id } : {}),
+        ...(root ? { root } : {}),
+      },
+    });
+
+    if (slide && !slides.value.some((s) => s.id === slide.id))
+      slides.value = [...slides.value, slide];
+
+    return slide;
+  }
+
   async function insertNewSlides(deck: string, id?: string, root?: string) {
     if (insertingSlides.value) return;
 
@@ -540,20 +557,9 @@ export const useDeckStore = defineStore("deck", () => {
     const record = history.pushLater();
 
     try {
-      const slide = await apiFetch<CreatedSlide>("/api/slides", {
-        method: "POST",
-        body: {
-          deck,
-          index: slides.value.length,
-          ...(id ? { id } : {}),
-          ...(root ? { root } : {}),
-        },
-      });
+      const slide = await createSlide(deck, id, root);
 
       if (slide) {
-        if (!slides.value.some((s) => s.id === slide.id))
-          slides.value = [...slides.value, slide];
-
         record({
           label: "Add Slide",
           undo: async () => {
@@ -667,9 +673,9 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!oldRoot) throw new Error("The snapshot has no root node");
 
-    const slide = await insertNewSlides(snap.deck, id, oldRoot.id);
+    const slide = await createSlide(snap.deck, id, oldRoot.id);
 
-    if (!slide) throw new Error("Could not restore the slide yet; try again");
+    if (!slide) throw new Error("Could not restore the slide");
 
     if (slide.root !== oldRoot.id)
       throw new Error("Restored slide did not keep its root");
