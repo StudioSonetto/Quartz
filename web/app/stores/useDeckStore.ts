@@ -13,8 +13,8 @@ export const useDeckStore = defineStore("deck", () => {
 
   const deckTitle = ref("");
   const isDeckPublic = ref(false);
-  // A public-deck visitor: no owner routes, no saves.
   const visitor = ref(false);
+  const openedDeck = ref<string | null>(null);
 
   const currentSlideId = ref<string | null>(null);
 
@@ -513,8 +513,12 @@ export const useDeckStore = defineStore("deck", () => {
     try {
       await Promise.all([fetchDeck(id), fetchAllSlides(id)]);
 
+      openedDeck.value = id;
+
       return true;
     } catch (err) {
+      openedDeck.value = null;
+
       if (![401, 403, 404].includes((err as FetchError).statusCode ?? 0))
         throw err;
 
@@ -1672,6 +1676,7 @@ export const useDeckStore = defineStore("deck", () => {
     isDeckPublic,
     setDeckPublic,
     openDeck,
+    openedDeck,
     visitor,
     currentSlideId,
     currentSlides,

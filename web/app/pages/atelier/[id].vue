@@ -1,6 +1,6 @@
 <template>
-  <Title>{{ deck ? deckTitle : "404" }} | Quartz</Title>
-  <div v-if="!deck">
+  <Title>{{ missing ? "404" : deckTitle }} | Quartz</Title>
+  <div v-if="missing">
     <p>Either the deck does not exist or you do not have access.</p>
     <NuxtLink to="/atelier">Return</NuxtLink>
   </div>
@@ -33,7 +33,7 @@ const client = useSupabaseClient();
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides } = useDeckStore();
-const { slides, deckTitle } = storeToRefs(useDeckStore());
+const { slides, deckTitle, openedDeck } = storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const { fetchSnapshots } = useSnapshotsStore();
 const sync = useDeckSync();
@@ -49,21 +49,29 @@ const flushOnHide = () => {
 };
 const flushOnPageHide = () => sync.flushBeacon();
 
-const [{ data: deck, refresh: refreshDeck }, { refresh: refreshSlides }] =
-  await Promise.all([
-    useAsyncData("deck", async () => fetchDeck(useRoute().params.id as string)),
-    useAsyncData("slides", async () =>
-      fetchAllSlides(useRoute().params.id as string),
-    ),
-  ]);
+const id = useRoute().params.id as string;
+
+const lazy = openedDeck.value === id;
+
+const [
+  { data: deck, status, refresh: refreshDeck },
+  { refresh: refreshSlides },
+] = await Promise.all([
+  useAsyncData(`atelier-deck-${id}`, () => fetchDeck(id), { lazy }),
+  useAsyncData(`atelier-slides-${id}`, () => fetchAllSlides(id), { lazy }),
+]);
+
+const missing = computed(() => !deck.value && status.value !== "pending");
+
+watch(deck, (found) => (openedDeck.value = found ? id : null), {
+  immediate: true,
+});
 
 onMounted(async () => {
   snapshotScheduler.start();
 
   document.addEventListener("visibilitychange", flushOnHide);
   window.addEventListener("pagehide", flushOnPageHide);
-
-  const id = useRoute().params.id as string;
 
   deckRC = client
     .channel(`atelier:${id}:decks`, { config: { private: true } })
@@ -82,7 +90,7 @@ onMounted(async () => {
         event: "INSERT",
         schema: "public",
         table: "slides",
-        filter: `deck=eq.${deck.value?.id}`,
+        filter: `deck=eq.${id}`,
       },
       (payload) => {
         if (slides.value.some((s) => s.id === payload.new.id)) return;
@@ -98,9 +106,9 @@ onMounted(async () => {
         table: "slides",
       },
       (payload) => {
-        const id = (payload.old as { id?: string })?.id;
+        const gone = (payload.old as { id?: string })?.id;
 
-        if (id && !slides.value.some((s) => s.id === id)) return;
+        if (gone && !slides.value.some((s) => s.id === gone)) return;
 
         refreshSlides();
       },
