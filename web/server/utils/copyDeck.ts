@@ -1,5 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
-import { and, eq, getColumns, sql } from "drizzle-orm";
+import { eq, getColumns } from "drizzle-orm";
 import type { H3Event } from "h3";
 import { db } from "~~/server/db";
 import { components, decks, nodes, slides } from "~~/server/db/schema";
@@ -56,8 +56,6 @@ export async function copyDeck(
       .returning()
       .then(([d]) => d!);
 
-    await tx.delete(slides).where(eq(slides.deck, deck.id));
-
     if (sourceSlides.length)
       await tx.insert(slides).values(
         sourceSlides.map((s) => ({
@@ -67,28 +65,9 @@ export async function copyDeck(
         })),
       );
 
-    for (const root of sourceNodes.filter((n) => n.path === ROOT_PATH))
-      await tx
-        .update(nodes)
-        .set({
-          id: nodeIds.get(root.id)!,
-          name: root.name,
-          reference: root.reference,
-          unsynced: root.unsynced,
-          locked: root.locked,
-        })
-        .where(
-          and(
-            eq(nodes.slides, slideIds.get(root.slides)!),
-            eq(nodes.path, ROOT_PATH),
-          ),
-        );
-
-    const rest = sourceNodes.filter((n) => n.path !== ROOT_PATH);
-
-    if (rest.length)
+    if (sourceNodes.length)
       await tx.insert(nodes).values(
-        rest.map((n) => ({
+        sourceNodes.map((n) => ({
           ...n,
           id: nodeIds.get(n.id)!,
           slides: slideIds.get(n.slides)!,
@@ -101,11 +80,7 @@ export async function copyDeck(
         .insert(components)
         .values(
           sourceComponents.map((c) => ({ ...c, node: nodeIds.get(c.node)! })),
-        )
-        .onConflictDoUpdate({
-          target: [components.node, components.type],
-          set: { data: sql`excluded.data` },
-        });
+        );
 
     return deck;
   });

@@ -182,6 +182,38 @@ export const useAssetsStore = defineStore("assets", () => {
     return new Map(entries);
   }
 
+  async function copyAssets(from: string, to: string, names: string[]) {
+    const renamed = new Map<string, string>();
+
+    if (from === to || !names.length) return renamed;
+
+    const taken = new Set(((await list(to)) ?? []).map(assetKey));
+    let full = false;
+
+    await Promise.all(
+      names.map(async (name) => {
+        const free = uniqueAssetName(name, taken);
+
+        taken.add(assetKey(free));
+
+        if (free !== name) renamed.set(name, free);
+
+        const { error } = await client.storage
+          .from("assets")
+          .copy(`${from}/${name}`, `${to}/${free}`);
+
+        if (error) console.error(error);
+        if (error?.message.includes("row-level security")) full = true;
+      }),
+    );
+
+    if (full) storageFull();
+
+    await fetchAssets(to);
+
+    return renamed;
+  }
+
   async function deleteAssets(deck: string, removed: Asset[]) {
     const { error } = await client.storage
       .from("assets")
@@ -263,6 +295,7 @@ export const useAssetsStore = defineStore("assets", () => {
     isModel,
     fetchAssets,
     uploadAssets,
+    copyAssets,
     deleteAssets,
   };
 });

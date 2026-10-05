@@ -51,8 +51,10 @@
 </style>
 
 <script setup lang="ts">
-const { deleteSlides } = useDeckStore();
-const { slides, currentSlidesIndex } = storeToRefs(useDeckStore());
+const { deleteSlides, copySlide, pasteSlide } = useDeckStore();
+const { slides, currentSlidesIndex, slideClipboard } = storeToRefs(
+  useDeckStore(),
+);
 
 const props = defineProps<{
   index: number;
@@ -77,15 +79,33 @@ watch(isSelected, (selected) => {
 function openMenu(event: MouseEvent) {
   const target = slide.value;
 
-  if (!target || slides.value.length <= 1) return;
+  if (!target) return;
 
   useContextMenu().open(event, [
     {
-      label: "Delete",
-      icon: "i-carbon-trash-can",
-      danger: true,
-      action: () => deleteSlides(target.id),
+      label: "Copy",
+      icon: "i-carbon-copy",
+      action: () => copySlide(target.id).catch(console.error),
     },
+    ...(slideClipboard.value
+      ? [
+          {
+            label: "Paste",
+            icon: "i-carbon-paste",
+            action: () => pasteSlide(props.index).catch(console.error),
+          },
+        ]
+      : []),
+    ...(slides.value.length > 1
+      ? [
+          {
+            label: "Delete",
+            icon: "i-carbon-trash-can",
+            danger: true,
+            action: () => deleteSlides(target.id),
+          },
+        ]
+      : []),
   ]);
 }
 </script>

@@ -17,36 +17,24 @@ export default defineEventHandler(async (event) => {
 
   await requireDeckOwner(deck, user.id);
 
-  let slide = await db.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(slides)
-      .values(id ? { id, deck, index } : { deck, index })
-      .onConflictDoNothing({ target: slides.id })
-      .returning();
+  const created = await db.transaction(async (tx) => {
+    const slide = await insertBlankSlide(tx, deck, index, { id, root });
 
-    if (created && root)
-      await tx
-        .update(nodes)
-        .set({ id: root })
-        .where(
-          and(eq(nodes.slides, created.id), eq(nodes.path, ROOT_PATH)),
-        );
+    if (slide) await adoptFromPeers(tx, (t) => eq(t.slides, slide.id));
 
-    if (created) await adoptFromPeers(tx, (t) => eq(t.slides, created.id));
-
-    return created;
+    return slide;
   });
 
-  if (!slide && id) {
-    [slide] = await db
-      .select()
-      .from(slides)
-      .where(and(eq(slides.id, id), eq(slides.deck, deck)));
+  if (created) return created;
 
-    if (!slide) throw createError({ statusCode: 409 });
-  }
+  const [existing] = await db
+    .select()
+    .from(slides)
+    .where(and(eq(slides.id, id!), eq(slides.deck, deck)));
 
-  return slide && { ...slide, root: await rootNode(slide.id) };
+  if (!existing) throw createError({ statusCode: 409 });
+
+  return { ...existing, root: await rootNode(existing.id) };
 });
 
 async function rootNode(slide: string) {
