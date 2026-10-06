@@ -78,6 +78,8 @@
           >
             <TresCanvas>
               <TresPerspectiveCamera :position="[0, 0, 2]" />
+              <TresAmbientLight />
+              <TresDirectionalLight :position="[1, 2, 3]" :intensity="2" />
               <Suspense>
                 <UseLoader
                   v-slot="{ data }"
@@ -143,7 +145,9 @@
     >
       <div class="w-[50vh] h-[50vh]">
         <TresCanvas v-if="openModal === 'model' && selectedAsset">
-          <TresPerspectiveCamera :position="[0, 0, 5]" />
+          <TresPerspectiveCamera :position="[0, 0, 2.5]" />
+          <TresAmbientLight />
+          <TresDirectionalLight :position="[1, 2, 3]" :intensity="2" />
           <Suspense>
             <UseLoader
               v-slot="{ data }"
@@ -194,7 +198,8 @@
 
 <script setup lang="ts">
 import { UseLoader } from "@tresjs/core";
-import { BufferGeometry, Mesh, MeshNormalMaterial } from "three";
+import { Box3, BufferGeometry, Mesh, MeshNormalMaterial, Vector3 } from "three";
+import type { Object3D } from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
@@ -380,11 +385,23 @@ function loaderFor(name: string) {
 }
 
 function previewObject(data: any) {
-  if (data instanceof BufferGeometry) {
-    return new Mesh(data, new MeshNormalMaterial());
-  }
+  const object: Object3D =
+    data instanceof BufferGeometry
+      ? new Mesh(data, new MeshNormalMaterial())
+      : (data.scene ?? data);
 
-  return data.scene ?? data;
+  object.position.set(0, 0, 0);
+  object.scale.set(1, 1, 1);
+
+  const box = new Box3().setFromObject(object);
+  const fit = 1 / Math.max(...box.getSize(new Vector3()).toArray());
+
+  if (!(fit > 0 && fit < Infinity)) return object;
+
+  object.scale.setScalar(fit);
+  object.position.copy(box.getCenter(new Vector3())).multiplyScalar(-fit);
+
+  return object;
 }
 
 const selectedAsset = ref<Asset>();
