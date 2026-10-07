@@ -495,9 +495,14 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function setSlides(data: SlidesModel[]) {
-    slides.value = data;
-
     const live = new Set(data.map((s) => s.id));
+    const pending = slides.value.filter(
+      (s) => pendingCreates.has(s.id) && !live.has(s.id),
+    );
+
+    slides.value = pending.length ? reindex([...data, ...pending]) : data;
+
+    for (const s of pending) live.add(s.id);
 
     const known = [
       ...trees.value.keys(),
@@ -532,74 +537,96 @@ export const useDeckStore = defineStore("deck", () => {
     return apiFetch<SlidesModel>("/api/slides", { query: { deck, index } });
   }
 
-  const insertingSlides = ref(false);
-
   type CreatedSlide = SlidesModel & { root?: string };
 
-  async function createSlide(deck: string, id?: string, root?: string) {
-    const slide = await apiFetch<CreatedSlide>("/api/slides", {
-      method: "POST",
-      body: {
-        deck,
-        index: slides.value.length,
-        ...(id ? { id } : {}),
-        ...(root ? { root } : {}),
-      },
+  const pendingCreates = new Map<string, Promise<unknown>>();
+
+  let createsDone: Promise<unknown> = Promise.resolve();
+
+  const reindex = (list: SlidesModel[]) =>
+    list.map((s, index) => ({ ...s, index }));
+
+  function dropLocalSlide(id: string) {
+    const index = slides.value.findIndex((s) => s.id === id);
+
+    slides.value = reindex(slides.value.filter((s) => s.id !== id));
+
+    if (currentSlideId.value === id)
+      currentSlideId.value =
+        slides.value[Math.min(index, slides.value.length - 1)]?.id ?? null;
+  }
+
+  async function createSlide(
+    deck: string,
+    id: string = crypto.randomUUID(),
+    root: string = crypto.randomUUID(),
+  ) {
+    const added = !slides.value.some((s) => s.id === id);
+
+    if (added)
+      slides.value = [
+        ...slides.value,
+        { id, deck, index: slides.value.length },
+      ];
+
+    const created = createsDone.then(() => {
+      const index = slides.value.findIndex((s) => s.id === id);
+
+      return apiFetch<CreatedSlide>("/api/slides", {
+        method: "POST",
+        body: {
+          deck,
+          index: index === -1 ? slides.value.length : index,
+          id,
+          root,
+        },
+      });
     });
 
-    if (slide && !slides.value.some((s) => s.id === slide.id))
-      slides.value = [...slides.value, slide];
+    pendingCreates.set(id, created);
+    createsDone = created.catch(() => {});
 
-    return slide;
+    try {
+      return await created;
+    } catch (err) {
+      if (added) dropLocalSlide(id);
+
+      throw err;
+    } finally {
+      pendingCreates.delete(id);
+    }
   }
 
   async function insertNewSlides(deck: string, id?: string, root?: string) {
-    if (insertingSlides.value) return;
-
-    insertingSlides.value = true;
-
     const record = history.pushLater();
 
-    try {
-      const slide = await createSlide(deck, id, root);
+    const slide = await createSlide(deck, id, root);
 
-      if (slide) {
-        record({
-          label: "Add Slide",
-          undo: async () => {
-            if (slides.value.length <= 1)
-              throw new HistoryUnreachable(
-                "Add Slide undo cannot remove the only slide",
-              );
+    record({
+      label: "Add Slide",
+      undo: async () => {
+        if (slides.value.length <= 1)
+          throw new HistoryUnreachable(
+            "Add Slide undo cannot remove the only slide",
+          );
 
-            if (!(await deleteSlides(slide.id)))
-              throw new Error("Add Slide undo did not remove the slide");
-          },
-          redo: async () => {
-            if (!slide.root)
-              throw new Error("Add Slide redo does not know the slide root");
+        if (!(await deleteSlides(slide.id)))
+          throw new Error("Add Slide undo did not remove the slide");
+      },
+      redo: async () => {
+        if (!slide.root)
+          throw new Error("Add Slide redo does not know the slide root");
 
-            const again = await insertNewSlides(deck, slide.id, slide.root);
+        const again = await insertNewSlides(deck, slide.id, slide.root);
 
-            if (!again)
-              throw new Error("Add Slide redo did not create the slide");
+        if (again.root !== slide.root)
+          throw new Error("Add Slide redo did not restore the slide root");
 
-            // Snapshots taken before the undo name this id; a different one
-            // would leave the slide with a second root.
-            if (again.root !== slide.root)
-              throw new Error("Add Slide redo did not restore the slide root");
+        await fetchAllNodes(slides.value.findIndex((s) => s.id === again.id));
+      },
+    });
 
-            await fetchAllNodes(
-              slides.value.findIndex((s) => s.id === again.id),
-            );
-          },
-        });
-      }
-
-      return slide;
-    } finally {
-      insertingSlides.value = false;
-    }
+    return slide;
   }
 
   async function deleteSlides(id: string): Promise<boolean> {
@@ -633,15 +660,10 @@ export const useDeckStore = defineStore("deck", () => {
     sync.dropSlide(id);
     forgetSlide(id);
 
-    slides.value = slides.value
-      .filter((s) => s.id !== id)
-      .map((s, i) => ({ ...s, index: i }));
-
-    if (currentSlideId.value === id)
-      currentSlideId.value =
-        slides.value[Math.min(index, slides.value.length - 1)]!.id;
+    dropLocalSlide(id);
 
     try {
+      if (pendingCreates.size) await createsDone;
       await apiFetch(`/api/slides/${id}`, { method: "DELETE" });
 
       if (snapshot)
@@ -678,8 +700,6 @@ export const useDeckStore = defineStore("deck", () => {
     if (!oldRoot) throw new Error("The snapshot has no root node");
 
     const slide = await createSlide(snap.deck, id, oldRoot.id);
-
-    if (!slide) throw new Error("Could not restore the slide");
 
     if (slide.root !== oldRoot.id)
       throw new Error("Restored slide did not keep its root");
@@ -781,7 +801,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     const record = history.pushLater();
 
-    slides.value = slides.value.map((s, i) => ({ ...s, index: i }));
+    slides.value = reindex(slides.value);
 
     const next = slides.value.map((s) => s.id);
 
@@ -812,6 +832,7 @@ export const useDeckStore = defineStore("deck", () => {
       do {
         resaveWanted = false;
 
+        if (pendingCreates.size) await createsDone;
         await apiFetch(`/api/decks/${deck}/slides`, {
           method: "PATCH",
           body: { order: slides.value.map((s) => s.id) },
@@ -847,6 +868,10 @@ export const useDeckStore = defineStore("deck", () => {
       : slides.value?.[index]?.id;
 
     if (!id) return [];
+
+    await pendingCreates.get(id)?.catch(() => {});
+
+    if (!slides.value.some((s) => s.id === id)) return [];
 
     const [data, fetchedComponents] = await Promise.all([
       apiFetch<NodeModel[]>("/api/nodes", { query: { slides: id } }),
@@ -1715,7 +1740,6 @@ export const useDeckStore = defineStore("deck", () => {
     fetchAllSlides,
     fetchSlides,
     insertNewSlides,
-    insertingSlides,
     applySlideOrder,
     deleteSlides,
     slideClipboard,

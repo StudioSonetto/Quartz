@@ -10,19 +10,29 @@
     @drop="canEdit && assetDrag.drop($event)"
     @dragleave="canEdit && assetDrag.leave($event)"
     class="render"
-    :class="{ 'render-drawing': canEdit && atelier.activeTool !== 'select' }"
+    :class="{
+      'render-drawing': canEdit && atelier.activeTool !== 'select',
+      'render-loading': !loaded,
+      'render-hidden': !loaded && !coverUrl,
+    }"
   >
     <AtelierRenderGizmo v-if="canEdit" />
-    <template v-if="currentTree && !isEmptyTree(currentTree)">
+    <template v-if="loaded">
       <AtelierRenderElement
-        v-for="node in currentTree.children"
+        v-for="node in currentTree!.children"
         :key="node.id"
         :node="node"
       />
     </template>
-    <div v-else class="loader">
-      <p>Loading...</p>
-    </div>
+    <Transition name="render-cover">
+      <AtelierRenderSnapshot
+        v-if="!loaded && coverUrl && currentSlides"
+        :key="currentSlides.id"
+        :deck="currentSlides.deck"
+        :slides="currentSlides.id"
+        class="render-cover"
+      />
+    </Transition>
     <button
       v-if="!canEdit && soundBlocked"
       class="media-sound"
@@ -37,7 +47,15 @@
 .render {
   @apply w-full border-rd aspect-video;
   @apply bg-light-200 text-dark-900;
-  @apply relative overflow-hidden;
+  @apply relative overflow-hidden transition-opacity duration-150 ease-out;
+
+  &.render-loading {
+    @apply bg-transparent;
+  }
+
+  &.render-hidden {
+    @apply opacity-0;
+  }
 
   &.render-drawing {
     @apply cursor-crosshair;
@@ -47,8 +65,16 @@
     @apply w-full h-full;
   }
 
-  .loader {
-    @apply flex justify-center items-center h-full;
+  .render-cover {
+    @apply absolute inset-0 z-10 pointer-events-none;
+  }
+
+  .render-cover-leave-active {
+    @apply transition-opacity;
+  }
+
+  .render-cover-leave-to {
+    @apply opacity-0;
   }
 
   .media-sound {
@@ -59,7 +85,7 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree } = storeToRefs(useDeckStore());
+const { currentTree, currentSlides } = storeToRefs(useDeckStore());
 const { select, clear } = useNodeSelection();
 const atelier = useAtelierStore();
 const { canvasSize } = storeToRefs(atelier);
@@ -72,10 +98,20 @@ const { scopeFor } = useVariableScope();
 
 useTextSelection();
 
+const { snapshotUrl } = useSnapshotsStore();
+
+const coverUrl = computed(
+  () => currentSlides.value && snapshotUrl(currentSlides.value.id),
+);
+
+const loaded = computed(
+  () => !!currentTree.value && !isEmptyTree(currentTree.value),
+);
+
 const rootLayout = computed(() => {
   const root = currentTree.value;
 
-  if (!root || isEmptyTree(root)) return undefined;
+  if (!root || !loaded.value) return undefined;
 
   const data = getNodeComponent(root.id, "core.layout")?.data;
 

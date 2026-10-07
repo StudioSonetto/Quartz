@@ -89,6 +89,7 @@ export function useSnapshot() {
       capturing = html2canvas(el, {
         scale,
         useCORS: true,
+        ignoreElements: (node) => node.classList.contains("render-cover"),
         onclone: async (doc, clone) => {
           const loaded = [...document.fonts].filter(
             (face) => face.status === "loaded",

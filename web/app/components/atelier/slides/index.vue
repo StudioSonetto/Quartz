@@ -6,15 +6,8 @@
         :key="slide.id"
         :index="slide.index"
       />
-      <button
-        key="new"
-        :class="{ 'opacity-100! cursor-not-allowed': insertingSlides }"
-        @click="insertNewSlides"
-      >
-        <div
-          :class="{ 'animate-spin': insertingSlides }"
-          class="i-carbon-add"
-        />
+      <button key="new" @click="insertNewSlides">
+        <div class="i-carbon-add" />
       </button>
     </TransitionGroup>
   </div>
@@ -35,8 +28,7 @@
     @apply flex items-center justify-center min-w-[100px];
 
     div {
-      @apply text-5xl! origin-center;
-      @apply animate-duration-1500 animate-delay-600;
+      @apply text-5xl!;
     }
 
     &:hover {
@@ -67,7 +59,7 @@ import type { AnimationPlaybackControls } from "motion";
 import { useDraggable } from "vue-draggable-plus";
 
 const deckStore = useDeckStore();
-const { slides, insertingSlides } = storeToRefs(deckStore);
+const { slides } = storeToRefs(deckStore);
 
 const list = useTemplateRef<HTMLDivElement>("list");
 
