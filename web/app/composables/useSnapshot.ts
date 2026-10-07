@@ -113,6 +113,9 @@ export function useSnapshot() {
               .map((face) => face.load().catch(() => {})),
           );
 
+          for (const node of nodes)
+            getNodeType(node.type)?.snapshotClone?.(node.id, doc);
+
           clone.style.borderRadius = "0px";
 
           painted = clone.getBoundingClientRect();

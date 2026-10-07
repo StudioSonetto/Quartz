@@ -163,6 +163,7 @@ export interface NodeTypeDef {
   drag?: (node: Tree, event: PointerEvent) => DragGesture | undefined;
   navigate?: (node: Tree) => NavigateGesture | undefined;
   snapshot?: (nodeId: string) => (() => void) | void;
+  snapshotClone?: (nodeId: string, clone: Document) => void;
   ready?: (nodeId: string) => Promise<void> | void;
   handles?: HandleDef;
   hitTest?: "element" | "contents";

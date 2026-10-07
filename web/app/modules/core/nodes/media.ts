@@ -2,6 +2,7 @@ import { markRaw } from "vue";
 import Media from "../components/media/Media.vue";
 import { applyMediaAsset } from "../components/media/apply";
 import { frameReady } from "../components/media/frame";
+import { mediaSnapshotClone } from "../components/media/snapshot";
 
 const loadingStyle = {
   backgroundColor: "rgba(127, 127, 127, 0.08)",
@@ -16,6 +17,7 @@ export default {
   parents: ["core.group"],
   sizing: "fixed",
   ready: frameReady,
+  snapshotClone: mediaSnapshotClone,
   defaultComponents: [
     "core.base",
     { type: "core.transform", data: { size: { width: 480, height: 270 } } },
