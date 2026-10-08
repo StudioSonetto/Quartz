@@ -85,7 +85,7 @@ export function useEventDispatch() {
           ran = true;
           break;
         case "goToSlide":
-          deck.currentSlidesIndex = Number(handler.slide ?? 0);
+          deck.goToSlide(Number(handler.slide ?? 0));
           ran = true;
           break;
       }

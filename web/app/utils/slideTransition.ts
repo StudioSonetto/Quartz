@@ -31,3 +31,53 @@ export function magicNames(nodes: Pick<Tree, "id" | "type" | "name">[]) {
 
   return names;
 }
+
+function nameElements(nodes: Tree[]) {
+  for (const [id, name] of magicNames(nodes)) {
+    const el = document.getElementById(id);
+
+    if (el) el.style.viewTransitionName = name;
+  }
+}
+
+function clearNames() {
+  for (const el of document.querySelectorAll<HTMLElement>(".render [id]"))
+    el.style.viewTransitionName = "";
+}
+
+export async function playSlideTransition(
+  handler: EventHandler,
+  back: boolean,
+  change: () => void,
+  nodes: () => Tree[],
+) {
+  const root = document.documentElement;
+  const duration = handler.duration ?? DEFAULT_HANDLER_DURATION;
+  const magic = handler.kind === "magic";
+
+  root.style.setProperty("--slide-duration", `${duration}ms`);
+  root.style.setProperty(
+    "--slide-easing",
+    cssEasing(handler.easing ?? "ease-out", duration),
+  );
+  root.dataset.slideTransition = handler.kind ?? "fade";
+  root.dataset.slideDirection = back ? "back" : "forward";
+
+  if (magic) nameElements(nodes());
+
+  const transition = document.startViewTransition(async () => {
+    clearNames();
+    change();
+    await nextTick();
+
+    if (magic) nameElements(nodes());
+  });
+
+  try {
+    await transition.finished;
+  } finally {
+    clearNames();
+    delete root.dataset.slideTransition;
+    delete root.dataset.slideDirection;
+  }
+}

@@ -250,8 +250,41 @@ export const useDeckStore = defineStore("deck", () => {
   let entering = 0;
   let entered = Promise.resolve();
 
-  // Only the latest call runs hooks: the watcher and a page can both enter the
-  // same slide, and an enter toggle run twice undoes itself.
+  const slideTransitions = ref(false);
+  let arrived: Promise<unknown> = Promise.resolve();
+
+  function rootHandlers(slideId: string) {
+    const root = trees.value.get(slideId);
+
+    return components.value
+      .get(slideId)
+      ?.find((c) => c.node === root?.id && c.type === "core.event")?.data
+      ?.handlers as EventHandler[] | undefined;
+  }
+
+  function goToSlide(index: number) {
+    const target = slides.value[index];
+
+    if (!target || target.id === currentSlideId.value) return arrived;
+
+    const back = index < currentSlidesIndex.value;
+    const handler = slideTransitions.value
+      ? transitionHandler(rootHandlers(target.id))
+      : undefined;
+    const change = () => (currentSlideId.value = target.id);
+
+    if (!handler || !document.startViewTransition) {
+      change();
+      return arrived;
+    }
+
+    arrived = playSlideTransition(handler, back, change, currentFlat).catch(
+      () => change(),
+    );
+
+    return arrived;
+  }
+
   function enterSlide() {
     const turn = ++entering;
 
@@ -261,6 +294,7 @@ export const useDeckStore = defineStore("deck", () => {
       const tree = await until(currentTree).toMatch((t) => !!t?.id);
 
       await nextTick();
+      await arrived;
 
       if (turn !== entering) return;
 
@@ -1683,17 +1717,17 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function nextSlides() {
-    if (currentSlidesIndex.value >= slides.value.length - 1) return;
-    currentSlidesIndex.value++;
+    return goToSlide(currentSlidesIndex.value + 1);
   }
 
   function prevSlides() {
-    if (currentSlidesIndex.value <= 0) return;
-    currentSlidesIndex.value--;
+    return goToSlide(currentSlidesIndex.value - 1);
   }
 
   return {
     enterSlide,
+    slideTransitions,
+    goToSlide,
     onSlideEnter,
     whenEntered,
     slides,

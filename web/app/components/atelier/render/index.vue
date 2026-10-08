@@ -199,3 +199,37 @@ const snapping = useSnapping();
 
 provide(snappingKey, snapping);
 </script>
+
+<style lang="postcss">
+:root[data-slide-transition] .render {
+  @apply [view-transition-name:slide];
+}
+
+::view-transition-group(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  @apply animate-duration-$slide-duration animate-ease-$slide-easing;
+}
+
+::view-transition-group(slide) {
+  @apply overflow-clip;
+}
+
+:root[data-slide-transition="push"] {
+  &[data-slide-direction="forward"]::view-transition-old(slide) {
+    @apply animate-slide-out-left animate-duration-$slide-duration animate-ease-$slide-easing;
+  }
+
+  &[data-slide-direction="forward"]::view-transition-new(slide) {
+    @apply animate-slide-in-right animate-duration-$slide-duration animate-ease-$slide-easing;
+  }
+
+  &[data-slide-direction="back"]::view-transition-old(slide) {
+    @apply animate-slide-out-right animate-duration-$slide-duration animate-ease-$slide-easing;
+  }
+
+  &[data-slide-direction="back"]::view-transition-new(slide) {
+    @apply animate-slide-in-left animate-duration-$slide-duration animate-ease-$slide-easing;
+  }
+}
+</style>
