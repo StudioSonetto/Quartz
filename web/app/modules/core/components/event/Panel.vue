@@ -73,6 +73,32 @@
               @update:value="(slide: number) => patch(index, { slide })"
             />
           </NodeComponentRow>
+          <template v-if="handler.action === 'transition'">
+            <NodeComponentRow name="kind">
+              <NodeComponentRowFieldSelect
+                :options="SLIDE_TRANSITION_KINDS"
+                :value="handler.kind ?? 'fade'"
+                @update:value="
+                  (kind: string) =>
+                    patch(index, { kind: kind as SlideTransitionKind })
+                "
+              />
+            </NodeComponentRow>
+            <NodeComponentRow name="duration">
+              <NodeComponentRowFieldNumber
+                :value="handler.duration ?? DEFAULT_HANDLER_DURATION"
+                :min="0"
+                @update:value="(duration: number) => patch(index, { duration })"
+              />
+            </NodeComponentRow>
+            <NodeComponentRow name="easing">
+              <NodeComponentRowFieldSelect
+                :options="EASING_OPTIONS"
+                :value="handler.easing ?? 'ease-out'"
+                @update:value="(easing: string) => patch(index, { easing })"
+              />
+            </NodeComponentRow>
+          </template>
         </NodeComponentListEntry>
       </NodeComponentList>
     </NodeComponentRow>
@@ -118,6 +144,9 @@ function summary(handler: EventHandler) {
 
   if (isStateAction(handler.action))
     return `${handler.action} ${handler.state || "base"}`;
+
+  if (handler.action === "transition")
+    return `transition ${handler.kind ?? "fade"}`;
 
   return handler.action;
 }

@@ -8,6 +8,7 @@ export const EVENT_ACTIONS = [
   "nextSlide",
   "prevSlide",
   "goToSlide",
+  "transition",
 ] as const;
 
 export type EventTrigger = (typeof EVENT_TRIGGERS)[number];
@@ -21,6 +22,8 @@ export type EventHandler = {
   duration?: number;
   time?: number;
   slide?: number;
+  kind?: SlideTransitionKind;
+  easing?: string;
 };
 
 export function useEventDispatch() {
