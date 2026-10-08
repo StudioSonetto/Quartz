@@ -98,6 +98,16 @@
                 @update:value="(easing: string) => patch(index, { easing })"
               />
             </NodeComponentRow>
+            <NodeComponentRow v-if="onRoot" name="preview">
+              <UIButton
+                variant="icon"
+                aria-label="Preview transition"
+                :disabled="deck.currentSlidesIndex === 0"
+                @click="preview"
+              >
+                <div class="i-carbon-play"></div>
+              </UIButton>
+            </NodeComponentRow>
           </template>
         </NodeComponentListEntry>
       </NodeComponentList>
@@ -112,7 +122,8 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const { updateComponent } = useDeckStore();
+const deck = useDeckStore();
+const { updateComponent } = deck;
 const { getNodeComponent } = useNodeComponents();
 
 const component = computed(() =>
@@ -130,6 +141,23 @@ const names = computed(() => {
 
   return stateNames(node && getNodeComponent(node, "core.base")?.data);
 });
+
+const onRoot = computed(() => props.nodes[0]?.path === ROOT_PATH);
+
+async function preview() {
+  const here = deck.currentSlidesIndex;
+
+  await deck.goToSlide(here - 1);
+  await nextTick();
+
+  deck.slideTransitions = true;
+
+  try {
+    await deck.goToSlide(here);
+  } finally {
+    deck.slideTransitions = false;
+  }
+}
 
 const isStateAction = (action: string) =>
   action === "setState" || action === "toggleState";
