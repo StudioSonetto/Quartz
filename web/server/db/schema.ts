@@ -41,6 +41,7 @@ export const componentType = pgEnum("component_type", [
   "core.shape",
   "core.syntax",
   "core.transform",
+  "core.transition",
   "core.typography",
   "webgl.camera",
   "webgl.model",

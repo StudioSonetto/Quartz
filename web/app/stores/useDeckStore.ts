@@ -29,10 +29,7 @@ export const useDeckStore = defineStore("deck", () => {
       const i = slides.value.findIndex((s) => s.id === currentSlideId.value);
       return i === -1 ? 0 : i;
     },
-    set: (i) => {
-      const id = slides.value[i]?.id;
-      if (id) currentSlideId.value = id;
-    },
+    set: (i) => goToSlide(i),
   });
 
   const trees = ref<Map<string, Tree>>(new Map());
@@ -250,8 +247,45 @@ export const useDeckStore = defineStore("deck", () => {
   let entering = 0;
   let entered = Promise.resolve();
 
-  // Only the latest call runs hooks: the watcher and a page can both enter the
-  // same slide, and an enter toggle run twice undoes itself.
+  const slideTransitions = ref(false);
+  let arrived: Promise<unknown> = Promise.resolve();
+  let navigating = 0;
+
+  function goToSlide(index: number) {
+    const target = slides.value[index];
+
+    if (!target) return arrived;
+
+    const turn = ++navigating;
+
+    if (target.id === currentSlideId.value) return arrived;
+
+    const next = treeAt(index);
+    const plan =
+      slideTransitions.value &&
+      next?.id &&
+      slidePlan(
+        { tree: currentTree.value, components: currentComponents.value },
+        { tree: next, components: componentsAt(index) },
+      );
+    const change = () => {
+      if (turn === navigating) currentSlideId.value = target.id;
+    };
+
+    if (plan && "startViewTransition" in document)
+      arrived = playSlideTransition(
+        plan,
+        index < currentSlidesIndex.value,
+        change,
+      ).catch((err) => {
+        if (err?.name !== "AbortError") console.error(err);
+        change();
+      });
+    else change();
+
+    return arrived;
+  }
+
   function enterSlide() {
     const turn = ++entering;
 
@@ -261,6 +295,7 @@ export const useDeckStore = defineStore("deck", () => {
       const tree = await until(currentTree).toMatch((t) => !!t?.id);
 
       await nextTick();
+      await arrived;
 
       if (turn !== entering) return;
 
@@ -1683,17 +1718,17 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   function nextSlides() {
-    if (currentSlidesIndex.value >= slides.value.length - 1) return;
-    currentSlidesIndex.value++;
+    return goToSlide(currentSlidesIndex.value + 1);
   }
 
   function prevSlides() {
-    if (currentSlidesIndex.value <= 0) return;
-    currentSlidesIndex.value--;
+    return goToSlide(currentSlidesIndex.value - 1);
   }
 
   return {
     enterSlide,
+    slideTransitions,
+    goToSlide,
     onSlideEnter,
     whenEntered,
     slides,

@@ -10,6 +10,7 @@
     :key="`${props.node.path}:${saves}`"
     :style="[elementStyle]"
     :id="props.node.id"
+    :data-node="props.node.id"
     :class="{ root: props.node.path === ROOT_PATH }"
     ref="element"
     class="element"

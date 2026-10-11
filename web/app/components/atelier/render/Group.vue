@@ -2,6 +2,7 @@
   <div
     :class="isGridChild ? 'contents' : 'group-layer'"
     ref="container"
+    :data-node="props.node.id"
     :style="layerStyle"
     @click="onClick"
     @mouseenter="onHover"

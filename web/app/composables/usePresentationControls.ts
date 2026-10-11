@@ -3,6 +3,10 @@ export function usePresentationControls(
   onEscape?: () => void,
 ) {
   const deck = useDeckStore();
+
+  deck.slideTransitions = true;
+  onScopeDispose(() => (deck.slideTransitions = false));
+
   const { currentTree, clockSpans } = storeToRefs(deck);
   const { fireTree, hasAction } = useEventDispatch();
 

@@ -199,3 +199,21 @@ const snapping = useSnapping();
 
 provide(snappingKey, snapping);
 </script>
+
+<style lang="postcss">
+:root {
+  @apply [view-transition-name:none];
+}
+
+::view-transition {
+  @apply pointer-events-none;
+}
+
+.render {
+  @apply [view-transition-name:slide];
+}
+
+::view-transition-group(slide) {
+  @apply overflow-clip;
+}
+</style>

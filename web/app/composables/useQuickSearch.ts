@@ -24,11 +24,5 @@ export function useQuickSearch() {
   // same place as picking it any other way.
   const { select: selectNode } = useNodeSelection();
 
-  function goToSlide(index: number) {
-    if (index >= 0 && index < deck.slides.length) {
-      deck.currentSlidesIndex = index;
-    }
-  }
-
-  return { nodeResults, slideResults, selectNode, goToSlide };
+  return { nodeResults, slideResults, selectNode, goToSlide: deck.goToSlide };
 }

@@ -20,6 +20,7 @@ const STATELESS: ComponentType[] = [
   "core.base",
   "core.event",
   "core.path",
+  "core.transition",
 ];
 
 export function isStateless(type: ComponentType) {
@@ -173,6 +174,20 @@ export function ease(
   const points = bezierPoints(easing);
 
   return points ? cubicBezier(...points)(t) : t;
+}
+
+export function cssEasing(easing: string | undefined, duration: number) {
+  const steps = 32;
+
+  const points = Array.from({ length: steps + 1 }, (_, i) =>
+    i === 0
+      ? 0
+      : i === steps
+        ? 1
+        : +ease(easing, i / steps, duration).toFixed(4),
+  );
+
+  return `linear(${points.join(", ")})`;
 }
 
 export function stateAt(keys: StateKey[] | undefined, time: number) {
