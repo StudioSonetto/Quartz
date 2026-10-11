@@ -81,8 +81,12 @@
 const props = defineProps<{ rows: DopesheetRow[] }>();
 
 const { patchAnimation } = useDeckStore();
-const { view, pause, zoom, pan } = usePlayhead();
+const { view, playing, pause, zoom, pan } = usePlayhead();
 const { shownTime, overrun } = usePlayheadDisplay(() => props.rows);
+
+watch(shownTime, (t) => {
+  if (playing.value && !inView(t, view)) pan(t - view.start);
+});
 
 const track = useTemplateRef<HTMLElement>("track");
 

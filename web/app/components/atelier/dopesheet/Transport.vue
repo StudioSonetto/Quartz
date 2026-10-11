@@ -118,27 +118,23 @@ const readout = computed(() => {
   return props.overrun ? "looping" : formatSeconds(props.shownTime);
 });
 
-const drag = usePointerDrag();
+const startTimeDrag = useTimeDrag();
 
 const SNAP_PX = 3;
 
 const snapTargets = computed(() => props.rows.flatMap((row) => keyTimes(row)));
 
 function startScrub(event: PointerEvent) {
+  if (event.button !== 0) return;
+
   const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
-  const to = (e: PointerEvent) =>
-    seek(
-      snapTime(
-        timeAtPointer(box, e.clientX, view),
-        snapTargets.value,
-        (SNAP_PX / box.width) * view.span,
-      ),
-    );
+  const to = (t: number) =>
+    seek(snapTime(t, snapTargets.value, (SNAP_PX / box.width) * view.span));
 
   event.preventDefault();
-  drag.start(null, to);
-  to(event);
+  startTimeDrag(event, box, null, to);
+  to(timeAtPointer(box, event.clientX, view));
 }
 
 const step = (event: KeyboardEvent) => (event.shiftKey ? 1000 : 100);

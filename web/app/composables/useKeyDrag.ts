@@ -5,8 +5,8 @@ export function useKeyDrag(
   keys: () => { t: number }[],
   emit: (event: "move", from: number, to: number) => void,
 ) {
-  const { start } = usePointerDrag();
-  const { view, seek } = usePlayhead();
+  const startTimeDrag = useTimeDrag();
+  const { seek } = usePlayhead();
 
   return function startDrag(event: PointerEvent, key: { t: number }) {
     if (event.button !== 0) return;
@@ -21,11 +21,11 @@ export function useKeyDrag(
 
     draggedKeyTime.value = current;
 
-    start(
+    startTimeDrag(
+      event,
+      box,
       "Move key",
-      (e) => {
-        const to = timeAtPointer(box, e.clientX, view);
-
+      (to) => {
         if (to === current || keys().some((k) => k.t === to)) return;
 
         emit("move", current, to);
