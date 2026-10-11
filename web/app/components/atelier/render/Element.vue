@@ -103,7 +103,8 @@ if (navigate)
     navigate,
     () => props.node,
     element,
-    () => locked.value,
+    () => !presenting.value && isNodeLocked(props.node),
+    () => presenting.value,
   );
 
 const {

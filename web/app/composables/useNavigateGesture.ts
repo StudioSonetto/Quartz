@@ -1,4 +1,5 @@
 const WHEEL_SCALE = [1, 16, 800];
+const DRAG_THRESHOLD = 3;
 
 function swallowContextMenu() {
   const swallow = (event: MouseEvent) => {
@@ -22,6 +23,7 @@ export function useNavigateGesture(
   node: () => Tree,
   element: Readonly<Ref<HTMLElement | null>>,
   disabled: () => boolean,
+  presenting: () => boolean,
 ) {
   const drag = usePointerDrag();
   const atelier = useAtelierStore();
@@ -33,29 +35,49 @@ export function useNavigateGesture(
   const open = () => navigate(node());
 
   useEventListener(element, "pointerdown", (event: PointerEvent) => {
-    if ((event.button !== 1 && event.button !== 2) || disabled()) return;
+    const left = event.button === 0;
+
+    if (left ? !presenting() : event.button !== 1 && event.button !== 2) return;
+    if (disabled()) return;
 
     const gesture = open();
 
     if (!gesture) return;
 
-    event.preventDefault();
-
-    if (event.button === 2) swallowContextMenu();
+    if (!left) event.preventDefault();
 
     const pan = event.button === 1 || event.shiftKey;
 
     let last = { x: event.clientX, y: event.clientY };
 
-    drag.start(null, (ev) => {
-      const dx = ev.clientX - last.x;
-      const dy = ev.clientY - last.y;
+    const begin = () => {
+      if (event.button === 2) swallowContextMenu();
 
-      if (pan) gesture.pan(dx, dy);
-      else gesture.orbit(dx, dy);
+      drag.start(null, (ev) => {
+        const dx = ev.clientX - last.x;
+        const dy = ev.clientY - last.y;
 
-      last = { x: ev.clientX, y: ev.clientY };
+        if (pan) gesture.pan(dx, dy);
+        else gesture.orbit(dx, dy);
+
+        last = { x: ev.clientX, y: ev.clientY };
+      });
+    };
+
+    if (!presenting()) return begin();
+
+    const cancel = () => {
+      stopMove();
+      stopUp();
+    };
+    const stopMove = useEventListener(window, "pointermove", (ev) => {
+      if (Math.hypot(ev.clientX - last.x, ev.clientY - last.y) < DRAG_THRESHOLD)
+        return;
+
+      cancel();
+      begin();
     });
+    const stopUp = useEventListener(window, "pointerup", cancel);
   });
 
   useEventListener(
