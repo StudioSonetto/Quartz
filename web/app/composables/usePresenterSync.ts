@@ -97,7 +97,8 @@ export function usePresenterSync(
   async function apply({ slide, time, playing, states }: WatchState) {
     const turn = ++latest;
 
-    if (slide) deck.goToSlide(deck.slides.findIndex((s) => s.id === slide));
+    if (slide)
+      await deck.goToSlide(deck.slides.findIndex((s) => s.id === slide));
 
     // Lets a slide change start the store's enter step, whose reset must land first.
     await nextTick();

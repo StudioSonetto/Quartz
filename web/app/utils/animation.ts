@@ -20,6 +20,7 @@ const STATELESS: ComponentType[] = [
   "core.base",
   "core.event",
   "core.path",
+  "core.transition",
 ];
 
 export function isStateless(type: ComponentType) {

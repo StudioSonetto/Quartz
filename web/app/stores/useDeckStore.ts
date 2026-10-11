@@ -29,10 +29,7 @@ export const useDeckStore = defineStore("deck", () => {
       const i = slides.value.findIndex((s) => s.id === currentSlideId.value);
       return i === -1 ? 0 : i;
     },
-    set: (i) => {
-      const id = slides.value[i]?.id;
-      if (id) currentSlideId.value = id;
-    },
+    set: (i) => goToSlide(i),
   });
 
   const trees = ref<Map<string, Tree>>(new Map());
@@ -252,35 +249,39 @@ export const useDeckStore = defineStore("deck", () => {
 
   const slideTransitions = ref(false);
   let arrived: Promise<unknown> = Promise.resolve();
-
-  function rootHandlers(slideId: string) {
-    const root = trees.value.get(slideId);
-
-    return components.value
-      .get(slideId)
-      ?.find((c) => c.node === root?.id && c.type === "core.event")?.data
-      ?.handlers as EventHandler[] | undefined;
-  }
+  let navigating = 0;
 
   function goToSlide(index: number) {
     const target = slides.value[index];
 
-    if (!target || target.id === currentSlideId.value) return arrived;
+    if (!target) return arrived;
 
-    const back = index < currentSlidesIndex.value;
-    const handler = slideTransitions.value
-      ? transitionHandler(rootHandlers(target.id))
-      : undefined;
-    const change = () => (currentSlideId.value = target.id);
+    const turn = ++navigating;
 
-    if (!handler || !document.startViewTransition) {
-      change();
-      return arrived;
-    }
+    if (target.id === currentSlideId.value) return arrived;
 
-    arrived = playSlideTransition(handler, back, change, currentFlat).catch(
-      () => change(),
-    );
+    const next = treeAt(index);
+    const plan =
+      slideTransitions.value &&
+      next?.id &&
+      slidePlan(
+        { tree: currentTree.value, components: currentComponents.value },
+        { tree: next, components: componentsAt(index) },
+      );
+    const change = () => {
+      if (turn === navigating) currentSlideId.value = target.id;
+    };
+
+    if (plan && "startViewTransition" in document)
+      arrived = playSlideTransition(
+        plan,
+        index < currentSlidesIndex.value,
+        change,
+      ).catch((err) => {
+        if (err?.name !== "AbortError") console.error(err);
+        change();
+      });
+    else change();
 
     return arrived;
   }

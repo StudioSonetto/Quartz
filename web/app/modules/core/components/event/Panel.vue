@@ -73,42 +73,6 @@
               @update:value="(slide: number) => patch(index, { slide })"
             />
           </NodeComponentRow>
-          <template v-if="handler.action === 'transition'">
-            <NodeComponentRow name="kind">
-              <NodeComponentRowFieldSelect
-                :options="SLIDE_TRANSITION_KINDS"
-                :value="handler.kind ?? 'fade'"
-                @update:value="
-                  (kind: string) =>
-                    patch(index, { kind: kind as SlideTransitionKind })
-                "
-              />
-            </NodeComponentRow>
-            <NodeComponentRow name="duration">
-              <NodeComponentRowFieldNumber
-                :value="handler.duration ?? DEFAULT_HANDLER_DURATION"
-                :min="0"
-                @update:value="(duration: number) => patch(index, { duration })"
-              />
-            </NodeComponentRow>
-            <NodeComponentRow name="easing">
-              <NodeComponentRowFieldSelect
-                :options="EASING_OPTIONS"
-                :value="handler.easing ?? 'ease-out'"
-                @update:value="(easing: string) => patch(index, { easing })"
-              />
-            </NodeComponentRow>
-            <NodeComponentRow v-if="onRoot" name="preview">
-              <UIButton
-                variant="icon"
-                aria-label="Preview transition"
-                :disabled="deck.currentSlidesIndex === 0"
-                @click="preview"
-              >
-                <div class="i-carbon-play"></div>
-              </UIButton>
-            </NodeComponentRow>
-          </template>
         </NodeComponentListEntry>
       </NodeComponentList>
     </NodeComponentRow>
@@ -122,8 +86,7 @@ const props = defineProps<{
   icon: string;
 }>();
 
-const deck = useDeckStore();
-const { updateComponent } = deck;
+const { updateComponent } = useDeckStore();
 const { getNodeComponent } = useNodeComponents();
 
 const component = computed(() =>
@@ -142,23 +105,6 @@ const names = computed(() => {
   return stateNames(node && getNodeComponent(node, "core.base")?.data);
 });
 
-const onRoot = computed(() => props.nodes[0]?.path === ROOT_PATH);
-
-async function preview() {
-  const here = deck.currentSlidesIndex;
-
-  await deck.goToSlide(here - 1);
-  await nextTick();
-
-  deck.slideTransitions = true;
-
-  try {
-    await deck.goToSlide(here);
-  } finally {
-    deck.slideTransitions = false;
-  }
-}
-
 const isStateAction = (action: string) =>
   action === "setState" || action === "toggleState";
 
@@ -172,9 +118,6 @@ function summary(handler: EventHandler) {
 
   if (isStateAction(handler.action))
     return `${handler.action} ${handler.state || "base"}`;
-
-  if (handler.action === "transition")
-    return `transition ${handler.kind ?? "fade"}`;
 
   return handler.action;
 }
