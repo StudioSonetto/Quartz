@@ -1,4 +1,4 @@
-const MIN_SPAN = 5000;
+const MIN_SPAN = 500;
 
 const time = ref(0);
 const playing = ref(false);
@@ -6,10 +6,23 @@ const held = ref(false);
 const end = ref(0);
 const canPlay = ref(false);
 const endless = ref(false);
+const view = reactive<TimeView>({ start: 0, span: 5000 });
 
 const duration = computed(() =>
-  canPlay.value ? Math.max(end.value, MIN_SPAN) : 0,
+  canPlay.value ? Math.max(end.value, view.start + view.span) : 0,
 );
+
+// Keeps the time under the cursor where it is.
+function zoom(delta: number, at: number) {
+  const span = Math.max(view.span * Math.exp(delta / 500), MIN_SPAN);
+
+  view.start = Math.max(at - ((at - view.start) * span) / view.span, 0);
+  view.span = span;
+}
+
+function pan(by: number) {
+  view.start = Math.max(view.start + by, 0);
+}
 
 const playable = computed(() => end.value > 0);
 
@@ -21,7 +34,6 @@ function stop() {
   held.value = false;
 }
 
-// Keeps the raw time, so a mirror loop resumes in the direction it was going.
 function pause() {
   if (!playing.value) return;
 
@@ -32,7 +44,6 @@ function pause() {
 
 function play() {
   if (playing.value || !playable.value) return;
-  // A slide that never ends restarts only from its end, not when joined past it.
   if (endless.value ? time.value === end.value : time.value >= end.value)
     time.value = 0;
 
@@ -62,7 +73,6 @@ function seek(to: number, hold = false) {
 const nodeTime = (anim?: any) =>
   playing.value || held.value ? loopTime(anim, time.value) : time.value;
 
-// Paused past the timeline, a key lands at the end rather than stretching it.
 function keyTime(anim?: any) {
   const t = nodeTime(anim);
 
@@ -90,11 +100,14 @@ export function usePlayhead() {
     end: readonly(end),
     endless: readonly(endless),
     duration,
+    view: readonly(view),
     canPlay,
     playable,
     nodeTime,
     keyTime,
     setLength,
+    zoom,
+    pan,
     play,
     pause,
     seek,

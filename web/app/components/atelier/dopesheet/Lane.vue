@@ -8,14 +8,14 @@
     </p>
     <div ref="lane" class="dopesheet-lane-track">
       <div
-        v-for="key in props.keys"
+        v-for="key in props.keys.filter((k) => inView(k.t, view))"
         :key="key.t"
         :class="[
           'dopesheet-lane-key',
           props.state && 'is-state',
           key.easing && key.easing !== 'linear' && 'is-eased',
         ]"
-        :style="{ left: timePercent(key.t, props.duration) }"
+        :style="{ left: timePercent(key.t, view) }"
         :title="props.state ? key.name || 'base' : undefined"
         @pointerdown="startDrag($event, key)"
         @dblclick="emit('remove', key.t)"
@@ -65,7 +65,6 @@
 const props = defineProps<{
   label: string;
   keys: { t: number; name?: string; easing?: string }[];
-  duration: number;
   state?: boolean;
 }>();
 
@@ -85,11 +84,12 @@ function openMenu(event: MouseEvent, key: { t: number }) {
   ]);
 }
 
+const { view } = usePlayhead();
+
 const lane = useTemplateRef<HTMLElement>("lane");
 
 const startDrag = useKeyDrag(
   () => lane.value,
-  () => props.duration,
   () => props.keys,
   emit,
 );

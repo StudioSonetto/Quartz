@@ -1,6 +1,9 @@
 const WHEEL_SCALE = [1, 16, 800];
 const DRAG_THRESHOLD = 3;
 
+export const wheelScale = (event: WheelEvent) =>
+  WHEEL_SCALE[event.deltaMode] ?? 1;
+
 function swallowContextMenu() {
   const swallow = (event: MouseEvent) => {
     event.preventDefault();
@@ -92,10 +95,7 @@ export function useNavigateGesture(
 
       event.preventDefault();
 
-      zoom +=
-        event.deltaY *
-        (WHEEL_SCALE[event.deltaMode] ?? 1) *
-        (event.ctrlKey ? 10 : 1);
+      zoom += event.deltaY * wheelScale(event) * (event.ctrlKey ? 10 : 1);
 
       wheelFrame ||= requestAnimationFrame(() => {
         wheelFrame = 0;

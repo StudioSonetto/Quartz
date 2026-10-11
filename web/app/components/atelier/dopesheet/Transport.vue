@@ -33,9 +33,18 @@
       @keydown.left.prevent="seek(roundTime(props.shownTime) - step($event))"
       @keydown.right.prevent="seek(roundTime(props.shownTime) + step($event))"
     >
+      <span
+        v-for="tick in ticks"
+        :key="tick"
+        class="dopesheet-scrub-tick"
+        :style="{ left: timePercent(tick, view) }"
+      >
+        {{ +(tick / 1000).toFixed(2) }}s
+      </span>
       <div
+        v-if="inView(props.shownTime, view)"
         class="dopesheet-scrub-thumb"
-        :style="{ left: timePercent(props.shownTime, duration) }"
+        :style="{ left: timePercent(props.shownTime, view) }"
       />
     </div>
   </div>
@@ -63,6 +72,11 @@
     }
   }
 
+  .dopesheet-scrub-tick {
+    @apply absolute bottom-full -translate-x-1/2;
+    @apply ui-text-3 tabular-nums opacity-40 pointer-events-none;
+  }
+
   .dopesheet-scrub-thumb {
     @apply absolute top-1/2 w-2.5 h-2.5 border-rd bg-accent;
     @apply -translate-x-1/2 -translate-y-1/2;
@@ -83,8 +97,20 @@ const props = defineProps<{
 
 const emit = defineEmits<{ pause: [] }>();
 
-const { playing, duration, canPlay, playable, play, seek, reset } =
+const { playing, duration, view, canPlay, playable, play, seek, reset } =
   usePlayhead();
+
+const ticks = computed(() => {
+  const rough = view.span / 6;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const step = [1, 2, 5, 10].map((n) => n * power).find((s) => s >= rough)!;
+  const first = Math.ceil(view.start / step) * step;
+
+  return Array.from(
+    { length: Math.floor((view.start + view.span - first) / step) + 1 },
+    (_, i) => first + i * step,
+  );
+});
 
 const readout = computed(() => {
   if (draggedKeyTime.value !== null) return formatSeconds(draggedKeyTime.value);
@@ -104,9 +130,9 @@ function startScrub(event: PointerEvent) {
   const to = (e: PointerEvent) =>
     seek(
       snapTime(
-        timeAtPointer(box, e.clientX, duration.value),
+        timeAtPointer(box, e.clientX, view),
         snapTargets.value,
-        (SNAP_PX / box.width) * duration.value,
+        (SNAP_PX / box.width) * view.span,
       ),
     );
 

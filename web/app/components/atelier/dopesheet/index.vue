@@ -1,5 +1,5 @@
 <template>
-  <div class="dopesheet">
+  <div class="dopesheet" @wheel="onWheel" @pointerdown="startPan">
     <AtelierDopesheetTransport
       :rows="rows"
       :shown-time="shownTime"
@@ -9,10 +9,11 @@
     <div class="dopesheet-scroll">
       <div class="dopesheet-rows">
         <div class="dopesheet-playhead">
-          <div class="dopesheet-playhead-track">
+          <div ref="track" class="dopesheet-playhead-track">
             <div
+              v-if="inView(shownTime, view)"
               class="dopesheet-line"
-              :style="{ left: timePercent(shownTime, duration) }"
+              :style="{ left: timePercent(shownTime, view) }"
             />
           </div>
         </div>
@@ -23,7 +24,6 @@
             state
             label="state"
             :keys="row.stateKeys"
-            :duration="duration"
             @move="(from, to) => onMoveState(row.node, from, to)"
             @remove="(t) => onRemoveState(row.node, t)"
           />
@@ -32,7 +32,6 @@
             :key="i"
             :label="track.path.join('.')"
             :keys="track.keys"
-            :duration="duration"
             @move="(from, to) => onMoveKey(row.node, track, from, to)"
             @remove="(t) => onRemoveKey(row.node, track, t)"
           />
@@ -82,8 +81,50 @@
 const props = defineProps<{ rows: DopesheetRow[] }>();
 
 const { patchAnimation } = useDeckStore();
-const { duration, pause } = usePlayhead();
+const { view, pause, zoom, pan } = usePlayhead();
 const { shownTime, overrun } = usePlayheadDisplay(() => props.rows);
+
+const track = useTemplateRef<HTMLElement>("track");
+
+const msPerPx = () => view.span / track.value!.clientWidth;
+
+function onWheel(event: WheelEvent) {
+  const scale = wheelScale(event);
+  const sideways = event.deltaX || (event.shiftKey ? event.deltaY : 0);
+
+  if (sideways) {
+    event.preventDefault();
+
+    return pan(sideways * scale * msPerPx());
+  }
+
+  const onTimeBar = (event.target as Element).closest(".dopesheet-transport");
+
+  if (!onTimeBar && !event.ctrlKey) return;
+
+  event.preventDefault();
+
+  zoom(
+    event.deltaY * scale,
+    timeAtPointer(track.value!.getBoundingClientRect(), event.clientX, view),
+  );
+}
+
+const drag = usePointerDrag();
+
+function startPan(event: PointerEvent) {
+  if (event.button !== 1) return;
+
+  event.preventDefault();
+
+  const ms = msPerPx();
+  let x = event.clientX;
+
+  drag.start(null, (e) => {
+    pan((x - e.clientX) * ms);
+    x = e.clientX;
+  });
+}
 
 function onRemoveKey(node: string, track: Track, t: number) {
   patchAnimation(node, (data) => ({

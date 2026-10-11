@@ -208,14 +208,16 @@ export function keyedPaths(
   );
 }
 
+export type TimeView = { start: number; span: number };
+
 export function timeAtPointer(
   box: DOMRect,
   clientX: number,
-  duration: number,
+  view: TimeView,
 ): number {
   const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1);
 
-  return roundTime(ratio * duration);
+  return roundTime(view.start + ratio * view.span);
 }
 
 // Matches the 0.00s readout, so a time you can see is a time a key can sit on.
@@ -235,5 +237,8 @@ export function snapTime(t: number, targets: number[], within: number) {
   return Math.abs(nearest - t) <= within ? nearest : t;
 }
 
-export const timePercent = (t: number, duration: number) =>
-  `${duration ? (t / duration) * 100 : 0}%`;
+export const timePercent = (t: number, view: TimeView) =>
+  `${((t - view.start) / view.span) * 100}%`;
+
+export const inView = (t: number, view: TimeView) =>
+  t >= view.start && t <= view.start + view.span;
