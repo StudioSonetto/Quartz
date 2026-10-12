@@ -30,10 +30,22 @@
         data-path="root"
         data-type="core.group"
         :node="currentTree"
+        class="tree-appear"
       />
-      <div v-else class="loader">
-        <p>Loading...</p>
-      </div>
+      <template v-else>
+        <li
+          v-for="bar in [
+            'w-3/5',
+            'w-[45%] animate-delay-150',
+            'w-[70%] animate-delay-300',
+            'w-[35%] animate-delay-450',
+          ]"
+          :key="bar"
+          class="tree-skeleton"
+        >
+          <div class="animate-pulse" :class="bar" />
+        </li>
+      </template>
     </ul>
     <Modal ref="modal" title="Node creation">
       <form @submit="onSubmit">
@@ -82,8 +94,16 @@
     @apply outline-none;
   }
 
-  .loader {
-    @apply flex justify-center items-center h-full;
+  .tree-appear {
+    @apply animate-fade-in animate-duration-100;
+  }
+
+  .tree-skeleton {
+    @apply p-2;
+
+    div {
+      @apply h-3 rounded bg-light-200/10;
+    }
   }
 }
 </style>
