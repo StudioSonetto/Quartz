@@ -99,7 +99,7 @@
             class="dopesheet-end"
             :style="{ left: timePercent(end, view) }"
           />
-          <Transition name="dopesheet-fade">
+          <Transition name="fade-fast">
             <div
               v-if="inView(shownTime, view)"
               class="dopesheet-playhead"
@@ -243,16 +243,6 @@
   .dopesheet-group-enter-from,
   .dopesheet-group-leave-to {
     @apply opacity-0 -translate-y-1;
-  }
-
-  .dopesheet-fade-enter-active,
-  .dopesheet-fade-leave-active {
-    @apply transition-opacity duration-200;
-  }
-
-  .dopesheet-fade-enter-from,
-  .dopesheet-fade-leave-to {
-    @apply opacity-0;
   }
 }
 </style>

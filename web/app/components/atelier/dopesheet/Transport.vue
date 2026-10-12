@@ -23,7 +23,12 @@
         :aria-pressed="looping"
         @click="toggleLoop"
       >
-        <div :class="['i-carbon-renew', { 'opacity-60': !looping }]"></div>
+        <div
+          :class="[
+            'i-carbon-renew transition-opacity',
+            !looping && 'opacity-60',
+          ]"
+        ></div>
       </UIButton>
       <p class="dopesheet-transport-readout">
         <span>{{ readout }}</span>
@@ -39,7 +44,12 @@
         :aria-pressed="timeSnapping"
         @click="toggleSnap"
       >
-        <div :class="['i-carbon-ruler', { 'opacity-60': !timeSnapping }]"></div>
+        <div
+          :class="[
+            'i-carbon-ruler transition-opacity',
+            !timeSnapping && 'opacity-60',
+          ]"
+        ></div>
       </UIButton>
       <span class="dopesheet-transport-divider" />
       <UIButton variant="icon" aria-label="Zoom out" @click="zoomBy(1)">
@@ -63,10 +73,6 @@
 
   .dopesheet-transport-group {
     @apply flex items-center gap-3;
-
-    [class*="i-"] {
-      @apply transition-opacity duration-200;
-    }
   }
 
   .dopesheet-transport-readout {
