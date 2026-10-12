@@ -16,7 +16,7 @@
   @apply transition-[height];
 
   &.is-dopesheet {
-    @apply h-[20vh];
+    @apply h-[25vh] delay-150;
   }
 }
 
