@@ -1,5 +1,5 @@
 <template>
-  <div class="timeline">
+  <div :class="['timeline', rows.length && 'is-dopesheet']">
     <Transition name="timeline-swap" mode="out-in">
       <KeepAlive>
         <AtelierDopesheet v-if="rows.length" :rows="rows" />
@@ -13,6 +13,11 @@
 .timeline {
   @apply flex flex-col bg-dark-800 h-[15vh] w-full;
   @apply border-solid border-0 border-t-2 border-dark-200;
+  @apply transition-[height];
+
+  &.is-dopesheet {
+    @apply h-[20vh];
+  }
 }
 
 .timeline-swap-enter-active,
