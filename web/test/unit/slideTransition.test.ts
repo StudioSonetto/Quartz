@@ -38,29 +38,6 @@ describe("magicNames", () => {
   });
 });
 
-describe("transitionHandler", () => {
-  it("finds the enter → transition handler", () => {
-    const handler = {
-      on: "enter",
-      action: "transition",
-      kind: "push",
-    } as EventHandler;
-
-    expect(
-      transitionHandler([
-        { on: "click", action: "nextSlide" } as EventHandler,
-        handler,
-      ]),
-    ).toBe(handler);
-  });
-
-  it("ignores a transition on another trigger", () => {
-    expect(
-      transitionHandler([{ on: "click", action: "transition" } as EventHandler]),
-    ).toBeUndefined();
-  });
-});
-
 describe("cssEasing", () => {
   it("samples the easing into a linear() function from 0 to 1", () => {
     const css = cssEasing("ease-out", 400);

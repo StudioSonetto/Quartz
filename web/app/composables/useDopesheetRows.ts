@@ -1,5 +1,6 @@
 export type DopesheetRow = {
   node: string;
+  type: NodeType;
   name: string;
   tracks: Track[];
   stateKeys: StateKey[];
@@ -21,6 +22,7 @@ export function useDopesheetRows() {
 
       return {
         node: node.id,
+        type: node.type,
         name: node.name ?? "Node",
         tracks: (component?.data.tracks ?? []) as Track[],
         stateKeys: (component?.data.stateKeys ?? []) as StateKey[],

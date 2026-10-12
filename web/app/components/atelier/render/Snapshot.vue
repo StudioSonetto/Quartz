@@ -24,7 +24,7 @@
     @apply opacity-0;
 
     &.snapshot-loaded {
-      @apply opacity-100 animate-fade-in;
+      @apply opacity-100 animate-fade-in animate-duration-100;
     }
   }
 }

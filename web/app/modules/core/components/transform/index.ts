@@ -4,6 +4,7 @@ export default {
   type: "core.transform",
   icon: "i-carbon-shapes",
   inspector: Panel,
+  units: { rotation: "°" },
   defaultData: () => ({
     position: { x: 0, y: 0, z: 0 },
     size: { width: "auto", height: "auto" },

@@ -140,7 +140,6 @@ export function removeKey(
 
   const keys = existing.keys.filter((key) => key.t !== t);
 
-  // A track with no keys still claims the field, so the value would stick.
   return keys.length
     ? (tracks ?? []).map((track) =>
         track === existing ? { ...existing, keys } : track,
@@ -208,22 +207,25 @@ export function keyedPaths(
   );
 }
 
+export type TimeView = { start: number; span: number };
+
 export function timeAtPointer(
   box: DOMRect,
   clientX: number,
-  duration: number,
+  view: TimeView,
 ): number {
   const ratio = Math.min(Math.max((clientX - box.left) / box.width, 0), 1);
 
-  return roundTime(ratio * duration);
+  return roundTime(view.start + ratio * view.span);
 }
 
-// Matches the 0.00s readout, so a time you can see is a time a key can sit on.
 const TIME_STEP = 10;
 
 export const roundTime = (ms: number) => Math.round(ms / TIME_STEP) * TIME_STEP;
 
-export const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
+export const toSeconds = (ms: number) => (ms / 1000).toFixed(2);
+
+export const formatSeconds = (ms: number) => `${toSeconds(ms)}s`;
 
 export function snapTime(t: number, targets: number[], within: number) {
   const nearest = targets.reduce(
@@ -235,5 +237,41 @@ export function snapTime(t: number, targets: number[], within: number) {
   return Math.abs(nearest - t) <= within ? nearest : t;
 }
 
-export const timePercent = (t: number, duration: number) =>
-  `${duration ? (t / duration) * 100 : 0}%`;
+export const timePercent = (t: number, view: TimeView) =>
+  `${((t - view.start) / view.span) * 100}%`;
+
+export const inView = (t: number, view: TimeView) =>
+  t >= view.start && t <= view.start + view.span;
+
+function ticksIn(view: TimeView, step: number) {
+  const first = Math.ceil(view.start / step) * step;
+
+  return Array.from(
+    { length: Math.floor((view.start + view.span - first) / step) + 1 },
+    (_, i) => first + i * step,
+  );
+}
+
+export function rulerTicks(view: TimeView) {
+  const rough = view.span / 6;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const n = [1, 2, 5, 10].find((n) => n * power >= rough)!;
+  const major = n * power;
+
+  return {
+    major: ticksIn(view, major),
+    minor: ticksIn(view, major / (n === 5 ? 5 : 4)),
+  };
+}
+
+export function spanStyle(from: number, to: number, view: TimeView) {
+  const left = Math.max(from, view.start);
+  const right = Math.min(to, view.start + view.span);
+
+  if (right <= left) return undefined;
+
+  return {
+    left: timePercent(left, view),
+    width: `${((right - left) / view.span) * 100}%`,
+  };
+}

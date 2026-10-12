@@ -2,11 +2,11 @@ export const draggedKeyTime = ref<number | null>(null);
 
 export function useKeyDrag(
   lane: () => HTMLElement | null,
-  duration: () => number,
   keys: () => { t: number }[],
   emit: (event: "move", from: number, to: number) => void,
 ) {
-  const { start } = usePointerDrag();
+  const startTimeDrag = useTimeDrag();
+  const { seek } = usePlayhead();
 
   return function startDrag(event: PointerEvent, key: { t: number }) {
     if (event.button !== 0) return;
@@ -21,20 +21,23 @@ export function useKeyDrag(
 
     draggedKeyTime.value = current;
 
-    start(
-      "Move key",
-      (e) => {
-        const to = timeAtPointer(box, e.clientX, duration());
-
+    startTimeDrag(
+      event,
+      box,
+      (to) => {
         if (to === current || keys().some((k) => k.t === to)) return;
 
         emit("move", current, to);
         current = draggedKeyTime.value = to;
       },
-      () => {
-        draggedKeyTime.value = null;
+      {
+        label: "Move key",
+        skip: () => keys().map((k) => k.t),
+        onEnd: () => {
+          draggedKeyTime.value = null;
 
-        if (current === key.t) usePlayhead().seek(key.t);
+          if (current === key.t) seek(key.t);
+        },
       },
     );
   };
