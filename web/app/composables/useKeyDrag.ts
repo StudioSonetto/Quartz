@@ -24,17 +24,20 @@ export function useKeyDrag(
     startTimeDrag(
       event,
       box,
-      "Move key",
       (to) => {
         if (to === current || keys().some((k) => k.t === to)) return;
 
         emit("move", current, to);
         current = draggedKeyTime.value = to;
       },
-      () => {
-        draggedKeyTime.value = null;
+      {
+        label: "Move key",
+        skip: () => current,
+        onEnd: () => {
+          draggedKeyTime.value = null;
 
-        if (current === key.t) seek(key.t);
+          if (current === key.t) seek(key.t);
+        },
       },
     );
   };

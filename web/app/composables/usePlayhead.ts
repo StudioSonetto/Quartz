@@ -1,3 +1,6 @@
+import { animate } from "motion";
+import type { AnimationPlaybackControls } from "motion";
+
 const MIN_SPAN = 500;
 const DEFAULT_SPAN = 5000;
 
@@ -15,25 +18,52 @@ const duration = computed(() =>
 
 const limit = computed(() => Math.max(end.value, DEFAULT_SPAN) * 2);
 
+const clampSpan = (span: number) =>
+  Math.min(Math.max(span, MIN_SPAN), limit.value);
+
+const clampStart = (start: number, span: number) =>
+  Math.max(Math.min(start, limit.value - span), 0);
+
+let glider: AnimationPlaybackControls | undefined;
+
+function setView(start: number, span: number) {
+  glider?.stop();
+  view.start = start;
+  view.span = span;
+}
+
+// Animates a number and copies it in, never motion animating `view` itself.
+function glide(start: number, span: number) {
+  const from = { ...view };
+
+  glider?.stop();
+  glider = animate(0, 1, {
+    duration: 0.2,
+    ease: "easeOut",
+    onUpdate: (p) => {
+      view.start = from.start + (start - from.start) * p;
+      view.span = from.span + (span - from.span) * p;
+    },
+  });
+}
+
 const moveTo = (start: number) =>
-  (view.start = Math.max(Math.min(start, limit.value - view.span), 0));
+  setView(clampStart(start, view.span), view.span);
 
-const resize = (span: number) =>
-  (view.span = Math.min(Math.max(span, MIN_SPAN), limit.value));
+const resize = (span: number) => setView(view.start, clampSpan(span));
 
-function zoom(delta: number, at: number) {
-  const ratio = (at - view.start) / view.span;
+function zoom(delta: number, at: number, smooth = false) {
+  const span = clampSpan(view.span * Math.exp(delta / 500));
+  const start = clampStart(at - ((at - view.start) / view.span) * span, span);
 
-  resize(view.span * Math.exp(delta / 500));
-  moveTo(at - ratio * view.span);
+  (smooth ? glide : setView)(start, span);
 }
 
 const pan = (by: number) => moveTo(view.start + by);
 
-function fit() {
-  view.start = 0;
-  view.span = Math.max(end.value * 1.1, DEFAULT_SPAN);
-}
+const fitSpan = computed(() => Math.max(end.value * 1.1, DEFAULT_SPAN));
+
+const fit = () => glide(0, fitSpan.value);
 
 const playable = computed(() => end.value > 0);
 
@@ -113,6 +143,7 @@ export function usePlayhead() {
     duration,
     view: readonly(view),
     limit,
+    fitSpan,
     canPlay,
     playable,
     nodeTime,

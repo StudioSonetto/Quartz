@@ -275,7 +275,10 @@ export function keyTimes(data: any): number[] {
   ].map((key) => key.t);
 }
 
-type KeyRange = { first: number; last: number; span: number } | undefined;
+export const sortedKeyTimes = (data: any) =>
+  [...new Set(keyTimes(data))].sort((a, b) => a - b);
+
+type KeyRange ={ first: number; last: number; span: number } | undefined;
 
 const ranges = new WeakMap<object, KeyRange>();
 

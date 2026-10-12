@@ -21,20 +21,17 @@
 
 <style scoped lang="postcss">
 .dopesheet-navigator {
-  @apply flex items-center gap-3 h-2 mb-2 px-[var(--dopesheet-gutter)];
-  @apply overflow-hidden [scrollbar-gutter:stable];
-
-  &::before {
-    @apply content-[''] shrink-0 w-[var(--dopesheet-label)];
-  }
+  @apply flex items-center shrink-0 h-7;
+  @apply pl-[calc(var(--dopesheet-label)+var(--dopesheet-pad))];
+  @apply pr-[var(--dopesheet-pad)];
 
   .dopesheet-navigator-bar {
     @apply relative flex-1 h-1.5 border-rd-full bg-dark-200;
   }
 
   .dopesheet-navigator-thumb {
-    @apply absolute inset-y-0 max-w-full border-rd-full;
-    @apply bg-light-200/25 hover:bg-light-200/40 cursor-grab;
+    @apply absolute inset-y-0 max-w-full border-rd-full bg-light-200/25;
+    @apply cursor-grab hover:bg-light-200/40;
     @apply transition-colors duration-150;
   }
 

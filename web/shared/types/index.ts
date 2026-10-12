@@ -91,13 +91,12 @@ export interface ComponentTypeDef {
   inspector: Component;
   defaultData: () => Record<string, any>;
   optional?: boolean;
-  // Unlike accepts/parents, undeclared means every node type.
   only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
   fonts?: (data: Record<string, any>) => (string | undefined)[];
   // Fields auto-key never animates.
   unkeyed?: string[];
-  // Makes the slide at least this long, like a key does.
+  units?: Record<string, string>;
   clock?: (
     data: Record<string, any>,
   ) => { end: number; loops: boolean } | undefined;

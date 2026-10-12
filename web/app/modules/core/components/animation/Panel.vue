@@ -151,7 +151,7 @@ const lastBefore = (times: number[], t: number) =>
   times.filter((time) => time < t).at(-1);
 
 const times = computed(() =>
-  [...new Set(keyTimes(component.value?.data))].sort((a, b) => a - b),
+  sortedKeyTimes(component.value?.data),
 );
 
 const prev = computed(() => lastBefore(times.value, now.value));
