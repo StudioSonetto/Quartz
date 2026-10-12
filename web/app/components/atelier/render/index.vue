@@ -47,7 +47,7 @@
 .render {
   @apply w-full border-rd aspect-video;
   @apply bg-light-200 text-dark-900;
-  @apply relative overflow-hidden transition-opacity duration-150 ease-out;
+  @apply relative overflow-hidden transition-opacity duration-100 ease-out;
 
   &.render-loading {
     @apply bg-transparent;
@@ -70,7 +70,7 @@
   }
 
   .render-cover-leave-active {
-    @apply transition-opacity;
+    @apply transition-opacity duration-100;
   }
 
   .render-cover-leave-to {
