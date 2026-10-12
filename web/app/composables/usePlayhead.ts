@@ -1,3 +1,4 @@
+import { clamp } from "@vueuse/core";
 import { animate } from "motion";
 import type { AnimationPlaybackControls } from "motion";
 
@@ -18,8 +19,7 @@ const duration = computed(() =>
 
 const limit = computed(() => Math.max(end.value, DEFAULT_SPAN) * 2);
 
-const clampSpan = (span: number) =>
-  Math.min(Math.max(span, MIN_SPAN), limit.value);
+const clampSpan = (span: number) => clamp(span, MIN_SPAN, limit.value);
 
 const clampStart = (start: number, span: number) =>
   Math.max(Math.min(start, limit.value - span), 0);

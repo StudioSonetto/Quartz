@@ -3,32 +3,30 @@
     <div class="dopesheet-lane-label">
       <slot />
     </div>
-    <div class="dopesheet-lane-cell">
-      <div ref="lane" class="dopesheet-lane-time">
-        <div
-          v-if="props.keys.length > 1"
-          class="dopesheet-lane-span"
-          :style="spanStyle(props.keys[0]!.t, props.keys.at(-1)!.t, view)"
-        />
-        <div
-          v-for="key in props.keys.filter((k) => inView(k.t, view))"
-          :key="key.t"
-          :class="[
-            'dopesheet-lane-key',
-            props.state && 'is-state',
-            key.easing && key.easing !== 'linear' && 'is-eased',
-            key.t === props.current && 'is-current',
-          ]"
-          :style="{ left: timePercent(key.t, view) }"
-          :title="props.state ? key.name || 'base' : undefined"
-          @pointerdown="onPress($event, key)"
-          @dblclick="emit('remove', key.t)"
-          @contextmenu.prevent="!props.summary && openMenu($event, key)"
-        >
-          <span v-if="props.state" class="dopesheet-lane-key-name">
-            {{ key.name || "base" }}
-          </span>
-        </div>
+    <div ref="lane" class="dopesheet-lane-time">
+      <div
+        v-if="props.keys.length > 1"
+        class="dopesheet-lane-span"
+        :style="spanStyle(props.keys[0]!.t, props.keys.at(-1)!.t, view)"
+      />
+      <div
+        v-for="key in props.keys.filter((k) => inView(k.t, view))"
+        :key="key.t"
+        :class="[
+          'dopesheet-lane-key',
+          props.state && 'is-state',
+          key.easing && key.easing !== 'linear' && 'is-eased',
+          key.t === props.current && 'is-current',
+        ]"
+        :style="{ left: timePercent(key.t, view) }"
+        :title="props.state ? key.name || 'base' : undefined"
+        @pointerdown="onPress($event, key)"
+        @dblclick="emit('remove', key.t)"
+        @contextmenu.prevent="!props.summary && openMenu($event, key)"
+      >
+        <span v-if="props.state" class="dopesheet-lane-key-name">
+          {{ key.name || "base" }}
+        </span>
       </div>
     </div>
   </div>
@@ -49,12 +47,8 @@
     @apply ui-text-3;
   }
 
-  .dopesheet-lane-cell {
-    @apply flex-1 min-w-0 px-[var(--dopesheet-pad)];
-  }
-
   .dopesheet-lane-time {
-    @apply relative h-full;
+    @apply relative flex-1 min-w-0 mx-[var(--dopesheet-pad)];
   }
 
   .dopesheet-lane-span {

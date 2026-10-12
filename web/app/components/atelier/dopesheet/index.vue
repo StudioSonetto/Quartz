@@ -43,7 +43,6 @@
             <span class="dopesheet-node-name">{{ row.name }}</span>
             <span class="dopesheet-muted">
               {{ trackCount(row) }}
-              {{ trackCount(row) === 1 ? "track" : "tracks" }}
             </span>
           </AtelierDopesheetLane>
           <Transition name="dopesheet-fold">
@@ -269,8 +268,11 @@ const folded = reactive(new Set<string>());
 
 const fold = (node: string) => folded.delete(node) || folded.add(node);
 
-const trackCount = (row: DopesheetRow) =>
-  row.tracks.length + (row.stateKeys.length ? 1 : 0);
+function trackCount(row: DopesheetRow) {
+  const n = row.tracks.length + (row.stateKeys.length ? 1 : 0);
+
+  return `${n} ${n === 1 ? "track" : "tracks"}`;
+}
 
 const summaryKeys = (row: DopesheetRow) =>
   sortedKeyTimes(row).map((t) => ({ t }));
