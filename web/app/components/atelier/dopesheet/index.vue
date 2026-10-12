@@ -139,7 +139,7 @@
   }
 
   .dopesheet-scroll {
-    @apply flex-1 min-h-0 overflow-y-auto [scrollbar-width:none];
+    @apply relative flex-1 min-h-0 overflow-y-auto [scrollbar-width:none];
   }
 
   .dopesheet-fold,
@@ -231,8 +231,13 @@
   }
 
   .dopesheet-group-enter-active,
-  .dopesheet-group-leave-active {
+  .dopesheet-group-leave-active,
+  .dopesheet-group-move {
     @apply transition-all duration-200;
+  }
+
+  .dopesheet-group-leave-active {
+    @apply absolute inset-x-0;
   }
 
   .dopesheet-group-enter-from,
