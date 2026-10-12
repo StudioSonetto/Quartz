@@ -51,7 +51,7 @@
     @apply h-full pl-2 pt-1;
     @apply border-solid border-0 border-l-1 border-light-200/25;
     @apply ui-text-3 leading-none tabular-nums whitespace-nowrap;
-    @apply text-light-200/60;
+    @apply text-light-200/60 font-200;
   }
 }
 </style>

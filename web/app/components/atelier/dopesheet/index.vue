@@ -117,7 +117,7 @@
 <style scoped lang="postcss">
 .dopesheet {
   @apply flex flex-col flex-1 min-h-0;
-  @apply [--dopesheet-label:17rem] [--dopesheet-pad:1.5rem];
+  @apply [--dopesheet-label:20rem] [--dopesheet-pad:1.5rem];
 
   .dopesheet-body {
     @apply relative flex flex-col flex-1 min-h-0;
@@ -129,13 +129,13 @@
   }
 
   .dopesheet-header {
-    @apply flex shrink-0 h-8;
+    @apply flex shrink-0 h-10;
     @apply border-solid border-0 border-b-2 border-dark-200;
   }
 
   .dopesheet-header-label {
     @apply flex items-center shrink-0 w-[var(--dopesheet-label)] px-5;
-    @apply ui-text-3 font-300 uppercase opacity-80;
+    @apply ui-text-3 font-200 uppercase opacity-60;
   }
 
   .dopesheet-scroll {
@@ -144,7 +144,8 @@
 
   .dopesheet-fold,
   .dopesheet-key-toggle {
-    @apply flex border-none bg-transparent text-inherit cursor-pointer;
+    @apply flex justify-center shrink-0 w-4;
+    @apply border-none bg-transparent text-inherit cursor-pointer;
     @apply opacity-60 hover:opacity-100 transition-opacity duration-150;
   }
 
@@ -165,7 +166,7 @@
   }
 
   .dopesheet-node-icon {
-    @apply shrink-0 ui-text-4;
+    @apply shrink-0 w-4 h-4;
   }
 
   .dopesheet-node-name {
@@ -173,11 +174,15 @@
   }
 
   .dopesheet-property {
-    @apply truncate pl-7;
+    @apply truncate pl-12;
   }
 
   .dopesheet-muted {
     @apply shrink-0 ml-auto tabular-nums opacity-60;
+
+    &:last-child {
+      @apply mr-6;
+    }
   }
 
   .dopesheet-key-toggle-icon {
