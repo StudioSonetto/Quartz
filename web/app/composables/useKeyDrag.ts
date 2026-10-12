@@ -32,7 +32,7 @@ export function useKeyDrag(
       },
       {
         label: "Move key",
-        skip: () => current,
+        skip: () => keys().map((k) => k.t),
         onEnd: () => {
           draggedKeyTime.value = null;
 

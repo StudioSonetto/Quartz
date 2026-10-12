@@ -36,5 +36,5 @@ const rows = useDopesheetRows();
 const { reset, fit } = usePlayhead();
 
 whenever(() => !rows.value.length, reset);
-onScopeDispose(useDeckStore().onSlideEnter(fit));
+onScopeDispose(useDeckStore().onSlideEnter(() => fit()));
 </script>

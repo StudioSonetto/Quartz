@@ -18,13 +18,14 @@ export function useTimeDrag() {
       label,
       onEnd,
       skip,
-    }: { label?: string; onEnd?: () => void; skip?: () => number } = {},
+    }: { label?: string; onEnd?: () => void; skip?: () => number[] } = {},
   ) {
     let x = event.clientX;
 
     const update = () => {
       const t = timeAtPointer(box, x, view);
-      const near = targets().filter((target) => target !== skip?.());
+      const skipped = skip?.() ?? [];
+      const near = targets().filter((target) => !skipped.includes(target));
 
       onTime(
         timeSnapping.value

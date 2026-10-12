@@ -261,7 +261,7 @@ watch(shownTime, (t) => {
 
 provide(SNAP_TARGETS, () => [
   ...props.rows.flatMap((row) => keyTimes(row)),
-  ...rulerTicks(view).minor,
+  ...rulerTicks(view).minor.map(roundTime),
 ]);
 
 const folded = reactive(new Set<string>());
@@ -318,7 +318,10 @@ const msPerPx = () => view.span / timeBox.value!.clientWidth;
 
 function onWheel(event: WheelEvent) {
   const scale = wheelScale(event);
-  const sideways = event.deltaX || (event.shiftKey ? event.deltaY : 0);
+  const sideways =
+    Math.abs(event.deltaX) > Math.abs(event.deltaY)
+      ? event.deltaX
+      : event.shiftKey && event.deltaY;
 
   if (sideways) {
     event.preventDefault();
