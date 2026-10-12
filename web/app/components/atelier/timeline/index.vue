@@ -28,7 +28,8 @@
 
 <script setup lang="ts">
 const rows = useDopesheetRows();
-const { reset } = usePlayhead();
+const { reset, fit } = usePlayhead();
 
 whenever(() => !rows.value.length, reset);
+onScopeDispose(useDeckStore().onSlideEnter(fit));
 </script>

@@ -6,6 +6,7 @@
       :overrun="overrun"
       @pause="pause"
     />
+    <AtelierDopesheetNavigator />
     <div class="dopesheet-scroll">
       <div class="dopesheet-rows">
         <div class="dopesheet-playhead">

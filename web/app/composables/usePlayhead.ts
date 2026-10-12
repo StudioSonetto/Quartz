@@ -13,20 +13,19 @@ const duration = computed(() =>
   canPlay.value ? Math.max(end.value, view.start + view.span) : 0,
 );
 
-const limit = () => Math.max(end.value, DEFAULT_SPAN) * 2;
+const limit = computed(() => Math.max(end.value, DEFAULT_SPAN) * 2);
 
 const moveTo = (start: number) =>
-  (view.start = Math.max(Math.min(start, limit() - view.span), 0));
+  (view.start = Math.max(Math.min(start, limit.value - view.span), 0));
+
+const resize = (span: number) =>
+  (view.span = Math.min(Math.max(span, MIN_SPAN), limit.value));
 
 function zoom(delta: number, at: number) {
-  const span = Math.min(
-    Math.max(view.span * Math.exp(delta / 500), MIN_SPAN),
-    limit(),
-  );
-  const start = at - ((at - view.start) * span) / view.span;
+  const ratio = (at - view.start) / view.span;
 
-  view.span = span;
-  moveTo(start);
+  resize(view.span * Math.exp(delta / 500));
+  moveTo(at - ratio * view.span);
 }
 
 const pan = (by: number) => moveTo(view.start + by);
@@ -113,6 +112,7 @@ export function usePlayhead() {
     endless: readonly(endless),
     duration,
     view: readonly(view),
+    limit,
     canPlay,
     playable,
     nodeTime,
@@ -120,6 +120,8 @@ export function usePlayhead() {
     setLength,
     zoom,
     pan,
+    moveTo,
+    resize,
     fit,
     play,
     pause,
