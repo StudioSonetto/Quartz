@@ -13,6 +13,10 @@
     <template v-if="activeTab === 2">
       <AtelierInspectorViewExports />
     </template>
+
+    <template v-if="activeTab === 3">
+      <AtelierInspectorViewApprentice />
+    </template>
   </div>
 </template>
 
@@ -22,7 +26,8 @@
   @apply flex flex-col flex-shrink-0;
 
   .hierarchy,
-  .properties {
+  .properties,
+  .apprentice {
     @apply flex-1 overflow-y-hidden;
   }
 }

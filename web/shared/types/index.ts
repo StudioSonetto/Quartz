@@ -100,6 +100,8 @@ export interface ComponentTypeDef {
   clock?: (
     data: Record<string, any>,
   ) => { end: number; loops: boolean } | undefined;
+  // Apprentice: `items` gives one sample entry per list field, to check writes.
+  ai?: { description?: string; fields?: Record<string, string>; items?: Record<string, unknown[]> };
 }
 
 export type DefaultComponent =
@@ -169,6 +171,7 @@ export interface NodeTypeDef {
   asset?: AssetDropDef;
   sizing?: "free" | "fixed" | "derived";
   editing?: (node: Tree) => boolean;
+  ai?: { description?: string; fields?: Record<string, string> };
 }
 
 export interface Command {

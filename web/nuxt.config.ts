@@ -61,6 +61,23 @@ export default defineNuxtConfig({
     "/": { prerender: true },
     "/docs/**": { prerender: true },
     "/legal/**": { prerender: true },
+    "/**": {
+      headers: {
+        "Content-Security-Policy-Report-Only": [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://va.vercel-scripts.com",
+          "style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com",
+          "font-src 'self' data: https://cdn.fontshare.com https://fonts.gstatic.com",
+          "img-src 'self' data: blob: https://*.supabase.co",
+          "media-src 'self' blob: https://*.supabase.co",
+          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://api.github.com https://vitals.vercel-insights.com",
+          "frame-src https://challenges.cloudflare.com",
+          "worker-src 'self' blob:",
+          "object-src 'none'",
+          "base-uri 'self'",
+        ].join("; "),
+      },
+    },
     ...Object.fromEntries(
       spaRoutes.map((route) => [`${route}/**`, { ssr: false, sitemap: false }]),
     ),

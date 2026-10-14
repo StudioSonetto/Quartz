@@ -119,6 +119,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  stopApprentice(id);
   snapshotScheduler.stop();
 
   useAnimationState().reset();

@@ -1,11 +1,14 @@
 // @unocss-include
 
+export const ATELIER_TABS = [
+  { name: "Editor", icon: "i-carbon-legend" },
+  { name: "Assets", icon: "i-carbon-folders" },
+  { name: "Exports", icon: "i-carbon-export" },
+  { name: "Apprentice", icon: "i-carbon-chat" },
+];
+
 export const useAtelierStore = defineStore("atelier", () => {
-  const tabs = ref([
-    { name: "Editor", icon: "i-carbon-legend" },
-    { name: "Assets", icon: "i-carbon-folders" },
-    { name: "Exports", icon: "i-carbon-export" },
-  ]);
+  const tabs = ref(ATELIER_TABS);
   const activeTab = ref<number>(0);
 
   const canvasSize = ref<{ width: number; height: number }>({

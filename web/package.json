@@ -15,6 +15,7 @@
     "typecheck": "vue-tsc -b"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@discord/embedded-app-sdk": "^2.0.0",
     "@iconify-json/carbon": "^1.2.24",
     "@nuxt/content": "^3.15.0",

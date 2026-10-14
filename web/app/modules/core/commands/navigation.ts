@@ -1,4 +1,4 @@
-const TAB_NAMES = ["Editor", "Assets", "Exports"];
+import { ATELIER_TABS } from "~/stores/useAtelierStore";
 
 const openPalette: Command = {
   id: "core.view.palette",
@@ -10,7 +10,7 @@ const openPalette: Command = {
   run: (ctx) => ctx.atelier.togglePalette(),
 };
 
-const tabCommands: Command[] = TAB_NAMES.map((name, i) => ({
+const tabCommands: Command[] = ATELIER_TABS.map(({ name }, i) => ({
   id: `core.view.tab.${i}`,
   title: `Go to ${name}`,
   category: "View",
