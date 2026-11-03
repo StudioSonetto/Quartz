@@ -33,7 +33,7 @@
     @apply relative;
 
     input {
-      @apply w-full p-0 ui-text-3;
+      @apply w-full p-0;
     }
 
     .dropdown {
@@ -44,7 +44,7 @@
       @apply overflow-y-scroll max-h-[12vh];
 
       button {
-        @apply flex justify-start py-2 ui-text-3;
+        @apply flex justify-start py-2;
       }
     }
   }

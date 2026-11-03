@@ -36,7 +36,7 @@
     @apply border-solid border-0 border-b-1 border-dark-200;
 
     h1 {
-      @apply text-lg font-500;
+      @apply ui-text-5 font-500;
     }
 
     span {

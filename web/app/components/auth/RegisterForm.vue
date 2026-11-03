@@ -27,7 +27,7 @@
     <div class="whitespace"></div>
     <p v-if="error" class="text-center text-red-500">ERROR: {{ error }}</p>
   </form>
-  <div v-else class="text-center text-5">
+  <div v-else class="text-center ui-text-5">
     <p>A verification email has been sent to your email address.</p>
   </div>
 </template>
