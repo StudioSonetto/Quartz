@@ -33,7 +33,7 @@ pre,
 samp,
 select,
 textarea {
-  @apply font-inherit;
+  @apply [font:inherit];
 }
 
 a,
@@ -96,7 +96,7 @@ main {
 select {
   @apply bg-transparent;
   @apply border-0! border-b-1! border-light-200;
-  @apply ui-text-3 text-light-200
+  @apply ui-text-3 text-light-200;
   @apply py-4 cursor-pointer;
 
   option {

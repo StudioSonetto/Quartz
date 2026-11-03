@@ -81,11 +81,10 @@
 
     .name {
       @apply p-0 border-none bg-transparent cursor-pointer;
-      @apply ui-text-3 text-nowrap;
+      @apply text-nowrap;
     }
 
     .reference {
-      @apply ui-text-3;
       @apply italic mx-2 opacity-60;
       @apply transition-opacity;
     }

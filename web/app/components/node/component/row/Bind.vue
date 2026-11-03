@@ -60,15 +60,14 @@
   .bind-option,
   .bind-clear {
     @apply bg-transparent border-none text-left text-light-200 cursor-pointer;
-    @apply ui-text-3;
   }
 
   .bind-expression {
-    @apply bg-transparent border-none text-light-200 ui-text-3;
+    @apply bg-transparent border-none text-light-200;
   }
 
   .bind-error {
-    @apply ui-text-3 text-red-400;
+    @apply text-red-400;
   }
 }
 </style>

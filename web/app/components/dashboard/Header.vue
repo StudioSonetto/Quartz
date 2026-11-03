@@ -43,7 +43,7 @@ async function fromTemplate(template: string) {
   @apply flex items-center justify-between;
 
   p {
-    @apply text-base font-500;
+    @apply ui-text-4 font-500;
   }
 
   .dashboard-header-actions {

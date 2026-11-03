@@ -13,7 +13,7 @@
 
 <style scoped lang="postcss">
 .rail {
-  @apply bg-dark-500 w-[80px];
+  @apply bg-dark-500 w-16;
   @apply flex flex-col flex-shrink-0;
 
   button {

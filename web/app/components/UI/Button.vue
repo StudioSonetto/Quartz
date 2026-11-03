@@ -51,7 +51,7 @@
 }
 
 .ui-button--nav {
-  @apply w-20 h-20 rounded-none;
+  @apply w-16 h-16 rounded-none;
   @apply ui-text-5;
   @apply hover:bg-light-200 hover:text-dark-500;
 }

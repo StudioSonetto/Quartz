@@ -10,7 +10,7 @@
   @apply w-screen h-screen;
 
   p {
-    @apply text-center text-5;
+    @apply text-center ui-text-5;
   }
 }
 </style>
