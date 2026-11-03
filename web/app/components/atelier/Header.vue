@@ -65,7 +65,7 @@
       @apply flex flex-col flex-1 m-0 gap-40 justify-between;
 
       h5 {
-        @apply text-lg text-center;
+        @apply ui-text-4 text-center;
       }
 
       p {
