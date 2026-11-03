@@ -55,7 +55,7 @@
 <style scoped lang="postcss">
 .atelier-header {
   @apply flex justify-between items-center;
-  @apply bg-dark-500 h-20;
+  @apply bg-dark-500 h-16;
   @apply border-solid border-0 border-b-2 border-dark-200;
 
   form {
@@ -93,7 +93,7 @@
   }
 
   input {
-    @apply text-4 text-center border-none;
+    @apply ui-text-3 text-center border-none;
     @apply hover-underline focus-underline;
     @apply field-sizing-content;
   }
