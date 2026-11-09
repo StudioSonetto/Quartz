@@ -408,7 +408,7 @@ const selectedAsset = ref<Asset>();
 
 const selectedFamily = ref<string>();
 
-const openModal = ref<"image" | "video" | "font" | "model">();
+const openModal = ref<AssetKind>();
 
 function openMediaModal(asset: Asset) {
   selectedAsset.value = asset;

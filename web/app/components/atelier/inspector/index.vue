@@ -1,16 +1,16 @@
 <template>
   <div class="inspector border-r">
-    <template v-if="activeTab === 0">
+    <template v-if="activeTab === 'editor'">
       <AtelierInspectorViewHierarchy />
       <div class="whitespace"></div>
       <AtelierInspectorViewProperties />
     </template>
 
-    <template v-if="activeTab === 1">
+    <template v-if="activeTab === 'assets'">
       <AtelierInspectorViewAssets />
     </template>
 
-    <template v-if="activeTab === 2">
+    <template v-if="activeTab === 'exports'">
       <AtelierInspectorViewExports />
     </template>
   </div>

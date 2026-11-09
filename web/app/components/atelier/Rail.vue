@@ -1,12 +1,12 @@
 <template>
   <aside class="rail border-r">
     <UIButton
-      v-for="(tab, index) in tabs"
-      :key="tab.name"
+      v-for="tab in tabs"
+      :key="tab.id"
       variant="nav"
-      @click="setActiveTab(index)"
+      @click="setActiveTab(tab.id)"
     >
-      <div :class="[tab.icon, { 'opacity-60': index !== activeTab }]"></div>
+      <div :class="[tab.icon, { 'opacity-60': tab.id !== activeTab }]"></div>
     </UIButton>
   </aside>
 </template>

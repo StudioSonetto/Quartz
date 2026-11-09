@@ -3,12 +3,12 @@
 type Tool = "select" | "pen" | "point" | "text";
 
 export const useAtelierStore = defineStore("atelier", () => {
-  const tabs = ref([
-    { name: "Editor", icon: "i-carbon-legend" },
-    { name: "Assets", icon: "i-carbon-folders" },
-    { name: "Exports", icon: "i-carbon-export" },
+  const tabs = ref<{ id: AtelierTab; icon: string }[]>([
+    { id: "editor", icon: "i-carbon-legend" },
+    { id: "assets", icon: "i-carbon-folders" },
+    { id: "exports", icon: "i-carbon-export" },
   ]);
-  const activeTab = ref<number>(0);
+  const activeTab = ref<AtelierTab>("editor");
 
   const canvasSize = ref<{ width: number; height: number }>({
     width: 1920,
@@ -49,8 +49,8 @@ export const useAtelierStore = defineStore("atelier", () => {
     selectedPoints.value = new Set();
   }
 
-  function setActiveTab(index: number) {
-    activeTab.value = index;
+  function setActiveTab(tab: AtelierTab) {
+    activeTab.value = tab;
   }
 
   function setIsDragging(value: boolean) {

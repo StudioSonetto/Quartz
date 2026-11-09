@@ -44,6 +44,8 @@ export const EMPTY_TREE: Tree = {
   children: [],
 };
 
+export type AtelierTab = "editor" | "assets" | "exports";
+
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "offline";
 
 export interface RenderSpan {
@@ -198,7 +200,7 @@ export interface CommandContext {
   unlockedNodes: Tree[];
   alignableNodes: Tree[];
   selectedNodeIds: string[];
-  activeTab: number;
+  activeTab: AtelierTab;
   focus: AtelierFocus;
   deckId: string | null;
 }
