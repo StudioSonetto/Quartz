@@ -31,7 +31,7 @@
 
   .overlay {
     @apply fixed bottom-18 bg-dark-900 p-3 rounded-6 ui-text-3;
-    @apply transition-opacity duration-300;
+    @apply transition-opacity duration-300 [view-transition-name:live-overlay];
   }
 }
 </style>
