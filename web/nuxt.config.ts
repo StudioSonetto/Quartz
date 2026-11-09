@@ -44,7 +44,11 @@ export default defineNuxtConfig({
     xsl: false,
     zeroRuntime: true,
   },
+  experimental: {
+    viewTransition: true,
+  },
   app: {
+    viewTransition: false,
     head: {
       htmlAttrs: { lang: "en" },
       link: [

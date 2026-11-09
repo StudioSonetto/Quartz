@@ -91,7 +91,7 @@
       }
 
       label {
-        @apply ui-text-3 w-1/3;
+        @apply w-1/3;
       }
 
       .fields {

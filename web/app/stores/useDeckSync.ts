@@ -128,8 +128,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
     if (isEmptyPayload(payload)) {
       clearFlushed(snapshot);
 
-      // Everything in the batch resolved to nothing — a deleted slide's
-      // leftovers. Without this the chip stays on "saving" forever.
       status.value = hasPending.value ? "saving" : "saved";
 
       return;
@@ -154,8 +152,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
         (err as FetchError)?.statusCode ??
         (err as FetchError)?.response?.status;
 
-      // 401 is a session blip and a network error has no code; the rest of 4xx
-      // can never succeed, and requeueing one wedges every later save behind it.
       const retryable = !code || code >= 500 || [401, 408, 429].includes(code);
 
       if (!retryable) {
@@ -179,6 +175,18 @@ export const useDeckSync = defineStore("deck-sync", () => {
     } finally {
       flushing.value = false;
     }
+  }
+
+  // Saves everything now and waits; false if something couldn't be saved.
+  async function settle() {
+    while (flushing.value || hasPending.value) {
+      if (flushing.value) await until(flushing).toBe(false);
+      else await flush();
+
+      if (status.value === "error" || status.value === "offline") return false;
+    }
+
+    return true;
   }
 
   function flushBeacon() {
@@ -212,9 +220,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
   function restoreSnapshot(snapshot: OutboxSnapshot) {
     for (const id of snapshot.dirtyNodes) dirtyNodes.value.add(id);
 
-    // A key re-queued the other way while the flush was in flight is the newer
-    // intent. Restoring over it would put the same key in both sets, and the
-    // server applies deletes last — so a re-added component would be destroyed.
     for (const key of snapshot.dirtyComponents) {
       if (!deletedComponents.value.has(key)) dirtyComponents.value.add(key);
     }
@@ -238,6 +243,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     dropSlide,
     flush,
     flushBeacon,
+    settle,
     scheduleFlush,
   };
 });

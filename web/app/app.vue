@@ -6,6 +6,36 @@
 </template>
 
 <style lang="postcss">
+::view-transition-old(.deck-card),
+::view-transition-new(.deck-card) {
+  @apply animate-none opacity-0;
+}
+
+::view-transition-old(.deck-canvas),
+::view-transition-new(.deck-canvas) {
+  @apply animate-none;
+}
+
+::view-transition-old(.deck-card):only-child,
+::view-transition-old(.deck-canvas):only-child {
+  @apply animate-fade-out;
+  @apply animate-duration-200 [animation-fill-mode:both];
+}
+
+::view-transition-new(.deck-card):only-child,
+::view-transition-new(.deck-canvas):only-child {
+  @apply animate-fade-in;
+  @apply animate-duration-200 [animation-fill-mode:both];
+}
+
+::view-transition-old(root) {
+  @apply animate-duration-200;
+}
+
+::view-transition-group(.deck-canvas) {
+  @apply animate-duration-400 animate-delay-200 animate-ease-out;
+}
+
 ::selection,
 ::highlight(quartz-text) {
   @apply bg-accent text-light-200;
@@ -13,6 +43,10 @@
 
 * {
   @apply m-0 p-0 box-border outline-none;
+}
+
+html {
+  @apply bg-dark-900;
 }
 
 body {
@@ -33,7 +67,7 @@ pre,
 samp,
 select,
 textarea {
-  @apply font-inherit;
+  @apply [font:inherit];
 }
 
 a,
@@ -96,7 +130,7 @@ main {
 select {
   @apply bg-transparent;
   @apply border-0! border-b-1! border-light-200;
-  @apply ui-text-3 text-light-200
+  @apply ui-text-3 text-light-200;
   @apply py-4 cursor-pointer;
 
   option {
@@ -126,6 +160,15 @@ textarea {
 
 .fade-enter-active {
   @apply transition-opacity duration-500;
+}
+
+.page-fade {
+  @apply animate-fade-in;
+  @apply animate-duration-200;
+}
+
+.morphing:has(.preview-deck, .render-deck) .page-fade {
+  @apply animate-delay-600 [animation-fill-mode:both];
 }
 
 .fade-fast-enter-active,
@@ -162,4 +205,30 @@ useSeoMeta({
 });
 
 useHead({ link: [{ rel: "canonical", href: url }] });
+
+const pageTransition = useState<ViewTransition | null>(
+  "page-transition",
+  () => null,
+);
+
+useNuxtApp().hook("page:view-transition:start", (transition) => {
+  const root = document.documentElement.classList;
+
+  pageTransition.value = transition;
+
+  transition.ready.then(() => root.add("morphing")).catch(() => {});
+
+  const done = () =>
+    Promise.allSettled(
+      [...document.querySelectorAll(".page-fade")].flatMap((el) =>
+        el.getAnimations().map((animation) => animation.finished),
+      ),
+    ).then(() => {
+      root.remove("morphing");
+
+      if (pageTransition.value === transition) pageTransition.value = null;
+    });
+
+  transition.finished.then(done, done);
+});
 </script>

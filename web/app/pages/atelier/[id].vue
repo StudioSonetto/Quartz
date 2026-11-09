@@ -5,16 +5,16 @@
     <NuxtLink to="/atelier">Return</NuxtLink>
   </div>
   <div @contextmenu.prevent v-else class="flex flex-col h-screen select-none">
-    <AtelierHeader :title="deckTitle" />
+    <AtelierHeader :title="deckTitle" class="page-fade" />
     <div class="flex flex-1 overflow-hidden">
-      <AtelierRail />
-      <AtelierInspector />
+      <AtelierRail class="page-fade" />
+      <AtelierInspector class="page-fade" />
       <div class="flex flex-1 flex-col min-w-0">
         <div class="render-container" @focusin="atelier.setFocus('canvas')">
-          <AtelierCommandBar />
-          <AtelierRender canEdit />
+          <AtelierCommandBar class="page-fade" />
+          <AtelierRender canEdit :deck="id" />
         </div>
-        <AtelierTimeline />
+        <AtelierTimeline class="page-fade" />
       </div>
     </div>
     <AtelierPalette />
@@ -32,8 +32,10 @@ const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
-const { fetchDeck, fetchAllSlides } = useDeckStore();
+const { fetchDeck, fetchAllSlides, clearDeck } = useDeckStore();
 const { slides, deckTitle, openedDeck } = storeToRefs(useDeckStore());
+
+definePageMeta({ viewTransition: true });
 const { fetchAssets } = useAssetsStore();
 const { fetchSnapshots } = useSnapshotsStore();
 const sync = useDeckSync();
@@ -51,21 +53,38 @@ const flushOnPageHide = () => sync.flushBeacon();
 
 const id = useRoute().params.id as string;
 
-const lazy = openedDeck.value === id;
+const presented = useState<string | null>("presented-deck");
 
-const [
-  { data: deck, status, refresh: refreshDeck },
-  { refresh: refreshSlides },
-] = await Promise.all([
-  useAsyncData(`atelier-deck-${id}`, () => fetchDeck(id), { lazy }),
-  useAsyncData(`atelier-slides-${id}`, () => fetchAllSlides(id), { lazy }),
-]);
+if (openedDeck.value !== id || presented.value !== id) clearDeck(id);
 
-const missing = computed(() => !deck.value && status.value !== "pending");
+presented.value = null;
 
-watch(deck, (found) => (openedDeck.value = found ? id : null), {
-  immediate: true,
+onBeforeRouteLeave(async () => {
+  const [saved] = await Promise.all([
+    sync.settle(),
+    snapshotScheduler.settle(),
+  ]);
+
+  return saved || confirm("Some changes haven't saved. Leave anyway?");
 });
+
+const { error, refresh: refreshDeck } = useLazyAsyncData(
+  `atelier-deck-${id}`,
+  () => fetchDeck(id),
+);
+const { refresh: refreshSlides } = useLazyAsyncData(
+  `atelier-slides-${id}`,
+  () => fetchAllSlides(id),
+);
+
+const missing = computed(
+  () =>
+    !!error.value &&
+    ([401, 403, 404].includes(error.value.statusCode ?? 0) ||
+      !slides.value.length),
+);
+
+watch(missing, (gone) => gone && clearDeck(null));
 
 onMounted(async () => {
   snapshotScheduler.start();
@@ -127,6 +146,6 @@ onUnmounted(() => {
   document.removeEventListener("visibilitychange", flushOnHide);
   window.removeEventListener("pagehide", flushOnPageHide);
 
-  client.removeAllChannels();
+  for (const rc of [deckRC, slidesRC]) if (rc) client.removeChannel(rc);
 });
 </script>

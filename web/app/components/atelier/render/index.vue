@@ -1,7 +1,13 @@
 <template>
   <div
     ref="renderEl"
-    :style="rootStyle"
+    :style="[
+      rootStyle,
+      deck && {
+        viewTransitionName: `deck-${deck}`,
+        viewTransitionClass: 'deck-canvas',
+      },
+    ]"
     @click="onCanvasClick"
     @click.right="onCanvasClick"
     @pointerdown="onCanvasPointerDown"
@@ -10,11 +16,14 @@
     @drop="canEdit && assetDrag.drop($event)"
     @dragleave="canEdit && assetDrag.leave($event)"
     class="render"
-    :class="{
-      'render-drawing': canEdit && atelier.activeTool !== 'select',
-      'render-loading': !loaded,
-      'render-hidden': !loaded && !coverUrl,
-    }"
+    :class="[
+      canEdit && `render-tool-${atelier.activeTool}`,
+      {
+        'render-deck': deck,
+        'render-loading': !loaded,
+        'render-hidden': !loaded && !cover,
+      },
+    ]"
   >
     <AtelierRenderGizmo v-if="canEdit" />
     <template v-if="loaded">
@@ -26,10 +35,10 @@
     </template>
     <Transition name="render-cover">
       <AtelierRenderSnapshot
-        v-if="!loaded && coverUrl && currentSlides"
-        :key="currentSlides.id"
-        :deck="currentSlides.deck"
-        :slides="currentSlides.id"
+        v-if="!loaded && cover"
+        :key="currentSlides?.id"
+        :deck="deck ?? currentSlides!.deck"
+        :slides="coverSlides"
         class="render-cover"
       />
     </Transition>
@@ -57,8 +66,13 @@
     @apply opacity-0;
   }
 
-  &.render-drawing {
+  &.render-tool-pen,
+  &.render-tool-point {
     @apply cursor-crosshair;
+  }
+
+  &.render-tool-text {
+    @apply cursor-text;
   }
 
   .root {
@@ -85,7 +99,10 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, currentSlides } = storeToRefs(useDeckStore());
+const deckStore = useDeckStore();
+const history = useHistoryStore();
+const { currentTree, currentSlides, currentSlidesIndex } =
+  storeToRefs(deckStore);
 const { select, clear } = useNodeSelection();
 const atelier = useAtelierStore();
 const { canvasSize } = storeToRefs(atelier);
@@ -100,8 +117,15 @@ useTextSelection();
 
 const { snapshotUrl } = useSnapshotsStore();
 
-const coverUrl = computed(
-  () => currentSlides.value && snapshotUrl(currentSlides.value.id),
+
+const coverSlides = computed(() =>
+  currentSlides.value && snapshotUrl(currentSlides.value.id)
+    ? currentSlides.value.id
+    : undefined,
+);
+
+const cover = computed(
+  () => !!coverSlides.value || (!!props.deck && !currentSlidesIndex.value),
 );
 
 const loaded = computed(
@@ -129,14 +153,35 @@ const rootStyle = computed(() => {
   };
 });
 
-function onCanvasClick() {
+function onCanvasClick(event: MouseEvent) {
   if (!pressedCanvas || !props.canEdit) return;
+  if (atelier.activeTool === "text" && event.button === 0 && loaded.value)
+    return placeText(event);
   if (atelier.activeTool !== "select") return;
 
   const root = currentTree.value;
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
   else clear();
+}
+
+function placeText(event: MouseEvent) {
+  const position = dropPosition(
+    { x: event.clientX, y: event.clientY },
+    renderEl.value!.getBoundingClientRect(),
+    canvasSize.value,
+    null,
+  );
+  const id = history.transact("Add text", () =>
+    deckStore.createNode("Text", "core.text", {
+      position,
+      parentId: currentTree.value!.id,
+    }),
+  );
+
+  atelier.setActiveTool("select");
+
+  if (id) editNewText(id);
 }
 
 const pathTool: { press?: (event: PointerEvent) => void } = {};
@@ -151,6 +196,7 @@ const props = withDefaults(
   defineProps<{
     canEdit?: boolean;
     interactive?: boolean;
+    deck?: string;
   }>(),
   { interactive: true },
 );
@@ -175,7 +221,9 @@ useEventListener(
     const el = event.target as Element | null;
 
     pressedCanvas =
-      el === renderEl.value || !!el?.classList.contains("marquee-detector");
+      el === renderEl.value ||
+      !!el?.classList.contains("marquee-detector") ||
+      (atelier.activeTool === "text" && !!renderEl.value?.contains(el));
   },
   { capture: true },
 );
@@ -201,7 +249,7 @@ provide(snappingKey, snapping);
 </script>
 
 <style lang="postcss">
-:root {
+:root:not(:has(.preview-deck, .render-deck)) {
   @apply [view-transition-name:none];
 }
 

@@ -7,7 +7,11 @@
     <h3>
       {{ props.name }}
       <div class="actions">
-        <Tooltip v-for="action in props.actions" :description="action.tooltip">
+        <Tooltip
+          v-for="action in props.actions"
+          :description="action.tooltip"
+          placement="down"
+        >
           <UIButton
             variant="icon"
             :disabled="action.disabled"
@@ -32,18 +36,10 @@
     @apply flex justify-between items-center;
 
     .actions {
-      @apply flex justify-between items-center;
+      @apply flex justify-between items-center gap-4;
 
       .tooltip {
-        @apply flex mx-2;
-      }
-
-      .tooltip:first-of-type {
-        @apply ml-0;
-      }
-
-      .tooltip:last-of-type {
-        @apply mr-0;
+        @apply flex;
       }
     }
   }

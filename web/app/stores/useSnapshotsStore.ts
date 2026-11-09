@@ -1,5 +1,5 @@
 export const useSnapshotsStore = defineStore("snapshots", () => {
-  const { storage, cached, fresh, list, sign, store } =
+  const { storage, cached, fresh, list, sign, store, open } =
     useSignedBucket("snapshots");
 
   const covers = ref<Record<string, string>>({});
@@ -15,18 +15,22 @@ export const useSnapshotsStore = defineStore("snapshots", () => {
   }
 
   async function fetchSnapshots(deck: string) {
-    if (!deck || fresh(deck)) return;
+    if (!deck) return;
+
+    open(deck);
+
+    if (fresh(deck)) return;
 
     const names = await list(deck);
 
-    if (!names) return;
+    if (!names || cached.value.deck !== deck) return;
 
     const urls = await sign(
       deck,
       names.filter((name) => name.endsWith(".png")),
     );
 
-    if (urls) store(deck, urls);
+    if (urls && cached.value.deck === deck) store(deck, urls);
   }
 
   async function fetchCovers(decks: { id: string; cover: string | null }[]) {

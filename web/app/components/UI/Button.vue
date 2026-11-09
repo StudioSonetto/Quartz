@@ -39,7 +39,7 @@
 }
 
 .ui-button--ghost {
-  @apply p-3;
+  @apply p-3 ui-text-3;
   @apply text-light-200/60 hover:bg-light-200/8 hover:text-light-200;
   @apply active:opacity-80;
 }
@@ -51,7 +51,7 @@
 }
 
 .ui-button--nav {
-  @apply w-20 h-20 rounded-none;
+  @apply w-16 h-16 rounded-none;
   @apply ui-text-5;
   @apply hover:bg-light-200 hover:text-dark-500;
 }

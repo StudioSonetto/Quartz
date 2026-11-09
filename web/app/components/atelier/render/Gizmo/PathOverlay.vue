@@ -435,27 +435,21 @@ function closePath() {
   atelier.setActiveTool("point");
 }
 
-function finishDrawing() {
-  const id = atelier.editingShapeId;
-  const node = soleSelected.value;
+watch(
+  () => atelier.editingShapeId,
+  (_, was) => {
+    const node = was && deck.getNodeAsTree(was);
 
-  atelier.editingShapeId = null;
+    if (!node) return;
 
-  if (id && node?.id === id) {
-    const path = getNodeComponent(id, "core.path");
-    const count = ((path?.data.points as Point[] | undefined) ?? []).length;
+    const points = getNodeComponent(was, "core.path")?.data.points as
+      | Point[]
+      | undefined;
 
-    if (count < 2) {
-      const end = history.begin("Discard path");
-
-      deck.deleteNodes([node]);
-
-      end();
-    }
-  }
-
-  atelier.setActiveTool("select");
-}
+    if ((points?.length ?? 0) < 2)
+      history.transact("Discard path", () => deck.deleteNodes([node]));
+  },
+);
 
 function startPath(event: PointerEvent) {
   const origin = toCanvas(event);
@@ -725,7 +719,7 @@ useEventListener(
 
     if (e.key === "Enter" && atelier.editingShapeId) {
       e.preventDefault();
-      finishDrawing();
+      atelier.setActiveTool("select");
 
       return;
     }
@@ -733,8 +727,7 @@ useEventListener(
     if (e.key === "Escape") {
       e.preventDefault();
 
-      if (atelier.editingShapeId) finishDrawing();
-      else atelier.setActiveTool("select");
+      atelier.setActiveTool("select");
 
       return;
     }

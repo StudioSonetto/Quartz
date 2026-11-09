@@ -1,5 +1,12 @@
 import type { Run } from "~/modules/core/components/typography/types";
 
+let fresh: string | null = null;
+
+export function editNewText(id: string) {
+  fresh = id;
+  useAtelierStore().editingNodeId = id;
+}
+
 function caretFromPoint(x: number, y: number): Range | null {
   const pos = document.caretPositionFromPoint?.(x, y);
 
@@ -100,6 +107,9 @@ export function useInlineTextEdit(
       let range = event ? caretFromPoint(event.clientX, event.clientY) : null;
 
       if (!range || !el.contains(range.startContainer)) range = caretAtEnd(el);
+      if (fresh === node().id) range.setStart(el, 0);
+
+      fresh = null;
 
       selection.removeAllRanges();
       selection.addRange(range);

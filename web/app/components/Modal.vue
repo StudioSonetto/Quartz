@@ -43,7 +43,7 @@ dialog {
   }
 
   .modal-body {
-    @apply p-6;
+    @apply p-6 ui-text-3;
   }
 }
 

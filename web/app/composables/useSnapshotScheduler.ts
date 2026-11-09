@@ -1,42 +1,59 @@
 export function useSnapshotScheduler() {
   const sync = useDeckSync();
-  const { status } = storeToRefs(sync);
+  const { status, hasPending } = storeToRefs(sync);
 
-  let stopWatch: (() => void) | null = null;
+  const stops: (() => void)[] = [];
   let idleHandle: number | null = null;
+  let edited = false;
+
+  async function run() {
+    cancel();
+    edited = false;
+    try {
+      await useSnapshot().capture();
+    } catch {
+      // snapshots are best-effort; ignore failures
+    }
+  }
 
   function schedule() {
     if (idleHandle !== null) return;
-    const run = async () => {
-      idleHandle = null;
-      try {
-        await useSnapshot().capture(); // fire-and-forget; never awaited on edit path
-      } catch {
-        // snapshots are best-effort; ignore failures
-      }
-    };
-    // Capture only once things have settled.
+
     idleHandle =
       "requestIdleCallback" in window
         ? (requestIdleCallback(run, { timeout: 5000 }) as unknown as number)
         : (setTimeout(run, 3000) as unknown as number);
   }
 
-  function start() {
-    // Capture shortly after a successful flush (edits have landed on the server).
-    stopWatch = watch(status, (s) => {
-      if (s === "saved") schedule();
-    });
-  }
+  function cancel() {
+    if (idleHandle === null) return;
 
-  function stop() {
-    stopWatch?.();
-    stopWatch = null;
-    if (idleHandle !== null && "cancelIdleCallback" in window) {
-      cancelIdleCallback(idleHandle);
-    }
+    if ("cancelIdleCallback" in window) cancelIdleCallback(idleHandle);
+    else clearTimeout(idleHandle);
+
     idleHandle = null;
   }
 
-  return { start, stop };
+  function start() {
+    stops.push(
+      watch(hasPending, (pending) => pending && (edited = true)),
+      watch(status, (s) => s === "saved" && schedule()),
+    );
+  }
+
+  function stop() {
+    stops.splice(0).forEach((stop) => stop());
+    cancel();
+  }
+
+  function settle() {
+    if (!edited) return;
+
+    return Promise.race([
+      run(),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+    ]);
+  }
+
+  return { start, stop, settle };
 }

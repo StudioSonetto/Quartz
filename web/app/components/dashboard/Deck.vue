@@ -1,7 +1,6 @@
 <template>
   <NuxtLink
     class="deck"
-    target="_blank"
     :to="`/atelier/${props.id}`"
     @contextmenu.prevent="
       useContextMenu().open($event, [
@@ -15,7 +14,11 @@
       ])
     "
   >
-    <div class="preview">
+    <div
+      class="preview"
+      :class="{ 'preview-deck': named }"
+      :style="named && { viewTransitionName: `deck-${props.id}` }"
+    >
       <AtelierRenderSnapshot :deck="props.id" />
     </div>
     <div class="info">
@@ -42,7 +45,7 @@
   }
 
   .preview {
-    @apply relative w-full aspect-video;
+    @apply relative w-full aspect-video [view-transition-class:deck-card];
   }
 
   .info {
@@ -71,5 +74,6 @@ const props = defineProps<{
   id: string;
   last_modified: string;
   slide_count?: number;
+  named?: boolean;
 }>();
 </script>

@@ -12,7 +12,7 @@
     autofocus
     class="live"
   >
-    <AtelierRender class="select-none" />
+    <AtelierRender class="select-none" :deck="morphing ? id : undefined" />
     <div
       :class="{
         'opacity-0': !cursorMoved,
@@ -30,21 +30,26 @@
   @apply flex justify-center items-center;
 
   .overlay {
-    @apply fixed bottom-18 bg-dark-900 p-3 rounded-6 text-3;
-    @apply transition-opacity duration-300;
+    @apply fixed bottom-18 bg-dark-900 p-3 rounded-6 ui-text-3;
+    @apply transition-opacity duration-300 [view-transition-name:live-overlay];
   }
 }
 </style>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: (to, from) => {
+    to.meta.viewTransition = from.path === `/atelier/${to.params.id}`;
+  },
+});
+
 const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides, openDeck, enterSlide } = useDeckStore();
-const { slides, currentSlidesIndex, deckTitle, openedDeck } = storeToRefs(
-  useDeckStore(),
-);
+const { slides, currentSlidesIndex, deckTitle, openedDeck, visitor } =
+  storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -70,13 +75,28 @@ let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const id = useRoute().params.id as string;
 
-const mine = computed(() => openedDeck.value === id);
+const mine = computed(() => openedDeck.value === id && !visitor.value);
+
+const morphing = ref(true);
+const pageTransition = useState<ViewTransition | null>("page-transition");
+
+const presented = useState<string | null>("presented-deck");
+
+onBeforeRouteLeave((to) => {
+  morphing.value = to.path === `/atelier/${id}`;
+
+  if (morphing.value && mine.value) presented.value = id;
+});
 
 const { status } = await useAsyncData(`live-deck-${id}`, () => openDeck(id), {
   lazy: mine.value,
 });
 
 onMounted(async () => {
+  const done = () => (morphing.value = false);
+
+  (pageTransition.value?.finished ?? Promise.resolve()).then(done, done);
+
   if (status.value === "error") return;
 
   enterSlide();
@@ -122,6 +142,6 @@ onMounted(async () => {
 onUnmounted(() => {
   reset();
 
-  client.removeAllChannels();
+  for (const rc of [deckRC, slidesRC]) if (rc) client.removeChannel(rc);
 });
 </script>

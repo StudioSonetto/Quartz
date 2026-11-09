@@ -12,7 +12,7 @@
           <div class="whitespace flex justify-center">
             <button
               type="button"
-              class="text-center underline text-lg"
+              class="text-center underline ui-text-5"
               @click="toggleForm"
             >
               {{

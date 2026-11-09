@@ -1,19 +1,19 @@
 <template>
   <aside class="rail border-r">
     <UIButton
-      v-for="(tab, index) in tabs"
-      :key="tab.name"
+      v-for="tab in tabs"
+      :key="tab.id"
       variant="nav"
-      @click="setActiveTab(index)"
+      @click="setActiveTab(tab.id)"
     >
-      <div :class="[tab.icon, { 'opacity-60': index !== activeTab }]"></div>
+      <div :class="[tab.icon, { 'opacity-60': tab.id !== activeTab }]"></div>
     </UIButton>
   </aside>
 </template>
 
 <style scoped lang="postcss">
 .rail {
-  @apply bg-dark-500 w-[80px];
+  @apply bg-dark-500 w-16;
   @apply flex flex-col flex-shrink-0;
 
   button {
