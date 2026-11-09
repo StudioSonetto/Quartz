@@ -456,6 +456,8 @@ onUnmounted(clearHover);
 onMounted(() => {
   isMounted.value = true;
 
+  if (editing.value && !locked.value) startEditing();
+
   const def = getNodeType(props.node.type);
 
   if (def?.onMount) nextTick(() => def.onMount!(props.node.id));

@@ -1,5 +1,7 @@
 // @unocss-include
 
+type Tool = "select" | "pen" | "point" | "text";
+
 export const useAtelierStore = defineStore("atelier", () => {
   const tabs = ref([
     { name: "Editor", icon: "i-carbon-legend" },
@@ -18,6 +20,7 @@ export const useAtelierStore = defineStore("atelier", () => {
   const snapThreshold = ref<number>(20);
 
   const paletteOpen = ref<boolean>(false);
+  const paletteQuery = ref("");
 
   const highlightedNodeId = ref<string | null>(null);
   const hoveredNodeId = ref<string | null>(null);
@@ -36,11 +39,11 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const recentCommands = ref<string[]>([]);
 
-  const activeTool = ref<"select" | "pen" | "point">("select");
+  const activeTool = ref<Tool>("select");
   const editingShapeId = ref<string | null>(null);
   const selectedPoints = ref<Set<number>>(new Set());
 
-  function setActiveTool(tool: "select" | "pen" | "point") {
+  function setActiveTool(tool: Tool) {
     activeTool.value = tool;
     editingShapeId.value = null;
     selectedPoints.value = new Set();
@@ -58,7 +61,8 @@ export const useAtelierStore = defineStore("atelier", () => {
     paletteOpen.value = false;
   }
 
-  function togglePalette() {
+  function togglePalette(query = "") {
+    if (!paletteOpen.value) paletteQuery.value = query;
     paletteOpen.value = !paletteOpen.value;
   }
 
@@ -114,6 +118,7 @@ export const useAtelierStore = defineStore("atelier", () => {
     isDragging,
     snapThreshold,
     paletteOpen,
+    paletteQuery,
     highlightedNodeId,
     hoveredNodeId,
     collapsedNodeIds,

@@ -109,7 +109,7 @@ const atelier = useAtelierStore();
 const { enabledCommands, run } = useCommands();
 const { nodeResults, slideResults, selectNode, goToSlide } = useQuickSearch();
 
-const query = ref("");
+const { paletteQuery: query } = storeToRefs(atelier);
 const activeIndex = ref(0);
 const inputEl = useTemplateRef<HTMLInputElement>("inputEl");
 const listEl = useTemplateRef<HTMLUListElement>("listEl");
@@ -205,7 +205,6 @@ watch(
   () => atelier.paletteOpen,
   async (open) => {
     if (open) {
-      query.value = "";
       await nextTick();
       inputEl.value?.focus();
     }

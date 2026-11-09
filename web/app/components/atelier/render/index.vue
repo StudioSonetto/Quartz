@@ -10,11 +10,10 @@
     @drop="canEdit && assetDrag.drop($event)"
     @dragleave="canEdit && assetDrag.leave($event)"
     class="render"
-    :class="{
-      'render-drawing': canEdit && atelier.activeTool !== 'select',
-      'render-loading': !loaded,
-      'render-hidden': !loaded && !coverUrl,
-    }"
+    :class="[
+      canEdit && `render-tool-${atelier.activeTool}`,
+      { 'render-loading': !loaded, 'render-hidden': !loaded && !coverUrl },
+    ]"
   >
     <AtelierRenderGizmo v-if="canEdit" />
     <template v-if="loaded">
@@ -57,8 +56,13 @@
     @apply opacity-0;
   }
 
-  &.render-drawing {
+  &.render-tool-pen,
+  &.render-tool-point {
     @apply cursor-crosshair;
+  }
+
+  &.render-tool-text {
+    @apply cursor-text;
   }
 
   .root {
@@ -85,7 +89,9 @@
 </style>
 
 <script setup lang="ts">
-const { currentTree, currentSlides } = storeToRefs(useDeckStore());
+const deck = useDeckStore();
+const history = useHistoryStore();
+const { currentTree, currentSlides } = storeToRefs(deck);
 const { select, clear } = useNodeSelection();
 const atelier = useAtelierStore();
 const { canvasSize } = storeToRefs(atelier);
@@ -129,14 +135,35 @@ const rootStyle = computed(() => {
   };
 });
 
-function onCanvasClick() {
+function onCanvasClick(event: MouseEvent) {
   if (!pressedCanvas || !props.canEdit) return;
+  if (atelier.activeTool === "text" && event.button === 0 && loaded.value)
+    return placeText(event);
   if (atelier.activeTool !== "select") return;
 
   const root = currentTree.value;
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
   else clear();
+}
+
+function placeText(event: MouseEvent) {
+  const position = dropPosition(
+    { x: event.clientX, y: event.clientY },
+    renderEl.value!.getBoundingClientRect(),
+    canvasSize.value,
+    null,
+  );
+  const id = history.transact("Add text", () =>
+    deck.createNode("Text", "core.text", {
+      position,
+      parentId: currentTree.value!.id,
+    }),
+  );
+
+  atelier.setActiveTool("select");
+
+  if (id) atelier.editingNodeId = id;
 }
 
 const pathTool: { press?: (event: PointerEvent) => void } = {};

@@ -100,6 +100,7 @@ export function useInlineTextEdit(
       let range = event ? caretFromPoint(event.clientX, event.clientY) : null;
 
       if (!range || !el.contains(range.startContainer)) range = caretAtEnd(el);
+      if (!event) range.setStart(el, 0);
 
       selection.removeAllRanges();
       selection.addRange(range);

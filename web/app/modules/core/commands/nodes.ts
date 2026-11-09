@@ -41,9 +41,13 @@ const clearSelectionCommand: Command = {
   title: "Clear Selection",
   category: "Selection",
   icon: "i-carbon-close",
-  when: (ctx) => ctx.selectedNodeIds.length > 0,
+  when: (ctx) =>
+    ctx.selectedNodeIds.length > 0 || ctx.atelier.activeTool !== "select",
   undoable: false,
-  run: () => useNodeSelection().clear(),
+  run: (ctx) =>
+    ctx.atelier.activeTool !== "select"
+      ? ctx.atelier.setActiveTool("select")
+      : useNodeSelection().clear(),
 };
 
 export default [

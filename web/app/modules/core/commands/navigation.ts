@@ -10,6 +10,16 @@ const openPalette: Command = {
   run: (ctx) => ctx.atelier.togglePalette(),
 };
 
+const addNode: Command = {
+  id: "core.view.addNode",
+  keys: ["n"],
+  title: "Add Node…",
+  category: "View",
+  icon: "i-carbon-add",
+  undoable: false,
+  run: (ctx) => ctx.atelier.togglePalette("Add "),
+};
+
 const tabCommands: Command[] = TAB_NAMES.map((name, i) => ({
   id: `core.view.tab.${i}`,
   title: `Go to ${name}`,
@@ -19,4 +29,4 @@ const tabCommands: Command[] = TAB_NAMES.map((name, i) => ({
   run: (ctx) => ctx.atelier.setActiveTab(i),
 }));
 
-export default [openPalette, ...tabCommands];
+export default [openPalette, addNode, ...tabCommands];
