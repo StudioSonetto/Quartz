@@ -1,7 +1,13 @@
 <template>
   <div
     ref="renderEl"
-    :style="rootStyle"
+    :style="[
+      rootStyle,
+      deck && {
+        viewTransitionName: `deck-${deck}`,
+        viewTransitionClass: 'deck-canvas',
+      },
+    ]"
     @click="onCanvasClick"
     @click.right="onCanvasClick"
     @pointerdown="onCanvasPointerDown"
@@ -12,7 +18,11 @@
     class="render"
     :class="[
       canEdit && `render-tool-${atelier.activeTool}`,
-      { 'render-loading': !loaded, 'render-hidden': !loaded && !coverUrl },
+      {
+        'render-deck': deck,
+        'render-loading': !loaded,
+        'render-hidden': !loaded && !cover,
+      },
     ]"
   >
     <AtelierRenderGizmo v-if="canEdit" />
@@ -25,10 +35,10 @@
     </template>
     <Transition name="render-cover">
       <AtelierRenderSnapshot
-        v-if="!loaded && coverUrl && currentSlides"
-        :key="currentSlides.id"
-        :deck="currentSlides.deck"
-        :slides="currentSlides.id"
+        v-if="!loaded && cover"
+        :key="currentSlides?.id"
+        :deck="deck ?? currentSlides!.deck"
+        :slides="coverSlides"
         class="render-cover"
       />
     </Transition>
@@ -89,9 +99,10 @@
 </style>
 
 <script setup lang="ts">
-const deck = useDeckStore();
+const deckStore = useDeckStore();
 const history = useHistoryStore();
-const { currentTree, currentSlides } = storeToRefs(deck);
+const { currentTree, currentSlides, currentSlidesIndex } =
+  storeToRefs(deckStore);
 const { select, clear } = useNodeSelection();
 const atelier = useAtelierStore();
 const { canvasSize } = storeToRefs(atelier);
@@ -106,8 +117,15 @@ useTextSelection();
 
 const { snapshotUrl } = useSnapshotsStore();
 
-const coverUrl = computed(
-  () => currentSlides.value && snapshotUrl(currentSlides.value.id),
+
+const coverSlides = computed(() =>
+  currentSlides.value && snapshotUrl(currentSlides.value.id)
+    ? currentSlides.value.id
+    : undefined,
+);
+
+const cover = computed(
+  () => !!coverSlides.value || (!!props.deck && !currentSlidesIndex.value),
 );
 
 const loaded = computed(
@@ -155,7 +173,7 @@ function placeText(event: MouseEvent) {
     null,
   );
   const id = history.transact("Add text", () =>
-    deck.createNode("Text", "core.text", {
+    deckStore.createNode("Text", "core.text", {
       position,
       parentId: currentTree.value!.id,
     }),
@@ -178,6 +196,7 @@ const props = withDefaults(
   defineProps<{
     canEdit?: boolean;
     interactive?: boolean;
+    deck?: string;
   }>(),
   { interactive: true },
 );
@@ -228,7 +247,7 @@ provide(snappingKey, snapping);
 </script>
 
 <style lang="postcss">
-:root {
+:root:not(:has(.preview-deck, .render-deck)) {
   @apply [view-transition-name:none];
 }
 

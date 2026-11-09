@@ -42,9 +42,8 @@ const client = useSupabaseClient();
 type RealtimeChannel = ReturnType<typeof client.channel>;
 
 const { fetchDeck, fetchAllSlides, openDeck, enterSlide } = useDeckStore();
-const { slides, currentSlidesIndex, deckTitle, openedDeck } = storeToRefs(
-  useDeckStore(),
-);
+const { slides, currentSlidesIndex, deckTitle, openedDeck, visitor } =
+  storeToRefs(useDeckStore());
 const { fetchAssets } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -70,7 +69,7 @@ let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
 const id = useRoute().params.id as string;
 
-const mine = computed(() => openedDeck.value === id);
+const mine = computed(() => openedDeck.value === id && !visitor.value);
 
 const { status } = await useAsyncData(`live-deck-${id}`, () => openDeck(id), {
   lazy: mine.value,
@@ -122,6 +121,6 @@ onMounted(async () => {
 onUnmounted(() => {
   reset();
 
-  client.removeAllChannels();
+  for (const rc of [deckRC, slidesRC]) if (rc) client.removeChannel(rc);
 });
 </script>

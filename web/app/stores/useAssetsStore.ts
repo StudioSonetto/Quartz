@@ -5,7 +5,7 @@ export type FontAsset = Asset & FontMeta;
 export const useAssetsStore = defineStore("assets", () => {
   const client = useSupabaseClient();
 
-  const { cached, fresh, list, sign, store } = useSignedBucket("assets");
+  const { cached, fresh, list, sign, store, open } = useSignedBucket("assets");
 
   const assets = computed<Asset[]>(() =>
     Object.entries(cached.value.urls).map(([name, url]) => ({ name, url })),
@@ -84,15 +84,17 @@ export const useAssetsStore = defineStore("assets", () => {
   const isVideo = (name: string) => assetKind(name) === "video";
 
   async function fetchAssets(deck: string) {
+    open(deck);
+
     const names = await list(deck);
 
-    if (!names) return;
+    if (!names || cached.value.deck !== deck) return;
 
     const reusable = fresh(deck);
 
     const urls = await sign(deck, names, reusable ? cached.value.urls : {});
 
-    if (!urls) return;
+    if (!urls || cached.value.deck !== deck) return;
 
     await setSignedUrls(deck, urls, reusable ? cached.value.at : Date.now());
   }

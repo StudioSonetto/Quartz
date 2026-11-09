@@ -44,6 +44,10 @@ export function useSignedBucket(bucket: string) {
     cached.value = { deck, at, urls };
   }
 
+  function open(deck: string) {
+    if (cached.value.deck !== deck) store(deck, {}, 0);
+  }
+
   let resigning = false;
 
   async function resign() {
@@ -70,5 +74,5 @@ export function useSignedBucket(bucket: string) {
 
   useEventListener(["focus", "online"], resign);
 
-  return { storage, cached, fresh, list, sign, store };
+  return { storage, cached, fresh, list, sign, store, open };
 }

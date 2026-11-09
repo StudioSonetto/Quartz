@@ -65,6 +65,9 @@ export const useAuthStore = defineStore("auth", () => {
     await client.auth.signOut();
 
     user.value = null;
+
+    clearNuxtState("deck-list");
+    useDeckStore().clearDeck(null);
   }
 
   return { user, isSignedIn, register, signIn, signInWithProvider, signOut };

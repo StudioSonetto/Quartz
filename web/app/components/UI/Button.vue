@@ -39,7 +39,7 @@
 }
 
 .ui-button--ghost {
-  @apply p-3;
+  @apply p-3 ui-text-3;
   @apply text-light-200/60 hover:bg-light-200/8 hover:text-light-200;
   @apply active:opacity-80;
 }

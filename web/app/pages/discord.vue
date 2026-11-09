@@ -49,7 +49,7 @@ definePageMeta({
 
 type Status = "loading" | "error" | "picking" | "waiting" | "showing";
 
-const { fetchDeck, fetchAllSlides, enterSlide } = useDeckStore();
+const { fetchDeck, fetchAllSlides, enterSlide, clearDeck } = useDeckStore();
 const { setSignedUrls } = useAssetsStore();
 const { reset } = useAnimationState();
 
@@ -103,6 +103,8 @@ async function show(next: Session | null) {
 
     return;
   }
+
+  if (useDeckStore().openedDeck !== deck) clearDeck(deck);
 
   await Promise.all([
     sync.trust(next),

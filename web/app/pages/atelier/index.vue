@@ -1,23 +1,32 @@
 <template>
   <Title>Dashboard | Quartz</Title>
-  <div class="flex">
+  <div class="flex" :class="{ 'page-fade': named }">
     <DashboardSidebar />
     <div class="flex-1 overflow-auto">
       <DashboardHeader :template="template" />
-      <div class="flex flex-wrap gap-6 p-6">
+      <TransitionGroup
+        tag="div"
+        name="fade-fast"
+        class="flex flex-wrap gap-6 p-6"
+      >
         <DashboardDeck
           v-for="deck in decks"
           :title="deck.title"
           :id="deck.id"
           :last_modified="deck.last_modified"
           :key="deck.id"
+          :named="named === deck.id"
+          @click="named = deck.id"
         />
-      </div>
+      </TransitionGroup>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+definePageMeta({ viewTransition: true });
+
+const named = ref(useDeckStore().openedDeck);
 const client = useSupabaseClient();
 const route = useRoute();
 
@@ -25,29 +34,42 @@ type RealtimeChannel = ReturnType<typeof client.channel>;
 
 let realtimeChannel: RealtimeChannel;
 
-const [{ data: decks, refresh: refreshDecks }, { data: templates }] =
-  await Promise.all([
-    useAsyncData("decks", () => useDeckStore().fetchAllDecks()),
-    useAsyncData("templates", () => useDeckStore().fetchTemplates()),
-  ]);
+const { data: fetched, refresh: refreshDecks } = useLazyAsyncData("decks", () =>
+  useDeckStore().fetchAllDecks(),
+);
+
+const decks = useState("deck-list", () => fetched.value);
+
+watch(fetched, (list) => list && (decks.value = list));
+
+const { data: templates } = useLazyAsyncData("templates", () =>
+  useDeckStore().fetchTemplates(),
+);
 
 const template = computed(() => templates.value?.[0]?.id);
 
 const refreshSoon = useDebounceFn(() => refreshDecks(), 500);
 
-watch(decks, (list) => useSnapshotsStore().fetchCovers(list ?? []), {
+watch(fetched, (list) => list && useSnapshotsStore().fetchCovers(list), {
   immediate: true,
 });
 
-onMounted(() => {
-  if (decks.value && !decks.value.length && template.value)
-    useDeckStore()
-      .insertFromTemplate(template.value)
-      .then((id) => {
-        if (id && route.path === "/atelier") navigateTo(`/live/${id}`);
-      })
-      .catch((err) => console.error("onboarding copy failed", err));
+const stopOnboarding = watch([decks, template], ([list, id]) => {
+  if (!list || !id) return;
 
+  stopOnboarding();
+
+  if (list.length) return;
+
+  useDeckStore()
+    .insertFromTemplate(id)
+    .then((copy) => {
+      if (copy && route.path === "/atelier") navigateTo(`/live/${copy}`);
+    })
+    .catch((err) => console.error("onboarding copy failed", err));
+});
+
+onMounted(() => {
   const userId = useAuthStore().user?.id;
 
   realtimeChannel = client

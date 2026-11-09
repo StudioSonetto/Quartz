@@ -2,6 +2,7 @@
   <div class="snapshot" :class="{ 'snapshot-empty': !url && props.slides }">
     <NuxtImg
       v-if="url"
+      ref="img"
       :src="url"
       :alt="`snapshot of ${props.deck}`"
       :class="{ 'snapshot-loaded': loaded }"
@@ -43,4 +44,7 @@ const url = computed(() =>
 );
 
 const loaded = ref(false);
+const img = useTemplateRef<{ $el: HTMLImageElement }>("img");
+
+onMounted(() => (loaded.value = !!img.value?.$el.complete));
 </script>

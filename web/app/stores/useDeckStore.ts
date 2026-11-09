@@ -432,6 +432,8 @@ export const useDeckStore = defineStore("deck", () => {
   async function fetchDeck(id: string) {
     const deck = await apiFetch<DeckModel>(`/api/decks/${id}`);
 
+    if (openedDeck.value !== id) return deck;
+
     visitor.value = false;
 
     deckTitle.value = deck?.title ?? "";
@@ -454,10 +456,7 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!data) return;
 
-    navigateTo(`/atelier/${data.id}`, {
-      external: true,
-      open: { target: "_blank" },
-    });
+    navigateTo(`/atelier/${data.id}`);
   }
 
   function fetchTemplates() {
@@ -524,15 +523,15 @@ export const useDeckStore = defineStore("deck", () => {
     const data = await apiFetch<SlidesModel[]>("/api/slides", {
       query: { deck },
     });
-    if (data) setSlides(data);
+    if (data && openedDeck.value === deck) setSlides(data);
 
     return data;
   }
 
-  function setSlides(data: SlidesModel[]) {
+  function setSlides(data: SlidesModel[], keepPending = true) {
     const live = new Set(data.map((s) => s.id));
     const pending = slides.value.filter(
-      (s) => pendingCreates.has(s.id) && !live.has(s.id),
+      (s) => keepPending && pendingCreates.has(s.id) && !live.has(s.id),
     );
 
     slides.value = pending.length ? reindex([...data, ...pending]) : data;
@@ -548,17 +547,30 @@ export const useDeckStore = defineStore("deck", () => {
     for (const id of known) if (!live.has(id)) forgetSlide(id);
   }
 
+  function clearDeck(id: string | null) {
+    const atelier = useAtelierStore();
+
+    openedDeck.value = id;
+    visitor.value = false;
+    setSlides([], false);
+    currentSlideId.value = null;
+    selectedNodeIds.value = [];
+    anchorId.value = null;
+    deckTitle.value = "";
+    isDeckPublic.value = false;
+    atelier.setActiveTool("select");
+    atelier.editingNodeId = null;
+  }
+
   // The owner's copy, else the public one; resolves to whether it's the owner's.
   async function openDeck(id: string) {
+    if (openedDeck.value !== id) clearDeck(id);
+
     try {
       await Promise.all([fetchDeck(id), fetchAllSlides(id)]);
 
-      openedDeck.value = id;
-
       return true;
     } catch (err) {
-      openedDeck.value = null;
-
       if (![401, 403, 404].includes((err as FetchError).statusCode ?? 0))
         throw err;
 
@@ -1736,6 +1748,7 @@ export const useDeckStore = defineStore("deck", () => {
     isDeckPublic,
     setDeckPublic,
     openDeck,
+    clearDeck,
     openedDeck,
     visitor,
     currentSlideId,

@@ -18,6 +18,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   let backoff = 0;
   let again = false;
+  let left = 0;
 
   const hasPending = computed(
     () =>
@@ -128,8 +129,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
     if (isEmptyPayload(payload)) {
       clearFlushed(snapshot);
 
-      // Everything in the batch resolved to nothing — a deleted slide's
-      // leftovers. Without this the chip stays on "saving" forever.
       status.value = hasPending.value ? "saving" : "saved";
 
       return;
@@ -139,6 +138,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
     flushing.value = true;
     status.value = "saving";
+
+    const deck = left;
 
     try {
       await apiFetch("/api/nodes/save", { method: "POST", body: payload });
@@ -150,15 +151,9 @@ export const useDeckSync = defineStore("deck-sync", () => {
       if (again) setTimeout(flush);
       else if (hasPending.value) scheduleFlush();
     } catch (err) {
-      const code =
-        (err as FetchError)?.statusCode ??
-        (err as FetchError)?.response?.status;
+      if (deck !== left) return resend(payload, err);
 
-      // 401 is a session blip and a network error has no code; the rest of 4xx
-      // can never succeed, and requeueing one wedges every later save behind it.
-      const retryable = !code || code >= 500 || [401, 408, 429].includes(code);
-
-      if (!retryable) {
+      if (!retryable(err)) {
         status.value = "error";
 
         if (hasPending.value) scheduleFlush();
@@ -179,6 +174,40 @@ export const useDeckSync = defineStore("deck-sync", () => {
     } finally {
       flushing.value = false;
     }
+  }
+
+  function retryable(err: unknown) {
+    const code =
+      (err as FetchError)?.statusCode ?? (err as FetchError)?.response?.status;
+
+    return !code || code >= 500 || [401, 408, 429].includes(code);
+  }
+
+  function resend(payload: object, err: unknown, wait = 2000) {
+    if (!retryable(err)) return;
+
+    setTimeout(
+      () =>
+        apiFetch("/api/nodes/save", { method: "POST", body: payload }).catch(
+          (next) => resend(payload, next, Math.min(wait * 2, 30000)),
+        ),
+      wait,
+    );
+  }
+
+  function leave() {
+    left++;
+
+    const snapshot = currentSnapshot();
+    const payload = buildPayloadFor(snapshot);
+
+    clearFlushed(snapshot);
+    status.value = "idle";
+
+    if (!isEmptyPayload(payload))
+      apiFetch("/api/nodes/save", { method: "POST", body: payload }).catch(
+        (err) => resend(payload, err),
+      );
   }
 
   function flushBeacon() {
@@ -212,9 +241,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
   function restoreSnapshot(snapshot: OutboxSnapshot) {
     for (const id of snapshot.dirtyNodes) dirtyNodes.value.add(id);
 
-    // A key re-queued the other way while the flush was in flight is the newer
-    // intent. Restoring over it would put the same key in both sets, and the
-    // server applies deletes last — so a re-added component would be destroyed.
     for (const key of snapshot.dirtyComponents) {
       if (!deletedComponents.value.has(key)) dirtyComponents.value.add(key);
     }
@@ -238,6 +264,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     dropSlide,
     flush,
     flushBeacon,
+    leave,
     scheduleFlush,
   };
 });
