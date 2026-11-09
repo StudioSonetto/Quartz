@@ -59,7 +59,7 @@
   @apply border-solid border-0 border-b-2 border-dark-200;
 
   form {
-    @apply flex flex-row gap-4;
+    @apply flex flex-row gap-4 w-4xl max-w-full;
 
     .side {
       @apply flex flex-col flex-1 m-0 gap-40 justify-between;

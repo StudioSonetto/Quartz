@@ -17,7 +17,7 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const isDragging = ref<boolean>(false);
 
-  const snapThreshold = ref<number>(20);
+  const snapThreshold = ref<number>(10);
 
   const paletteOpen = ref<boolean>(false);
   const paletteQuery = ref("");

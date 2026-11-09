@@ -90,8 +90,19 @@ function handleScroll(event: WheelEvent) {
 
 onUnmounted(() => tween?.stop());
 
+const deckId = useRoute().params.id?.toString() ?? "";
+
 function insertNewSlides() {
-  return deckStore.insertNewSlides(useRoute().params.id?.toString() ?? "");
+  const created = deckStore.insertNewSlides(deckId);
+
+  tween?.stop();
+  tween = undefined;
+
+  nextTick(() =>
+    list.value?.scrollTo({ left: list.value.scrollWidth, behavior: "smooth" }),
+  );
+
+  return created;
 }
 
 useDraggable(list, slides, {

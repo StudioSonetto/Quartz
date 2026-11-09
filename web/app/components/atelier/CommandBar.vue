@@ -1,11 +1,6 @@
 <template>
   <div class="bar" @contextmenu.prevent>
-    <Tooltip
-      v-for="tool in tools"
-      :key="tool.id"
-      :description="tool.label"
-      placement="down"
-    >
+    <Tooltip v-for="tool in tools" :key="tool.id" :description="tool.label">
       <UIButton variant="chip" @click="run(tool.id)">
         <div
           :class="[
