@@ -956,6 +956,8 @@ export const useDeckStore = defineStore("deck", () => {
   async function loadPublicDeck(id: string) {
     const deck = await apiFetch(`/api/public/decks/${id}`);
 
+    if (openedDeck.value !== id) return;
+
     const nodesBySlide = Map.groupBy(deck.nodes, (n) => n.slides);
     const componentsBySlide = Map.groupBy(deck.components, (c) => c.slide);
 

@@ -23,7 +23,7 @@
 
   .hierarchy,
   .properties {
-    @apply flex-1 overflow-y-clip;
+    @apply flex-1 min-h-0 overflow-y-clip;
   }
 }
 </style>

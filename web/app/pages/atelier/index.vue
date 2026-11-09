@@ -43,8 +43,6 @@ const { data: fetched, refresh: refreshDecks } = useLazyAsyncData("decks", () =>
 
 const decks = useState("deck-list", () => fetched.value);
 
-watch(fetched, (list) => list && (decks.value = list));
-
 const { data: templates } = useLazyAsyncData("templates", () =>
   useDeckStore().fetchTemplates(),
 );
@@ -53,11 +51,18 @@ const template = computed(() => templates.value?.[0]?.id);
 
 const refreshSoon = useDebounceFn(() => refreshDecks(), 500);
 
-watch(fetched, (list) => list && useSnapshotsStore().fetchCovers(list), {
-  immediate: true,
-});
+watch(
+  fetched,
+  (list) => {
+    if (!list) return;
 
-const stopOnboarding = watch([decks, template], ([list, id]) => {
+    decks.value = list;
+    useSnapshotsStore().fetchCovers(list);
+  },
+  { immediate: true },
+);
+
+const stopOnboarding = watch([fetched, template], ([list, id]) => {
   if (!list || !id) return;
 
   stopOnboarding();

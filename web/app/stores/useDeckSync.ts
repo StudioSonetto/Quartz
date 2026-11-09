@@ -18,7 +18,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
   let backoff = 0;
   let again = false;
-  let left = 0;
 
   const hasPending = computed(
     () =>
@@ -139,8 +138,6 @@ export const useDeckSync = defineStore("deck-sync", () => {
     flushing.value = true;
     status.value = "saving";
 
-    const deck = left;
-
     try {
       await apiFetch("/api/nodes/save", { method: "POST", body: payload });
 
@@ -151,9 +148,13 @@ export const useDeckSync = defineStore("deck-sync", () => {
       if (again) setTimeout(flush);
       else if (hasPending.value) scheduleFlush();
     } catch (err) {
-      if (deck !== left) return resend(payload, err);
+      const code =
+        (err as FetchError)?.statusCode ??
+        (err as FetchError)?.response?.status;
 
-      if (!retryable(err)) {
+      const retryable = !code || code >= 500 || [401, 408, 429].includes(code);
+
+      if (!retryable) {
         status.value = "error";
 
         if (hasPending.value) scheduleFlush();
@@ -176,38 +177,16 @@ export const useDeckSync = defineStore("deck-sync", () => {
     }
   }
 
-  function retryable(err: unknown) {
-    const code =
-      (err as FetchError)?.statusCode ?? (err as FetchError)?.response?.status;
+  // Saves everything now and waits; false if something couldn't be saved.
+  async function settle() {
+    while (flushing.value || hasPending.value) {
+      if (flushing.value) await until(flushing).toBe(false);
+      else await flush();
 
-    return !code || code >= 500 || [401, 408, 429].includes(code);
-  }
+      if (status.value === "error" || status.value === "offline") return false;
+    }
 
-  function resend(payload: object, err: unknown, wait = 2000) {
-    if (!retryable(err)) return;
-
-    setTimeout(
-      () =>
-        apiFetch("/api/nodes/save", { method: "POST", body: payload }).catch(
-          (next) => resend(payload, next, Math.min(wait * 2, 30000)),
-        ),
-      wait,
-    );
-  }
-
-  function leave() {
-    left++;
-
-    const snapshot = currentSnapshot();
-    const payload = buildPayloadFor(snapshot);
-
-    clearFlushed(snapshot);
-    status.value = "idle";
-
-    if (!isEmptyPayload(payload))
-      apiFetch("/api/nodes/save", { method: "POST", body: payload }).catch(
-        (err) => resend(payload, err),
-      );
+    return true;
   }
 
   function flushBeacon() {
@@ -264,7 +243,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
     dropSlide,
     flush,
     flushBeacon,
-    leave,
+    settle,
     scheduleFlush,
   };
 });

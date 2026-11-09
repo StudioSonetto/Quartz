@@ -53,15 +53,19 @@ const flushOnPageHide = () => sync.flushBeacon();
 
 const id = useRoute().params.id as string;
 
-if (
-  openedDeck.value !== id ||
-  useRouter().options.history.state.back !== `/live/${id}`
-)
-  clearDeck(id);
+const presented = useState<string | null>("presented-deck");
+
+if (openedDeck.value !== id || presented.value !== id) clearDeck(id);
+
+presented.value = null;
 
 onBeforeRouteLeave(async () => {
-  sync.leave();
-  await snapshotScheduler.settle();
+  const [saved] = await Promise.all([
+    sync.settle(),
+    snapshotScheduler.settle(),
+  ]);
+
+  return saved || confirm("Some changes haven't saved. Leave anyway?");
 });
 
 const { error, refresh: refreshDeck } = useLazyAsyncData(
@@ -73,9 +77,14 @@ const { refresh: refreshSlides } = useLazyAsyncData(
   () => fetchAllSlides(id),
 );
 
-const missing = computed(() =>
-  [401, 403, 404].includes(error.value?.statusCode ?? 0),
+const missing = computed(
+  () =>
+    !!error.value &&
+    ([401, 403, 404].includes(error.value.statusCode ?? 0) ||
+      !slides.value.length),
 );
+
+watch(missing, (gone) => gone && clearDeck(null));
 
 onMounted(async () => {
   snapshotScheduler.start();

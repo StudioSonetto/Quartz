@@ -4,6 +4,7 @@
       v-for="tool in tools"
       :key="tool.id"
       :description="tool.label"
+      placement="down"
     >
       <UIButton variant="chip" @click="run(tool.id)">
         <div

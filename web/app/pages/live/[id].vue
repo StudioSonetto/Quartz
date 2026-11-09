@@ -80,8 +80,12 @@ const mine = computed(() => openedDeck.value === id && !visitor.value);
 const morphing = ref(true);
 const pageTransition = useState<ViewTransition | null>("page-transition");
 
+const presented = useState<string | null>("presented-deck");
+
 onBeforeRouteLeave((to) => {
   morphing.value = to.path === `/atelier/${id}`;
+
+  if (morphing.value && mine.value) presented.value = id;
 });
 
 const { status } = await useAsyncData(`live-deck-${id}`, () => openDeck(id), {

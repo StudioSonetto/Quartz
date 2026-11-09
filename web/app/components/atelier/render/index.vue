@@ -181,7 +181,7 @@ function placeText(event: MouseEvent) {
 
   atelier.setActiveTool("select");
 
-  if (id) atelier.editingNodeId = id;
+  if (id) editNewText(id);
 }
 
 const pathTool: { press?: (event: PointerEvent) => void } = {};
@@ -221,7 +221,9 @@ useEventListener(
     const el = event.target as Element | null;
 
     pressedCanvas =
-      el === renderEl.value || !!el?.classList.contains("marquee-detector");
+      el === renderEl.value ||
+      !!el?.classList.contains("marquee-detector") ||
+      (atelier.activeTool === "text" && !!renderEl.value?.contains(el));
   },
   { capture: true },
 );

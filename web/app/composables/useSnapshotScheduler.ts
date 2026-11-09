@@ -26,9 +26,11 @@ export function useSnapshotScheduler() {
   }
 
   function cancel() {
-    if (idleHandle !== null && "cancelIdleCallback" in window) {
-      cancelIdleCallback(idleHandle);
-    }
+    if (idleHandle === null) return;
+
+    if ("cancelIdleCallback" in window) cancelIdleCallback(idleHandle);
+    else clearTimeout(idleHandle);
+
     idleHandle = null;
   }
 
@@ -49,7 +51,7 @@ export function useSnapshotScheduler() {
 
     return Promise.race([
       run(),
-      new Promise((resolve) => setTimeout(resolve, 2000)),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
     ]);
   }
 
