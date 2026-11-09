@@ -18,6 +18,9 @@
           :named="named === deck.id"
           @click="named = deck.id"
         />
+        <template v-if="!decks">
+          <DashboardDeckSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
+        </template>
       </TransitionGroup>
     </div>
   </div>
