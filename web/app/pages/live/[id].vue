@@ -12,7 +12,7 @@
     autofocus
     class="live"
   >
-    <AtelierRender class="select-none" />
+    <AtelierRender class="select-none" :deck="morphing ? id : undefined" />
     <div
       :class="{
         'opacity-0': !cursorMoved,
@@ -37,6 +37,12 @@
 </style>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: (to, from) => {
+    to.meta.viewTransition = from.path === `/atelier/${to.params.id}`;
+  },
+});
+
 const client = useSupabaseClient();
 
 type RealtimeChannel = ReturnType<typeof client.channel>;
@@ -71,11 +77,22 @@ const id = useRoute().params.id as string;
 
 const mine = computed(() => openedDeck.value === id && !visitor.value);
 
+const morphing = ref(true);
+const pageTransition = useState<ViewTransition | null>("page-transition");
+
+onBeforeRouteLeave((to) => {
+  morphing.value = to.path === `/atelier/${id}`;
+});
+
 const { status } = await useAsyncData(`live-deck-${id}`, () => openDeck(id), {
   lazy: mine.value,
 });
 
 onMounted(async () => {
+  const done = () => (morphing.value = false);
+
+  (pageTransition.value?.finished ?? Promise.resolve()).then(done, done);
+
   if (status.value === "error") return;
 
   enterSlide();

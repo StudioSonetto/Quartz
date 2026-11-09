@@ -1,6 +1,6 @@
 <template>
   <Title>Dashboard | Quartz</Title>
-  <div class="flex" :class="{ 'page-fade': named }">
+  <div class="flex page-fade">
     <DashboardSidebar />
     <div class="flex-1 overflow-auto">
       <DashboardHeader :template="template" />

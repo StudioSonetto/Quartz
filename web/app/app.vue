@@ -16,8 +16,15 @@
   @apply animate-none;
 }
 
+::view-transition-old(.deck-card):only-child,
 ::view-transition-old(.deck-canvas):only-child {
   @apply animate-fade-out;
+  @apply animate-duration-200 [animation-fill-mode:both];
+}
+
+::view-transition-new(.deck-card):only-child,
+::view-transition-new(.deck-canvas):only-child {
+  @apply animate-fade-in;
   @apply animate-duration-200 [animation-fill-mode:both];
 }
 
@@ -160,7 +167,7 @@ textarea {
   @apply animate-duration-200;
 }
 
-.morphing .page-fade {
+.morphing:has(.preview-deck, .render-deck) .page-fade {
   @apply animate-delay-600 [animation-fill-mode:both];
 }
 
@@ -199,8 +206,15 @@ useSeoMeta({
 
 useHead({ link: [{ rel: "canonical", href: url }] });
 
+const pageTransition = useState<ViewTransition | null>(
+  "page-transition",
+  () => null,
+);
+
 useNuxtApp().hook("page:view-transition:start", (transition) => {
   const root = document.documentElement.classList;
+
+  pageTransition.value = transition;
 
   transition.ready.then(() => root.add("morphing")).catch(() => {});
 
@@ -209,7 +223,11 @@ useNuxtApp().hook("page:view-transition:start", (transition) => {
       [...document.querySelectorAll(".page-fade")].flatMap((el) =>
         el.getAnimations().map((animation) => animation.finished),
       ),
-    ).then(() => root.remove("morphing"));
+    ).then(() => {
+      root.remove("morphing");
+
+      if (pageTransition.value === transition) pageTransition.value = null;
+    });
 
   transition.finished.then(done, done);
 });
