@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <Transition name="fade">
+    <Transition name="fade" @after-leave="menuItems = []">
       <div
         v-if="isVisible"
         ref="menuRef"
@@ -11,19 +11,16 @@
         <template v-for="(item, i) in menuItems" :key="item.label">
           <hr
             v-if="item.danger && i > 0 && !menuItems[i - 1]?.danger"
-            class="separator"
+            class="menu-separator"
           />
           <UIButton
             variant="menu"
             :danger="item.danger"
             @click="handleItemClick(item)"
           >
-            <span
-              v-if="item.icon"
-              :class="[item.icon, 'text-base mr-2 flex-shrink-0']"
-            ></span>
-            <span class="flex-1 text-left">{{ item.label }}</span>
-            <span v-if="item.shortcut" class="shortcut">{{
+            <span v-if="item.icon" :class="[item.icon, 'menu-icon']"></span>
+            {{ item.label }}
+            <span v-if="item.shortcut" class="menu-shortcut">{{
               item.shortcut
             }}</span>
           </UIButton>
@@ -35,20 +32,34 @@
 
 <style scoped lang="postcss">
 .context-menu {
-  @apply w-52 bg-dark-900 z-99 absolute;
+  @apply absolute z-99 overflow-hidden;
+  @apply min-w-52 w-max;
+  @apply ui-text-3 whitespace-nowrap;
+  @apply bg-dark-900 text-light-200;
   @apply border-rd border-solid border-1 border-dark-200;
-  @apply overflow-hidden;
 
-  .separator {
-    @apply border-0 border-t-1 border-solid border-dark-200 m-0;
+  &.fade-leave-active {
+    @apply transition-opacity duration-150;
+  }
+
+  &.fade-leave-to {
+    @apply opacity-0;
   }
 
   button:last-child {
     @apply border-b-0;
   }
 
-  .shortcut {
-    @apply opacity-40 ui-text-3 ml-4 flex-shrink-0;
+  .menu-separator {
+    @apply border-0 border-t-1 border-solid border-dark-200;
+  }
+
+  .menu-icon {
+    @apply mr-2 ui-text-4;
+  }
+
+  .menu-shortcut {
+    @apply ml-auto pl-4 ui-text-4 opacity-60;
   }
 }
 </style>
@@ -79,18 +90,24 @@ function handleItemClick(item: ContextMenuItem) {
   isVisible.value = false;
 }
 
-// Each action closes over its component's scope, so holding the last menu's
-// items keeps that scope alive. Click-outside and Escape close it too.
-watch(isVisible, (visible) => {
-  if (!visible) menuItems.value = [];
-});
-
-const openContextMenu = (event: MouseEvent, _menuItems: ContextMenuItem[]) => {
+const openContextMenu = async (
+  event: MouseEvent,
+  _menuItems: ContextMenuItem[],
+) => {
   x.value = event.clientX + 10;
   y.value = event.clientY + 10;
 
   isVisible.value = true;
   menuItems.value = _menuItems;
+
+  await nextTick();
+
+  const menu = menuRef.value;
+
+  if (!menu) return;
+
+  x.value = Math.max(8, Math.min(x.value, innerWidth - menu.offsetWidth - 8));
+  y.value = Math.max(8, Math.min(y.value, innerHeight - menu.offsetHeight - 8));
 };
 
 const handleOpenContextMenu = (event: Event) => {
