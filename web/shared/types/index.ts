@@ -173,7 +173,7 @@ export interface NodeTypeDef {
   editing?: (node: Tree) => boolean;
 }
 
-export type CommandMenu = "node" | "canvas";
+export type CommandMenu = "node" | "canvas" | "selection";
 
 export interface Command {
   id: string;

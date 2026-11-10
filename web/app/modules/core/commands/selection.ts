@@ -23,10 +23,11 @@ const alignOps: { op: AlignOp; title: string; icon: string }[] = [
   },
 ];
 
-const alignCommands: Command[] = alignOps.map(({ op, title, icon }) => ({
+const alignCommands: Command[] = alignOps.map(({ op, title, icon }, i) => ({
   id: `core.selection.align.${op}`,
   title,
   category: "Arrange",
+  menu: { selection: 10 + i * 10 },
   icon,
   when: (ctx) => ctx.alignableNodes.length >= 1,
   run: () => useAlignment().align(op),
@@ -43,10 +44,11 @@ const distributeCommands: Command[] = [
     title: "Distribute Vertically",
     icon: "i-carbon-distribute-vertical-center",
   },
-].map(({ axis, title, icon }) => ({
+].map(({ axis, title, icon }, i) => ({
   id: `core.selection.distribute.${axis}`,
   title,
   category: "Arrange",
+  menu: { selection: 70 + i * 10 },
   icon,
   when: (ctx) => ctx.alignableNodes.length >= 3,
   run: () => useAlignment().distribute(axis),
@@ -60,7 +62,7 @@ const groupCommand: Command = {
   keys: ["mod+g"],
   title: "Group Selection",
   category: "Arrange",
-  menu: { node: 50 },
+  menu: { node: 50, selection: 90 },
   icon: "i-carbon-group-objects",
   when: (ctx) => withoutRoot(ctx.unlockedNodes) >= 2,
   run: (ctx) => ctx.deck.groupSelection(),
@@ -71,7 +73,7 @@ const ungroupCommand: Command = {
   keys: ["mod+shift+g"],
   title: "Ungroup",
   category: "Arrange",
-  menu: { node: 60 },
+  menu: { node: 60, selection: 100 },
   icon: "i-carbon-ungroup-objects",
   when: (ctx) =>
     ctx.unlockedNodes.some(
@@ -85,7 +87,7 @@ const duplicateCommand: Command = {
   keys: ["mod+d"],
   title: "Duplicate",
   category: "Edit",
-  menu: { node: 40 },
+  menu: { node: 40, selection: 110 },
   icon: "i-carbon-copy",
   when: (ctx) => withoutRoot(ctx.selectedNodes) >= 1,
   run: (ctx) => ctx.deck.duplicateSelection(),
