@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <Transition name="fade" @after-leave="menuItems = []">
+    <Transition name="fade-fast" @after-leave="isVisible || (menuItems = [])">
       <div
         v-if="isVisible"
         ref="menuRef"
@@ -37,14 +37,6 @@
   @apply ui-text-3 whitespace-nowrap;
   @apply bg-dark-900 text-light-200;
   @apply border-rd border-solid border-1 border-dark-200;
-
-  &.fade-leave-active {
-    @apply transition-opacity duration-150;
-  }
-
-  &.fade-leave-to {
-    @apply opacity-0;
-  }
 
   button:last-child {
     @apply border-b-0;

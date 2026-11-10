@@ -96,7 +96,7 @@
   }
 
   .tree-appear {
-    @apply animate-fade-in animate-duration-100;
+    @apply animate-fade-in animate-duration-150;
   }
 
   .tree-skeleton {

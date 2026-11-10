@@ -173,7 +173,7 @@ textarea {
 
 .fade-fast-enter-active,
 .fade-fast-leave-active {
-  @apply transition-opacity duration-100;
+  @apply transition-opacity;
 }
 
 .fade-fast-enter-from,

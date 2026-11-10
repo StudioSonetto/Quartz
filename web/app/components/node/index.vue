@@ -114,7 +114,7 @@
 
   .node-lock {
     @apply text-light-200 opacity-0 cursor-pointer;
-    @apply transition-colors transition-opacity;
+    @apply [transition-property:color,opacity] duration-150;
 
     div {
       @apply ui-text-4;
