@@ -8,7 +8,7 @@
         class="context-menu"
         @contextmenu.prevent="isVisible = false"
       >
-        <template v-for="(item, i) in menuItems" :key="item.label">
+        <template v-for="(item, i) in menuItems" :key="item.id ?? item.label">
           <hr
             v-if="item.danger && i > 0 && !menuItems[i - 1]?.danger"
             class="menu-separator"

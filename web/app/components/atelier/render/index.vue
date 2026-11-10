@@ -168,7 +168,7 @@ function onCanvasMenu(event: MouseEvent) {
   if (!props.canEdit) return;
 
   onCanvasClick(event);
-  openCommandMenu(event, CANVAS_MENU);
+  openCommandMenu(event, "canvas");
 }
 
 function placeText(event: MouseEvent) {

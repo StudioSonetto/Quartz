@@ -173,6 +173,8 @@ export interface NodeTypeDef {
   editing?: (node: Tree) => boolean;
 }
 
+export type CommandMenu = "node" | "canvas";
+
 export interface Command {
   id: string;
   keys?: readonly string[];
@@ -180,6 +182,7 @@ export interface Command {
   category: string;
   icon?: string;
   danger?: boolean;
+  menu?: Partial<Record<CommandMenu, number>>;
   when?: (ctx: CommandContext) => boolean;
   run: (ctx: CommandContext) => void | Promise<void>;
   undoable?: boolean;
@@ -215,6 +218,7 @@ export interface ModuleDefinition {
 }
 
 export interface ContextMenuItem {
+  id?: string;
   label: string;
   action: () => void;
   icon?: string;

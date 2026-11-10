@@ -3,6 +3,7 @@ const deleteCommand: Command = {
   keys: ["backspace", "delete"],
   title: "Delete",
   category: "Node",
+  menu: { node: 80 },
   icon: "i-carbon-trash-can",
   danger: true,
   when: (ctx) => ctx.unlockedNodes.some((n) => n.path !== ROOT_PATH),
@@ -14,6 +15,7 @@ const lockCommand: Command = {
   keys: ["mod+shift+l"],
   title: "Lock / Unlock",
   category: "Node",
+  menu: { node: 70 },
   icon: "i-carbon-locked",
   when: (ctx) => ctx.selectedNodes.some((n) => n.path !== ROOT_PATH),
   run: (ctx) => {
@@ -30,6 +32,7 @@ const selectAllCommand: Command = {
   keys: ["mod+a"],
   title: "Select All",
   category: "Selection",
+  menu: { canvas: 20 },
   icon: "i-carbon-select-window",
   when: (ctx) => !!ctx.deckId,
   undoable: false,
