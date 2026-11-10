@@ -19,7 +19,7 @@
       @mousedown="onSelect"
       @mouseover="onMouseOver"
       @mouseleave="clearHover"
-      @click.right="clear"
+      @contextmenu="openCommandMenu($event, NODE_MENU)"
       @keydown.esc="clear"
     ></div>
     <AtelierRenderElement

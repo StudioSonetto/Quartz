@@ -179,6 +179,7 @@ export interface Command {
   title: string;
   category: string;
   icon?: string;
+  danger?: boolean;
   when?: (ctx: CommandContext) => boolean;
   run: (ctx: CommandContext) => void | Promise<void>;
   undoable?: boolean;

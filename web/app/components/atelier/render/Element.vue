@@ -24,7 +24,7 @@
     @mouseleave="clearHover"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
-    @click.right="clear"
+    @contextmenu="!presenting && openCommandMenu($event, NODE_MENU)"
     @keydown="onKeydown"
     @paste="editInsert"
     @drop="editInsert"

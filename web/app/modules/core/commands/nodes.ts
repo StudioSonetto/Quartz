@@ -1,9 +1,10 @@
 const deleteCommand: Command = {
   id: "core.node.delete",
   keys: ["backspace", "delete"],
-  title: "Delete Node",
+  title: "Delete",
   category: "Node",
   icon: "i-carbon-trash-can",
+  danger: true,
   when: (ctx) => ctx.unlockedNodes.some((n) => n.path !== ROOT_PATH),
   run: (ctx) => ctx.deck.deleteSelectedNodes(),
 };

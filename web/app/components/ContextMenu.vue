@@ -59,13 +59,13 @@
   }
 
   .menu-shortcut {
-    @apply ml-auto pl-4 ui-text-4 opacity-60;
+    @apply ml-auto pl-4 ui-text-3 opacity-60;
   }
 }
 </style>
 
 <script setup lang="ts">
-import { onClickOutside, onKeyStroke } from "@vueuse/core";
+import { clamp, onClickOutside, onKeyStroke } from "@vueuse/core";
 
 const isVisible = ref(false);
 const menuItems = ref<ContextMenuItem[]>([]);
@@ -106,8 +106,8 @@ const openContextMenu = async (
 
   if (!menu) return;
 
-  x.value = Math.max(8, Math.min(x.value, innerWidth - menu.offsetWidth - 8));
-  y.value = Math.max(8, Math.min(y.value, innerHeight - menu.offsetHeight - 8));
+  x.value = clamp(x.value, 8, innerWidth - menu.offsetWidth - 8);
+  y.value = clamp(y.value, 8, innerHeight - menu.offsetHeight - 8);
 };
 
 const handleOpenContextMenu = (event: Event) => {
