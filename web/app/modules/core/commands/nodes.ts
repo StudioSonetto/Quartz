@@ -27,6 +27,26 @@ const lockCommand: Command = {
   },
 };
 
+const renameCommand: Command = {
+  id: "core.node.rename",
+  keys: ["f2"],
+  title: "Rename",
+  category: "Node",
+  menu: { node: 45 },
+  icon: "i-carbon-edit",
+  undoable: false,
+  when: (ctx) => !!ctx.soleSelected && ctx.soleSelected.path !== ROOT_PATH,
+  run: (ctx) => {
+    const node = ctx.soleSelected!;
+
+    ctx.atelier.setActiveTab("editor");
+
+    for (const p of ancestors(node.parent)) ctx.atelier.setCollapsed(p.id, false);
+
+    focusNodeName(node.id);
+  },
+};
+
 const selectAllCommand: Command = {
   id: "core.selection.selectAll",
   keys: ["mod+a"],
@@ -57,6 +77,7 @@ const clearSelectionCommand: Command = {
 export default [
   deleteCommand,
   lockCommand,
+  renameCommand,
   selectAllCommand,
   clearSelectionCommand,
 ];

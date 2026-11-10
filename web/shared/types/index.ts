@@ -183,6 +183,7 @@ export interface Command {
   icon?: string;
   danger?: boolean;
   menu?: Partial<Record<CommandMenu, number>>;
+  submenu?: string;
   when?: (ctx: CommandContext) => boolean;
   run: (ctx: CommandContext) => void | Promise<void>;
   undoable?: boolean;
@@ -220,7 +221,8 @@ export interface ModuleDefinition {
 export interface ContextMenuItem {
   id?: string;
   label: string;
-  action: () => void;
+  action?: () => void;
+  children?: ContextMenuItem[];
   icon?: string;
   shortcut?: string;
   danger?: boolean;

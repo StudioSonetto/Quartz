@@ -82,14 +82,7 @@
 
 <style scoped lang="postcss">
 .tree {
-  /*
-    By setting the max height to the half of the screen's,
-    it prevents the tree to overflow,
-    and also makes it responsive to different screen heights.
-
-    (100vh / Amount of views inside the inspector)
-  */
-  @apply list-none h-full max-h-[50vh] overflow-y-auto;
+  @apply list-none flex-1 min-h-0 overflow-y-auto;
 
   &:focus-visible {
     @apply outline-none;

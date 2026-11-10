@@ -9,6 +9,17 @@ import { nextTick } from "vue";
 // from its display heading — renaming the heading would silently break the hop.
 const PROPERTIES = '[data-panel="properties"]';
 
+export function focusNodeName(id: string) {
+  nextTick(() => {
+    const input = document.querySelector<HTMLInputElement>(
+      `#node-${id} .name`,
+    );
+
+    input?.focus();
+    input?.select();
+  });
+}
+
 export function focusProperties() {
   // Focus the panel itself, not its first component — landing on a header would
   // light that component up (`focus-within`) as though it were picked. From the
