@@ -177,6 +177,7 @@ export const useDeckStore = defineStore("deck", () => {
   const clipboard = ref<ClipboardEntry[] | null>(null);
 
   const pasteSlots = new Map<string, number>();
+  let cutPending = false;
 
   const selectedIdSet = computed(() => new Set(selectedNodeIds.value));
 
@@ -802,9 +803,11 @@ export const useDeckStore = defineStore("deck", () => {
       copied.assets,
     );
 
-    const clone = cloneSubtree(copied.nodes, copied.components, root.id, {
-      newSlides: id,
-    });
+    const clone = withoutLockedModules(
+      cloneSubtree(copied.nodes, copied.components, root.id, {
+        newSlides: id,
+      }),
+    );
 
     // Roots are linked deck-wide; the source background would overwrite the target deck's.
     const { nodes, components } = withLivePeers({
@@ -1372,9 +1375,9 @@ export const useDeckStore = defineStore("deck", () => {
     const newIds: string[] = [];
 
     for (const r of roots) {
-      const clone = cloneSubtree(flat, slideComps, r.id, {
-        offset: CLONE_OFFSET,
-      });
+      const clone = withoutLockedModules(
+        cloneSubtree(flat, slideComps, r.id, { offset: CLONE_OFFSET }),
+      );
 
       for (const n of clone.nodes) n.reference = null;
 
@@ -1399,6 +1402,7 @@ export const useDeckStore = defineStore("deck", () => {
     const slideComps = components.value.get(slideId) ?? [];
 
     pasteSlots.clear();
+    cutPending = false;
 
     clipboard.value = roots.map((r) => {
       const sub = flat.filter((n) => isSelfOrDescendantPath(n.path, r.path));
@@ -1415,6 +1419,7 @@ export const useDeckStore = defineStore("deck", () => {
 
   function cutSelection() {
     copySelection(unlockedSelection.value);
+    cutPending = true;
     deleteSelectedNodes();
   }
 
@@ -1473,6 +1478,12 @@ export const useDeckStore = defineStore("deck", () => {
       return canContain("core.group", type) ? ROOT_PATH : undefined;
     };
 
+    const sameDeck = slides.value.some(
+      (s) => s.id === clipboard.value![0]!.nodes[0]?.slides,
+    );
+    const strip =
+      cutPending && sameDeck ? <T>(e: T) => e : withoutLockedModules;
+
     for (const entry of clipboard.value) {
       const source = entry.nodes.find((n) => n.id === entry.rootId);
 
@@ -1502,11 +1513,13 @@ export const useDeckStore = defineStore("deck", () => {
 
       const src = detach ? entry : withLivePeers(entry);
 
-      const clone = cloneSubtree(src.nodes, src.components, entry.rootId, {
-        offset: detach
-          ? { x: CLONE_OFFSET.x * steps, y: CLONE_OFFSET.y * steps }
-          : undefined,
-      });
+      const clone = strip(
+        cloneSubtree(src.nodes, src.components, entry.rootId, {
+          offset: detach
+            ? { x: CLONE_OFFSET.x * steps, y: CLONE_OFFSET.y * steps }
+            : undefined,
+        }),
+      );
 
       if (detach) for (const n of clone.nodes) n.reference = null;
 
@@ -1514,6 +1527,9 @@ export const useDeckStore = defineStore("deck", () => {
 
       if (id) newIds.push(id);
     }
+
+    cutPending = false;
+
     selectNodes(newIds);
 
     // Otherwise the server's adoption overwrites an edit batched with it.

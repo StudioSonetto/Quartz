@@ -14,7 +14,7 @@ export async function copyDeck(
     () => null,
   );
 
-  const [sourceSlides, allNodes, allComponents, unlocked] = await Promise.all([
+  const [sourceSlides, sourceNodes, sourceComponents] = await Promise.all([
     db.select().from(slides).where(eq(slides.deck, source.id)),
     db
       .select(getColumns(nodes))
@@ -27,16 +27,7 @@ export async function copyDeck(
       .innerJoin(nodes, eq(components.node, nodes.id))
       .innerJoin(slides, eq(nodes.slides, slides.id))
       .where(eq(slides.deck, source.id)),
-    useRuntimeConfig().polarAccessToken ? unlockedModulesOf(owner) : undefined,
   ]);
-
-  // Rows the owner can't save would make every later save that touches them 403.
-  const allowed = (type: string) =>
-    !unlocked || moduleUnlocked(moduleOf(type), unlocked);
-  const dropped = allNodes.filter((n) => !allowed(n.type)).map((n) => n.path);
-  const sourceNodes = allNodes.filter(
-    (n) => !dropped.some((p) => isSelfOrDescendantPath(n.path, p)),
-  );
 
   const slideIds = new Map(
     sourceSlides.map((s) => [s.id, crypto.randomUUID()]),
@@ -45,14 +36,16 @@ export async function copyDeck(
   const labels = new Map(
     sourceNodes.map((n) => [nodeLabel(n.id), nodeLabel(nodeIds.get(n.id)!)]),
   );
-  const sourceComponents = allComponents.filter(
-    (c) => nodeIds.has(c.node) && allowed(c.type),
-  );
 
   const deck = await db.transaction(async (tx) => {
     const deck = await tx
       .insert(decks)
-      .values({ lapidarist: owner, title: source.title })
+      .values({
+        lapidarist: owner,
+        title: source.title,
+        template: source.id,
+        module_allowance: paidCounts(sourceNodes.map((n) => n.type)),
+      })
       .returning()
       .then(([d]) => d!);
 
@@ -94,9 +87,6 @@ export async function copyDeck(
       });
 
   const used = JSON.stringify(sourceComponents.map((c) => c.data));
-  const trimmed = new Set(
-    allNodes.filter((n) => !nodeIds.has(n.id)).map((n) => n.slides),
-  );
 
   await Promise.all([
     ...((await assetNames) ?? [])
@@ -104,15 +94,13 @@ export async function copyDeck(
       .map((name) =>
         copy("assets", `${source.id}/${name}`, `${deck.id}/${name}`),
       ),
-    ...sourceSlides
-      .filter((s) => !trimmed.has(s.id))
-      .map((s) =>
-        copy(
-          "snapshots",
-          `${source.id}/${s.id}.png`,
-          `${deck.id}/${slideIds.get(s.id)}.png`,
-        ),
+    ...sourceSlides.map((s) =>
+      copy(
+        "snapshots",
+        `${source.id}/${s.id}.png`,
+        `${deck.id}/${slideIds.get(s.id)}.png`,
       ),
+    ),
   ]);
 
   return deck;

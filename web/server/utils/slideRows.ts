@@ -1,7 +1,7 @@
 import type { db } from "~~/server/db";
 import { nodes, slides } from "~~/server/db/schema";
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function insertBlankSlide(
   tx: Tx,

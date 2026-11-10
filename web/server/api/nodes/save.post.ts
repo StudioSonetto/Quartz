@@ -1,12 +1,4 @@
-import {
-  and,
-  eq,
-  inArray,
-  isNotNull,
-  ne,
-  notInArray,
-  sql,
-} from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "~~/server/db";
@@ -87,14 +79,10 @@ export default defineEventHandler(async (event) => {
   ];
   const foreignNodeIds = componentNodeIds.filter((id) => !upsertIds.has(id));
 
-  const [, ownedSlides, ownedNodes] = await Promise.all([
-    requireModules(user.id, [
-      ...nodesToUpsert.map((node) => node.type),
-      ...componentsToUpsert.map((component) => component.type),
-    ]),
+  const [ownedSlides, ownedNodes, lockedModules] = await Promise.all([
     slideIds.length
       ? db
-          .select({ id: slides.id })
+          .select({ id: slides.id, deck: slides.deck })
           .from(slides)
           .innerJoin(decks, eq(slides.deck, decks.id))
           .where(
@@ -114,6 +102,10 @@ export default defineEventHandler(async (event) => {
             ),
           )
       : [],
+    lockedModulesIn(
+      user.id,
+      nodesToUpsert.map((node) => node.type),
+    ),
   ]);
 
   if (
@@ -177,6 +169,13 @@ export default defineEventHandler(async (event) => {
 
       if (written.length !== nodesToUpsert.length)
         throw createError({ statusCode: 403 });
+
+      if (lockedModules.length)
+        await requireAllowance(
+          tx,
+          [...new Set(ownedSlides.map((s) => s.deck))],
+          lockedModules,
+        );
     }
 
     for (const node of nodesToDelete) {

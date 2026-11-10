@@ -84,6 +84,11 @@ export const decks = pgTable.withRLS(
       .notNull(),
     is_template: boolean("is_template").notNull().default(false),
     is_public: boolean("is_public").notNull().default(false),
+    template: uuid("template"),
+    module_allowance: jsonb("module_allowance")
+      .$type<Record<string, number>>()
+      .notNull()
+      .default({}),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "slides_pkey" }),
@@ -95,6 +100,11 @@ export const decks = pgTable.withRLS(
     })
       .onDelete("cascade")
       .onUpdate("cascade"),
+    foreignKey({
+      columns: [t.template],
+      foreignColumns: [t.id],
+      name: "decks_template_fkey",
+    }).onDelete("set null"),
     pgPolicy("decks_select_own", {
       for: "select",
       to: authenticatedRole,
