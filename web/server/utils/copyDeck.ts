@@ -8,6 +8,7 @@ export async function copyDeck(
   event: H3Event,
   source: typeof decks.$inferSelect,
   owner: string,
+  fields: Partial<typeof decks.$inferInsert> = {},
 ) {
   const storage = serverSupabaseServiceRole(event).storage;
   const assetNames = listFolder(storage.from("assets"), source.id).catch(
@@ -45,6 +46,7 @@ export async function copyDeck(
         title: source.title,
         template: source.id,
         module_allowance: paidCounts(sourceNodes.map((n) => n.type)),
+        ...fields,
       })
       .returning()
       .then(([d]) => d!);

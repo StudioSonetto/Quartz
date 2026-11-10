@@ -14,6 +14,7 @@
           :title="deck.title"
           :id="deck.id"
           :last_modified="deck.last_modified"
+          :is_public="deck.is_public"
           :key="deck.id"
           :named="named === deck.id"
           @click="named = deck.id"

@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
     lapidarist: decks.lapidarist,
     title: decks.title,
     last_modified: decks.last_modified,
+    is_public: decks.is_public,
     cover: sql<string | null>`(
       select s.id from ${slides} s
       where s.deck = "decks"."id" and s.index = 0
