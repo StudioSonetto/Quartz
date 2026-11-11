@@ -63,7 +63,7 @@
 }
 
 .ui-button--menu {
-  @apply w-full h-12 px-4 justify-start rounded-none;
+  @apply w-full h-10 px-4 justify-start rounded-none;
   @apply border-solid border-0 border-b-1 border-dark-200;
   @apply hover:bg-light-200 hover:text-dark-900;
 }

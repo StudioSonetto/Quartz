@@ -23,10 +23,12 @@ const alignOps: { op: AlignOp; title: string; icon: string }[] = [
   },
 ];
 
-const alignCommands: Command[] = alignOps.map(({ op, title, icon }) => ({
+const alignCommands: Command[] = alignOps.map(({ op, title, icon }, i) => ({
   id: `core.selection.align.${op}`,
   title,
   category: "Arrange",
+  menu: { node: 51 + i, selection: 10 + i * 10 },
+  submenu: "Align",
   icon,
   when: (ctx) => ctx.alignableNodes.length >= 1,
   run: () => useAlignment().align(op),
@@ -43,10 +45,12 @@ const distributeCommands: Command[] = [
     title: "Distribute Vertically",
     icon: "i-carbon-distribute-vertical-center",
   },
-].map(({ axis, title, icon }) => ({
+].map(({ axis, title, icon }, i) => ({
   id: `core.selection.distribute.${axis}`,
   title,
   category: "Arrange",
+  menu: { node: 57 + i, selection: 70 + i * 10 },
+  submenu: "Distribute",
   icon,
   when: (ctx) => ctx.alignableNodes.length >= 3,
   run: () => useAlignment().distribute(axis),
@@ -60,6 +64,7 @@ const groupCommand: Command = {
   keys: ["mod+g"],
   title: "Group Selection",
   category: "Arrange",
+  menu: { node: 50, selection: 90 },
   icon: "i-carbon-group-objects",
   when: (ctx) => withoutRoot(ctx.unlockedNodes) >= 2,
   run: (ctx) => ctx.deck.groupSelection(),
@@ -70,6 +75,7 @@ const ungroupCommand: Command = {
   keys: ["mod+shift+g"],
   title: "Ungroup",
   category: "Arrange",
+  menu: { node: 60, selection: 100 },
   icon: "i-carbon-ungroup-objects",
   when: (ctx) =>
     ctx.unlockedNodes.some(
@@ -83,6 +89,7 @@ const duplicateCommand: Command = {
   keys: ["mod+d"],
   title: "Duplicate",
   category: "Edit",
+  menu: { node: 40, selection: 110 },
   icon: "i-carbon-copy",
   when: (ctx) => withoutRoot(ctx.selectedNodes) >= 1,
   run: (ctx) => ctx.deck.duplicateSelection(),
@@ -93,6 +100,7 @@ const copyCommand: Command = {
   keys: ["mod+c"],
   title: "Copy",
   category: "Edit",
+  menu: { node: 10 },
   icon: "i-carbon-copy-file",
   when: (ctx) => withoutRoot(ctx.selectedNodes) >= 1,
   undoable: false,
@@ -104,6 +112,7 @@ const cutCommand: Command = {
   keys: ["mod+x"],
   title: "Cut",
   category: "Edit",
+  menu: { node: 20 },
   icon: "i-carbon-cut",
   when: (ctx) => withoutRoot(ctx.unlockedNodes) >= 1,
   run: (ctx) => ctx.deck.cutSelection(),
@@ -114,6 +123,7 @@ const pasteCommand: Command = {
   keys: ["mod+v"],
   title: "Paste",
   category: "Edit",
+  menu: { node: 30, canvas: 10 },
   icon: "i-carbon-paste",
   when: (ctx) => !!ctx.deck.clipboard,
   run: (ctx) => ctx.deck.paste(),

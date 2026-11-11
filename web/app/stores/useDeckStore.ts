@@ -515,6 +515,13 @@ export const useDeckStore = defineStore("deck", () => {
     isDeckPublic.value = value;
   }
 
+  async function duplicateDeck(id: string) {
+    await apiFetch(`/api/decks/${id}/copy`, { method: "POST" }).catch(
+      deckLimitReached,
+    );
+    await refreshNuxtData("decks");
+  }
+
   async function deleteDeck(id: string) {
     await apiFetch(`/api/decks/${id}`, { method: "DELETE" });
     await refreshNuxtData("decks");
@@ -1765,6 +1772,8 @@ export const useDeckStore = defineStore("deck", () => {
     deckTitle,
     isDeckPublic,
     setDeckPublic,
+    patchDeck,
+    duplicateDeck,
     openDeck,
     clearDeck,
     openedDeck,

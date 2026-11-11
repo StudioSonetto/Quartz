@@ -74,6 +74,8 @@ export function useNodeSelection() {
     if (isNodeLocked(node)) return false;
 
     event.stopPropagation();
+    if (event.button === 2 && selectedNodeIds.value.includes(node.id))
+      return true;
     if (event.shiftKey || event.metaKey || event.ctrlKey) {
       if (event.type === "mousedown") toggle(node);
 

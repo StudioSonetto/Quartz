@@ -99,14 +99,32 @@ const props = defineProps<{
 const emit = defineEmits<{
   move: [from: number, to: number];
   remove: [t: number];
+  ease: [t: number, easing: string];
 }>();
 
 const { view, seek } = usePlayhead();
 
-function openMenu(event: MouseEvent, key: { t: number }) {
+function openMenu(event: MouseEvent, key: { t: number; easing?: string }) {
+  const options = props.state ? ["", ...EASING_OPTIONS] : EASING_OPTIONS;
+  const current = key.easing ?? (props.state ? "" : "linear");
+
   useContextMenu().open(event, [
     {
-      label: "Remove",
+      label: "Easing",
+      icon: "i-carbon-chart-line-smooth",
+      children: options.map((easing) => ({
+        label: easing || "State's easing",
+        icon: easing === current ? "i-carbon-checkmark" : undefined,
+        action: () => emit("ease", key.t, easing),
+      })),
+    },
+    {
+      label: "Jump Here",
+      icon: "i-carbon-skip-forward",
+      action: () => seek(key.t),
+    },
+    {
+      label: "Delete",
       icon: "i-carbon-trash-can",
       danger: true,
       action: () => emit("remove", key.t),

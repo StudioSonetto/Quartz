@@ -14,6 +14,7 @@
       :class="{ selected: isSelected, hovering: isHovering }"
       @click="onSelect(props.node, $event)"
       @dblclick="toggleGroup"
+      @contextmenu="onContextMenu"
     >
       <div class="flex items-center w-full">
         <div
@@ -114,7 +115,7 @@
 
   .node-lock {
     @apply text-light-200 opacity-0 cursor-pointer;
-    @apply transition-colors transition-opacity;
+    @apply [transition-property:color,opacity] duration-150;
 
     div {
       @apply ui-text-4;
@@ -223,6 +224,14 @@ function onSelect(node: Tree, event: MouseEvent) {
   if (event.metaKey || event.ctrlKey) return toggle(node);
 
   select(node, { handOffFocus: !isEditableTarget(event.target) });
+}
+
+function onContextMenu(event: MouseEvent) {
+  if (!isSelected.value) {
+    select(props.node, { handOffFocus: !isEditableTarget(event.target) });
+  }
+
+  openCommandMenu(event, "node");
 }
 
 function toggleGroup() {

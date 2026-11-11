@@ -37,6 +37,6 @@ const tools = allCommands()
   .filter((c) => c.category === "Tools")
   .map((c) => ({
     ...c,
-    label: c.keys ? `${c.title} (${c.keys[0]!.toUpperCase()})` : c.title,
+    label: c.keys ? `${c.title} (${formatShortcut(c.keys[0])})` : c.title,
   }));
 </script>

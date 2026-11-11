@@ -54,9 +54,14 @@ export function useNavigateGesture(
     let last = { x: event.clientX, y: event.clientY };
 
     const begin = () => {
-      if (event.button === 2) swallowContextMenu();
+      let swallow = event.button === 2;
 
       drag.start(null, (ev) => {
+        if (swallow) {
+          swallow = false;
+          swallowContextMenu();
+        }
+
         const dx = ev.clientX - last.x;
         const dy = ev.clientY - last.y;
 

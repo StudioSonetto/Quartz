@@ -24,7 +24,7 @@
     @mouseleave="clearHover"
     @dblclick="onDoubleClick"
     @blur="saveEditing"
-    @click.right="clear"
+    @contextmenu="onContextMenu"
     @keydown="onKeydown"
     @paste="editInsert"
     @drop="editInsert"
@@ -341,6 +341,11 @@ function onSelect(event: MouseEvent) {
   if (selectFromEvent(target, event)) return;
 
   if (event.type === "mousedown") marquee?.begin?.(event);
+}
+
+function onContextMenu(event: MouseEvent) {
+  if (editing.value) return event.stopPropagation();
+  if (!locked.value) openCommandMenu(event, "node");
 }
 
 function onClick(event: MouseEvent) {

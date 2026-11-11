@@ -9,7 +9,7 @@
       },
     ]"
     @click="onCanvasClick"
-    @click.right="onCanvasClick"
+    @contextmenu="onCanvasMenu"
     @pointerdown="onCanvasPointerDown"
     @dragenter="canEdit && assetDrag.over($event)"
     @dragover="canEdit && assetDrag.over($event)"
@@ -117,7 +117,6 @@ useTextSelection();
 
 const { snapshotUrl } = useSnapshotsStore();
 
-
 const coverSlides = computed(() =>
   currentSlides.value && snapshotUrl(currentSlides.value.id)
     ? currentSlides.value.id
@@ -163,6 +162,13 @@ function onCanvasClick(event: MouseEvent) {
 
   if (rootLayout.value?.mode === "grid" && root) select(root);
   else clear();
+}
+
+function onCanvasMenu(event: MouseEvent) {
+  if (!props.canEdit) return;
+
+  onCanvasClick(event);
+  openCommandMenu(event, "canvas");
 }
 
 function placeText(event: MouseEvent) {

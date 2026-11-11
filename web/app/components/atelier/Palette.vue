@@ -182,7 +182,7 @@ const rows = computed<Row[]>(() => {
     key: command.id,
     title: command.title,
     icon: command.icon,
-    hint: command.keys?.[0],
+    hint: formatShortcut(command.keys?.[0]),
     category: command.category,
     enabled,
     invoke: () => {

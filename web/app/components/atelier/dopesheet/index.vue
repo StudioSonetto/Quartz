@@ -55,6 +55,7 @@
                   :current="keyTime(row)"
                   @move="(from, to) => onMoveState(row.node, from, to)"
                   @remove="(t) => onRemoveState(row.node, t)"
+                  @ease="(t, easing) => onEaseState(row.node, t, easing)"
                 >
                   <span class="dopesheet-property">state</span>
                   <span class="dopesheet-muted">{{ stateName(row) }}</span>
@@ -66,6 +67,7 @@
                   :current="keyTime(row)"
                   @move="(from, to) => onMoveKey(row.node, track, from, to)"
                   @remove="(t) => onRemoveKey(row.node, track, t)"
+                  @ease="(t, easing) => onEaseKey(row.node, track, t, easing)"
                 >
                   <span class="dopesheet-property">{{
                     track.path.join(".")
@@ -366,6 +368,24 @@ function onRemoveKey(node: string, track: Track, t: number) {
 function onRemoveState(node: string, t: number) {
   patchAnimation(node, (data) => ({
     stateKeys: removeStateKey(data.stateKeys, t),
+  }));
+}
+
+function onEaseKey(node: string, track: Track, t: number, easing: string) {
+  patchAnimation(node, (data) => ({
+    tracks: setKeyEasing(
+      data.tracks,
+      track.type,
+      track.path,
+      t,
+      easing === "linear" ? undefined : easing,
+    ),
+  }));
+}
+
+function onEaseState(node: string, t: number, easing: string) {
+  patchAnimation(node, (data) => ({
+    stateKeys: setEasingAt(data.stateKeys, t, easing || undefined),
   }));
 }
 

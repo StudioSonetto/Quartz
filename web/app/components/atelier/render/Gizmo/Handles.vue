@@ -41,7 +41,7 @@
           vector-effect="non-scaling-stroke"
         />
       </svg>
-      <Transition name="readout-fade">
+      <Transition name="fade-fast">
         <div v-if="readout" class="readout">{{ readout }}</div>
       </Transition>
     </div>
@@ -110,16 +110,6 @@
     @apply whitespace-nowrap;
 
     rotate: calc(-1 * var(--angle, 0deg));
-  }
-
-  .readout-fade-enter-active,
-  .readout-fade-leave-active {
-    @apply transition-opacity;
-  }
-
-  .readout-fade-enter-from,
-  .readout-fade-leave-to {
-    @apply opacity-0;
   }
 }
 </style>
