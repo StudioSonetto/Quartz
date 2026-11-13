@@ -1,7 +1,3 @@
-import { flattenTree } from "~/utils/tree";
-import { normalizeTreeKey, resolveTreeKey } from "~/utils/treeKeyboard";
-import { isEditableTarget } from "~/utils/dom";
-
 export function useTreeKeyboard() {
   const deck = useDeckStore();
   const { currentTree } = storeToRefs(deck);
