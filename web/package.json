@@ -62,6 +62,7 @@
     "@vue/test-utils": "^2.5.1",
     "drizzle-kit": "1.0.0-beta.23",
     "eslint": "^9.39.5",
+    "eslint-plugin-vue": "^10.12.1",
     "happy-dom": "^21.0.4",
     "prettier": "3.6.2",
     "typescript": "^5.9.3",
