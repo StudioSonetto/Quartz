@@ -10,6 +10,8 @@
     "postinstall": "nuxt prepare",
     "db:pull": "bunx drizzle-kit pull --config=drizzle.config.ts",
     "db:push": "bunx drizzle-kit push --config=drizzle.config.ts",
+    "format": "prettier --write app shared server test",
+    "lint": "eslint app shared",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "vue-tsc -b"
@@ -56,11 +58,15 @@
   },
   "devDependencies": {
     "@nuxt/test-utils": "^4.4.0",
+    "@typescript-eslint/parser": "^8.73.0",
     "@vue/test-utils": "^2.5.1",
     "drizzle-kit": "1.0.0-beta.23",
+    "eslint": "^9.39.5",
     "happy-dom": "^21.0.4",
+    "prettier": "3.6.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12",
+    "vue-eslint-parser": "^10.4.2",
     "vue-tsc": "^2.2.12"
   }
 }
