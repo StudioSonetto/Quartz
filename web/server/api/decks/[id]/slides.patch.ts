@@ -15,10 +15,7 @@ export default defineEventHandler(async (event) => {
 
   await requireDeckOwner(deck, user.id);
 
-  const existing = await db
-    .select()
-    .from(slides)
-    .where(eq(slides.deck, deck));
+  const existing = await db.select().from(slides).where(eq(slides.deck, deck));
 
   const check = checkSlideOrder(
     existing.map((s) => s.id),

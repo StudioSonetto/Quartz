@@ -188,9 +188,7 @@ const sole = computed(() =>
 
 const runs = computed(() => toRuns(sole.value?.data.content));
 
-const fontAssets = computed(() =>
-  [...useAssetsStore().fontFamilies.keys()],
-);
+const fontAssets = computed(() => [...useAssetsStore().fontFamilies.keys()]);
 
 const text = computed(() => {
   const component = sole.value;

@@ -36,7 +36,11 @@ describe("registry", () => {
   });
 
   it("last registration wins", () => {
-    registerModule({ id: "a", nodeTypes: [node("core.group")], componentTypes: [] });
+    registerModule({
+      id: "a",
+      nodeTypes: [node("core.group")],
+      componentTypes: [],
+    });
     registerModule({
       id: "b",
       nodeTypes: [{ ...node("core.group"), label: "second" }],
@@ -49,7 +53,10 @@ describe("registry", () => {
     registerModule({
       id: "m",
       nodeTypes: [
-        { ...node("core.group"), accepts: ["core.group", "core.text", "webgl.canvas"] },
+        {
+          ...node("core.group"),
+          accepts: ["core.group", "core.text", "webgl.canvas"],
+        },
         { ...node("core.text"), accepts: [] },
         { ...node("webgl.canvas"), accepts: ["webgl.object"] },
         { ...node("webgl.object"), accepts: [] },
@@ -68,12 +75,16 @@ describe("registry", () => {
   it("canContain honours a child-declared parents entry", () => {
     registerModule({
       id: "core",
-      nodeTypes: [{ ...node("core.group"), accepts: ["core.group", "core.text"] }],
+      nodeTypes: [
+        { ...node("core.group"), accepts: ["core.group", "core.text"] },
+      ],
       componentTypes: [],
     });
     registerModule({
       id: "webgl",
-      nodeTypes: [{ ...node("webgl.canvas"), accepts: [], parents: ["core.group"] }],
+      nodeTypes: [
+        { ...node("webgl.canvas"), accepts: [], parents: ["core.group"] },
+      ],
       componentTypes: [],
     });
 
@@ -92,7 +103,9 @@ describe("registry", () => {
     });
     registerModule({
       id: "webgl",
-      nodeTypes: [{ ...node("webgl.canvas"), accepts: [], parents: ["core.group"] }],
+      nodeTypes: [
+        { ...node("webgl.canvas"), accepts: [], parents: ["core.group"] },
+      ],
       componentTypes: [],
     });
 

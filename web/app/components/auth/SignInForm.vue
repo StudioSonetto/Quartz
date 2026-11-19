@@ -14,9 +14,7 @@
         {{ label }}
       </UIButton>
     </div>
-    <p class="text-center ui-muted my-9">
-      or sign in with email
-    </p>
+    <p class="text-center ui-muted my-9">or sign in with email</p>
     <div class="flex flex-col gap-4">
       <FormInput name="email" type="email" placeholder="Email" />
       <FormInput name="password" type="password" placeholder="Password" />

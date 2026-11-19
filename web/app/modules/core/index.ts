@@ -9,7 +9,10 @@ export const core = defineModule({
   id: "core",
   nodeTypes,
   componentTypes: Object.values(
-    import.meta.glob("./components/*/index.ts", { eager: true, import: "default" }),
+    import.meta.glob("./components/*/index.ts", {
+      eager: true,
+      import: "default",
+    }),
   ) as ComponentTypeDef[],
   commands: Object.values(
     import.meta.glob("./commands/*.ts", { eager: true, import: "default" }),

@@ -61,10 +61,12 @@ describe("expandComponentsToPeers", () => {
     const out = expandComponentsToPeers(rows, peers({ a: ["b"] }));
 
     expect(out).toHaveLength(4);
-    expect(out.filter((r) => r.node === "b").map((r) => r.type).sort()).toEqual([
-      "core.transform",
-      "core.typography",
-    ]);
+    expect(
+      out
+        .filter((r) => r.node === "b")
+        .map((r) => r.type)
+        .sort(),
+    ).toEqual(["core.transform", "core.typography"]);
   });
 
   it("leaves an unsynced type on its own node", () => {

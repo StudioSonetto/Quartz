@@ -143,7 +143,8 @@ function retime(groups: Map<string, TransitionData>, back: boolean) {
       });
 
     const timing = timings.get(name!)!;
-    const replace = group.kind === "none" || (group.kind === "push" && part !== "group");
+    const replace =
+      group.kind === "none" || (group.kind === "push" && part !== "group");
 
     if (!replace) {
       effect!.updateTiming(timing);

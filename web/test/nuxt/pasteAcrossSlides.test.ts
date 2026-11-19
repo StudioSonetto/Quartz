@@ -5,7 +5,8 @@ import { useDeckStore } from "~/stores/useDeckStore";
 import { registerModule, __resetRegistry } from "~/modules/registry";
 
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {
@@ -64,7 +65,10 @@ function seed() {
         mk(N, SLIDE_A, childPath(ROOT_PATH, N), 0, "core.text", "footer"),
       ] as any),
     ],
-    [SLIDE_B, buildTree([mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group")] as any)],
+    [
+      SLIDE_B,
+      buildTree([mk(ROOT_B, SLIDE_B, ROOT_PATH, 0, "core.group")] as any),
+    ],
   ]);
   store.components = new Map([
     [SLIDE_A, [transform(N, 10, 20)]],
@@ -146,9 +150,9 @@ describe("paste across slides", () => {
     store.selectedNodeIds = [ROOT_A];
     store.paste();
 
-    const pasted = store.currentFlat().find(
-      (n: any) => n.id !== ROOT_A && n.id !== N,
-    )!;
+    const pasted = store
+      .currentFlat()
+      .find((n: any) => n.id !== ROOT_A && n.id !== N)!;
     expect(pasted.reference).toBeNull();
     const comp = store.getComponent(pasted.id, "core.transform")!;
     expect(comp.data.position).toEqual({ x: 34, y: 44 });
@@ -159,9 +163,9 @@ describe("paste across slides", () => {
     store.selectedNodeIds = [N];
     store.duplicateSelection();
 
-    const dupe = store.currentFlat().find(
-      (n: any) => n.id !== ROOT_A && n.id !== N,
-    )!;
+    const dupe = store
+      .currentFlat()
+      .find((n: any) => n.id !== ROOT_A && n.id !== N)!;
     expect(dupe.reference).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ export function useContextMenu() {
     window.dispatchEvent(
       new CustomEvent("openContextMenu", {
         detail: { event, menuItems },
-      })
+      }),
     );
   };
 

@@ -14,7 +14,8 @@ export function checkSlideOrder(
   currentIds: string[],
   order: string[],
 ): OrderCheck {
-  if (order.length !== currentIds.length) return { ok: false, reason: "length" };
+  if (order.length !== currentIds.length)
+    return { ok: false, reason: "length" };
 
   if (new Set(order).size !== order.length) {
     return { ok: false, reason: "duplicate" };

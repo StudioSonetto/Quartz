@@ -34,7 +34,13 @@ const fakeVideo = (extra: Record<string, any> = {}) => {
   });
 };
 
-const timing = { start: 0, duration: 4000, loop: false, volume: 1, muted: false };
+const timing = {
+  start: 0,
+  duration: 4000,
+  loop: false,
+  volume: 1,
+  muted: false,
+};
 
 describe("useMediaClock", () => {
   const { time, playing, reset } = usePlayhead();

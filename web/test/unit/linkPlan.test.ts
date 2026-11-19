@@ -37,9 +37,9 @@ describe("planLink", () => {
   });
 
   it("asks when only the name differs", () => {
-    expect(planLink([node("a")], [node("b", { name: "Other" })], "footer")).toEqual(
-      { kind: "choose" },
-    );
+    expect(
+      planLink([node("a")], [node("b", { name: "Other" })], "footer"),
+    ).toEqual({ kind: "choose" });
   });
 
   it("asks when a component is present on one side only", () => {
@@ -60,7 +60,11 @@ describe("planLink", () => {
   });
 
   it("rejects a link across node types", () => {
-    const plan = planLink([node("a")], [node("b", { type: "core.group" })], "footer");
+    const plan = planLink(
+      [node("a")],
+      [node("b", { type: "core.group" })],
+      "footer",
+    );
     expect(plan.kind).toBe("reject");
   });
 

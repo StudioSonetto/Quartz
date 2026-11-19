@@ -20,8 +20,24 @@ const seedTreeWithA = (store: ReturnType<typeof useDeckStore>) => {
     [
       SLIDE,
       buildTree([
-        { id: "root-id", slides: SLIDE, name: "root", path: ROOT_PATH, type: "core.group", reference: null, sort_order: 0 },
-        { id: A, slides: SLIDE, name: "a", path: aPath, type: "core.group", reference: null, sort_order: 0 },
+        {
+          id: "root-id",
+          slides: SLIDE,
+          name: "root",
+          path: ROOT_PATH,
+          type: "core.group",
+          reference: null,
+          sort_order: 0,
+        },
+        {
+          id: A,
+          slides: SLIDE,
+          name: "a",
+          path: aPath,
+          type: "core.group",
+          reference: null,
+          sort_order: 0,
+        },
       ] as any),
     ],
   ]);

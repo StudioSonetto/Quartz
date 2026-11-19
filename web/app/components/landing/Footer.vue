@@ -3,7 +3,9 @@
     <div class="footer-about">
       <NuxtLink to="/" data-reveal class="footer-brand">quartz</NuxtLink>
       <p data-reveal>Open-core slides engine for ambitious presentations.</p>
-      <p data-reveal class="footer-copyright">© {{ new Date().getFullYear() }} Sonetto</p>
+      <p data-reveal class="footer-copyright">
+        © {{ new Date().getFullYear() }} Sonetto
+      </p>
     </div>
     <nav class="footer-links">
       <div v-for="group in groups" :key="group.title">

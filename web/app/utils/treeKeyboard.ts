@@ -2,9 +2,14 @@ import type { Tree } from "#shared/types";
 import { wrapIndex } from "~/utils/dom";
 
 export type TreeKey =
-  | "Tab" | "ShiftTab"
-  | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight"
-  | "Enter" | "Escape";
+  | "Tab"
+  | "ShiftTab"
+  | "ArrowUp"
+  | "ArrowDown"
+  | "ArrowLeft"
+  | "ArrowRight"
+  | "Enter"
+  | "Escape";
 
 export type TreeKeyIntent =
   | { type: "highlight"; id: string }
@@ -62,7 +67,8 @@ export function resolveTreeKey(
 
     case "ArrowRight": {
       if (!current || current.children.length === 0) return null;
-      if (collapsedIds.has(current.id)) return { type: "expand", id: current.id };
+      if (collapsedIds.has(current.id))
+        return { type: "expand", id: current.id };
       return { type: "highlight", id: current.children[0]!.id };
     }
 

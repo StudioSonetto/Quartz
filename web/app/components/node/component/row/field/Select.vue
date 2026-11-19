@@ -10,11 +10,7 @@
         $emit('update:value', ($event.target as HTMLSelectElement).value)
       "
     >
-      <option
-        v-for="option in items"
-        :key="option.value"
-        :value="option.value"
-      >
+      <option v-for="option in items" :key="option.value" :value="option.value">
         {{ option.label }}
       </option>
     </select>
@@ -37,7 +33,9 @@ const props = defineProps<{
 }>();
 
 const items = computed(() =>
-  props.options.map((o) => (typeof o === "string" ? { value: o, label: o } : o)),
+  props.options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o,
+  ),
 );
 
 defineEmits<{

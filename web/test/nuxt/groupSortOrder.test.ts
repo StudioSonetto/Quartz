@@ -6,7 +6,8 @@ import { useDeckSync } from "~/stores/useDeckSync";
 import { registerModule, __resetRegistry } from "~/modules/registry";
 
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {

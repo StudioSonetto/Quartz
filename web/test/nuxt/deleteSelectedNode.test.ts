@@ -7,7 +7,8 @@ import { useDeckSync } from "~/stores/useDeckSync";
 // Shared, hoisted fetch mock: each call records the POST body and returns a
 // promise we resolve manually so we can inspect exactly what was sent.
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {
@@ -79,7 +80,10 @@ describe("BUG #1 — deleteSelectedNode purges descendants from outbox + compone
     store.trees = new Map([[slidesId, tree]]);
     // The child's (dirty) component lives in the local component bag.
     store.components = new Map([
-      [slidesId, [{ id: "c-child", node: childId, type: "core.base", data: {} }]],
+      [
+        slidesId,
+        [{ id: "c-child", node: childId, type: "core.base", data: {} }],
+      ],
     ]) as any;
 
     // Outbox has the child node + its component pending.

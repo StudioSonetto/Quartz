@@ -6,7 +6,8 @@ import { useDeckSync } from "~/stores/useDeckSync";
 import { registerModule, __resetRegistry } from "~/modules/registry";
 
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {
@@ -180,9 +181,9 @@ describe("peer fan-out", () => {
     expect(
       store.components.get(SLIDE_B)!.filter((c: any) => c.node === B),
     ).toHaveLength(1);
-    expect(
-      store.components.get(SLIDE_A)!.some((c: any) => c.node === B),
-    ).toBe(false);
+    expect(store.components.get(SLIDE_A)!.some((c: any) => c.node === B)).toBe(
+      false,
+    );
   });
 
   it("holds a root's name back until the channel is turned on", () => {

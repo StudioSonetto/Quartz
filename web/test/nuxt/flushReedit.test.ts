@@ -7,7 +7,8 @@ import { useDeckSync } from "~/stores/useDeckSync";
 // Hoisted fetch mock: each POST records its body and returns a promise we
 // resolve manually, letting us keep a request "in-flight".
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {

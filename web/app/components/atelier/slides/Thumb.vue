@@ -52,9 +52,8 @@
 
 <script setup lang="ts">
 const { deleteSlides, copySlide, pasteSlide } = useDeckStore();
-const { slides, currentSlidesIndex, slideClipboard } = storeToRefs(
-  useDeckStore(),
-);
+const { slides, currentSlidesIndex, slideClipboard } =
+  storeToRefs(useDeckStore());
 
 const props = defineProps<{
   index: number;

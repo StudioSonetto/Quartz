@@ -41,7 +41,8 @@ const renameCommand: Command = {
 
     ctx.atelier.setActiveTab("editor");
 
-    for (const p of ancestors(node.parent)) ctx.atelier.setCollapsed(p.id, false);
+    for (const p of ancestors(node.parent))
+      ctx.atelier.setCollapsed(p.id, false);
 
     focusNodeName(node.id);
   },

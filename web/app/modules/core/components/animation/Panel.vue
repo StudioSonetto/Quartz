@@ -150,9 +150,7 @@ const STATE_EASING_OPTIONS = [
 const lastBefore = (times: number[], t: number) =>
   times.filter((time) => time < t).at(-1);
 
-const times = computed(() =>
-  sortedKeyTimes(component.value?.data),
-);
+const times = computed(() => sortedKeyTimes(component.value?.data));
 
 const prev = computed(() => lastBefore(times.value, now.value));
 const next = computed(() => times.value.find((t) => t > now.value));

@@ -11,9 +11,7 @@ const PROPERTIES = '[data-panel="properties"]';
 
 export function focusNodeName(id: string) {
   nextTick(() => {
-    const input = document.querySelector<HTMLInputElement>(
-      `#node-${id} .name`,
-    );
+    const input = document.querySelector<HTMLInputElement>(`#node-${id} .name`);
 
     input?.focus();
     input?.select();
@@ -31,4 +29,3 @@ export function focusProperties() {
     document.querySelector<HTMLElement>(`${PROPERTIES} .view`)?.focus();
   });
 }
-

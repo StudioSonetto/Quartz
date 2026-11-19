@@ -5,7 +5,8 @@ import { useDeckStore } from "~/stores/useDeckStore";
 import { useDeckSync } from "~/stores/useDeckSync";
 
 const hoisted = vi.hoisted(() => {
-  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> = [];
+  const calls: Array<{ url: string; body: any; resolve: (v: any) => void }> =
+    [];
   const fetchMock = (url: string, opts: any) => {
     let resolve!: (v: any) => void;
     const promise = new Promise((res) => {
@@ -126,7 +127,12 @@ describe("reorderNodes", () => {
     store.trees = new Map([
       [
         SLIDE,
-        buildTree([root(), mk(G, gPath, 0), mk(A, pPath, 0), mk(C, cPath, 0)] as any),
+        buildTree([
+          root(),
+          mk(G, gPath, 0),
+          mk(A, pPath, 0),
+          mk(C, cPath, 0),
+        ] as any),
       ],
     ]);
 
