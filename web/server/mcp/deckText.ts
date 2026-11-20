@@ -23,10 +23,11 @@ function lockReason(node: NodeModel, row?: ComponentRow) {
 export function outline(nodes: TextNode[], rows: ComponentRow[]) {
   const typography = typographyByNode(rows);
 
-  return [...Map.groupBy(nodes, (node) => node.slide)]
-    .sort(([a], [b]) => a - b)
-    .map(([slide, group]) => ({
-      slide,
+  // Grouped by slide id: two slides can share an index, and would merge.
+  return [...Map.groupBy(nodes, (node) => node.slides).values()]
+    .sort((a, b) => a[0]!.slide - b[0]!.slide)
+    .map((group) => ({
+      slide: group[0]!.slide,
       texts: flattenTree(buildTree(group))
         .filter((node) => node.type === "core.text")
         .map((node) => {
