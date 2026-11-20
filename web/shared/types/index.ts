@@ -87,21 +87,27 @@ export interface NodeRenderer {
   render: (node: Tree, ctx: RenderContext) => RenderResult;
 }
 
-export interface ComponentTypeDef {
+export type AiHint = { description?: string; fields?: Record<string, string> };
+
+export interface ComponentTypeData {
   type: ComponentType;
-  icon: string;
-  inspector: Component;
   defaultData: () => Record<string, any>;
   optional?: boolean;
   only?: NodeType[];
   migrate?: (data: Record<string, any>) => Record<string, any>;
-  fonts?: (data: Record<string, any>) => (string | undefined)[];
   // Fields auto-key never animates.
   unkeyed?: string[];
   units?: Record<string, string>;
   clock?: (
     data: Record<string, any>,
   ) => { end: number; loops: boolean } | undefined;
+  ai?: AiHint;
+}
+
+export interface ComponentTypeDef extends ComponentTypeData {
+  icon: string;
+  inspector: Component;
+  fonts?: (data: Record<string, any>) => (string | undefined)[];
 }
 
 export type DefaultComponent =
@@ -148,15 +154,20 @@ export interface NavigateGesture {
   zoom: (delta: number) => void;
 }
 
-export interface NodeTypeDef {
+export interface NodeTypeData {
   type: NodeType;
   label: string;
-  icon: string;
   accepts: NodeType[];
-  defaultComponents: DefaultComponent[];
-  renderer: NodeRenderer;
-  creatable?: boolean;
   parents?: NodeType[];
+  defaultComponents: DefaultComponent[];
+  creatable?: boolean;
+  sizing?: "free" | "fixed" | "derived";
+  ai?: AiHint;
+}
+
+export interface NodeTypeDef extends NodeTypeData {
+  icon: string;
+  renderer: NodeRenderer;
   onMount?: (nodeId: string) => void;
   onCreate?: (nodeId: string) => void;
   onDelete?: (nodeId: string) => void;
@@ -169,7 +180,6 @@ export interface NodeTypeDef {
   handles?: HandleDef;
   hitTest?: "element" | "contents";
   asset?: AssetDropDef;
-  sizing?: "free" | "fixed" | "derived";
   editing?: (node: Tree) => boolean;
 }
 

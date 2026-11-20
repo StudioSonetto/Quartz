@@ -1,12 +1,3 @@
-import type { AssetKind } from "#shared/types";
-
-const EXTENSIONS: Record<AssetKind, string[]> = {
-  image: [".png", ".jpg", ".jpeg", ".gif", ".webp"],
-  video: [".mp4", ".webm", ".mov"],
-  font: [".ttf", ".otf", ".woff", ".woff2"],
-  model: [".fbx", ".glb", ".gltf", ".obj", ".stl"],
-};
-
 // Supabase's default per-file upload limit.
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
@@ -17,14 +8,6 @@ export const ASSET_ACCEPT = Object.values(EXTENSIONS).flat().join(",");
 
 export function hasFiles(event: DragEvent) {
   return event.dataTransfer?.types.includes("Files") ?? false;
-}
-
-export function assetKind(name: string): AssetKind | undefined {
-  const lower = name.toLowerCase();
-
-  return (Object.keys(EXTENSIONS) as AssetKind[]).find((kind) =>
-    EXTENSIONS[kind]!.some((ext) => lower.endsWith(ext)),
-  );
 }
 
 export function assetStem(name: string): string {

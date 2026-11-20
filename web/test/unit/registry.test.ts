@@ -3,7 +3,6 @@ import {
   registerModule,
   getNodeType,
   getComponentType,
-  canContain,
   creatableTypesFor,
   __resetRegistry,
   getCommand,

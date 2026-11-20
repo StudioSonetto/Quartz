@@ -29,7 +29,11 @@ export function registerModule(m: ModuleDefinition) {
   }
 
   for (const c of m.componentTypes) componentTypes.set(c.type, c);
+
+  registerTypeData(m);
+
   for (const cmd of m.commands ?? []) commands.set(cmd.id, cmd);
+
   if (m.api !== undefined) apis.set(m.id, m.api);
 }
 
@@ -37,13 +41,6 @@ export const getNodeType = (t: NodeType) => nodeTypes.get(t);
 export const getComponentType = (t: ComponentType) => componentTypes.get(t);
 export const allNodeTypes = () => [...nodeTypes.values()];
 export const allComponentTypes = () => [...componentTypes.values()];
-export const canContain = (
-  parentType: NodeType,
-  childType: NodeType,
-): boolean =>
-  (getNodeType(parentType)?.accepts.includes(childType) ?? false) ||
-  (getNodeType(childType)?.parents?.includes(parentType) ?? false);
-
 export const isCreatable = (t: NodeTypeDef): boolean => t.creatable !== false;
 
 export const creatableTypesFor = (parentType: NodeType): NodeTypeDef[] =>
@@ -97,5 +94,6 @@ export function __resetRegistry() {
   componentTypes.clear();
   commands.clear();
   apis.clear();
+  resetTypeData();
   unlockedModules.value = "all";
 }

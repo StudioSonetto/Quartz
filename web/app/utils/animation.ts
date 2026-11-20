@@ -51,10 +51,6 @@ export function applyState(
   return override ? deepMerge(base, override) : base;
 }
 
-export const DEFAULT_STATE_EASING = "ease-out";
-
-export const DEFAULT_HANDLER_DURATION = 400;
-
 export function renameState(
   components: ComponentModel[],
   from: string,

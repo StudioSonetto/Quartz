@@ -1,43 +1,3 @@
-export function isPlainObject(v: unknown): v is Record<string, any> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-export function deepMerge(
-  base: Record<string, any>,
-  override: Record<string, any>,
-): Record<string, any> {
-  const out: Record<string, any> = { ...base };
-
-  for (const key of Object.keys(override)) {
-    const b = base[key];
-    const o = override[key];
-
-    out[key] = isPlainObject(b) && isPlainObject(o) ? deepMerge(b, o) : o;
-  }
-
-  return out;
-}
-
-export function entryType(e: DefaultComponent): ComponentType {
-  return typeof e === "string" ? e : e.type;
-}
-
-export function effectiveDefaults(
-  nodeType: NodeType,
-  componentType: ComponentType,
-): Record<string, any> {
-  const base = getComponentType(componentType)?.defaultData() ?? {};
-  const entry = getNodeType(nodeType)?.defaultComponents.find(
-    (e) => entryType(e) === componentType,
-  );
-  const override = typeof entry === "string" || !entry ? {} : entry.data;
-  return deepMerge(base, override);
-}
-
-export function migrated(type: ComponentType, data: Record<string, any>) {
-  return getComponentType(type)?.migrate?.(data) ?? data;
-}
-
 const ROOT_COMPONENTS: ComponentType[] = ["core.base", "core.layout"];
 
 const ROOT_LAYOUT_DEFAULTS = {
@@ -182,7 +142,7 @@ export function normaliseComponents(
       continue;
     }
 
-    const def = getNodeType(node.type);
+    const def = nodeData(node.type);
 
     if (!def) {
       result.push(...kept);

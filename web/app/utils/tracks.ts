@@ -219,10 +219,6 @@ export function timeAtPointer(
   return roundTime(view.start + ratio * view.span);
 }
 
-const TIME_STEP = 10;
-
-export const roundTime = (ms: number) => Math.round(ms / TIME_STEP) * TIME_STEP;
-
 export const toSeconds = (ms: number) => (ms / 1000).toFixed(2);
 
 export const formatSeconds = (ms: number) => `${toSeconds(ms)}s`;

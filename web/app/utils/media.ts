@@ -1,27 +1,3 @@
-export interface MediaTiming {
-  start: number;
-  duration: number;
-  loop: boolean;
-  volume: number;
-  muted: boolean;
-}
-
-export const MEDIA_DEFAULTS = {
-  volume: 1,
-  muted: false,
-  loop: false,
-  start: 0,
-  duration: 0,
-};
-
-export const mediaFields = (field: string) => ({
-  unkeyed: ["start", "duration"],
-  clock: (data: Record<string, any>) =>
-    assetKind(data[field] ?? "") === "video"
-      ? mediaSpan(data as MediaTiming)
-      : undefined,
-});
-
 export const videoMs = (video: HTMLVideoElement) =>
   Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0;
 
@@ -35,15 +11,6 @@ export function mediaTime(
   if (loop) return { at: local % duration, running: true };
 
   return { at: Math.min(local, duration), running: local < duration };
-}
-
-export function mediaSpan(timing: MediaTiming) {
-  if (!(timing.duration > 0)) return undefined;
-
-  return {
-    end: roundTime(timing.start + timing.duration),
-    loops: !!timing.loop,
-  };
 }
 
 const META_TIMEOUT_MS = 15_000;
