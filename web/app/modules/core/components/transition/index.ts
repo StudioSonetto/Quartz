@@ -1,14 +1,8 @@
 import Panel from "./Panel.vue";
+import data from "./data";
 
 export default {
-  type: "core.transition",
+  ...data,
   icon: "i-carbon-arrows-horizontal",
-  optional: true,
   inspector: Panel,
-  unkeyed: ["kind", "duration", "easing"],
-  defaultData: () => ({
-    kind: "fade",
-    duration: DEFAULT_HANDLER_DURATION,
-    easing: "ease-out",
-  }),
-};
+} satisfies ComponentTypeDef;

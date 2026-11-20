@@ -1,24 +1,11 @@
-import { highlight, highlightPending } from "../components/syntax/highlight";
-import { typographyStyle } from "../components/typography/style";
-
-const SAMPLE = `function greet(name: string) {\n  return \`Hello, \${name}\`;\n}`;
+import { highlight, highlightPending } from "../../components/syntax/highlight";
+import { typographyStyle } from "../../components/typography/style";
+import data from "./data";
 
 export default {
-  type: "core.code",
-  label: "Code Block",
+  ...data,
   icon: "i-carbon-code",
-  accepts: [],
-  parents: ["core.group"],
   ready: highlightPending,
-  defaultComponents: [
-    "core.base",
-    { type: "core.transform", data: { size: { width: 720, height: "auto" } } },
-    {
-      type: "core.typography",
-      data: { content: SAMPLE, size: 20, lineHeight: 1.5 },
-    },
-    "core.syntax",
-  ],
   renderer: {
     element: "pre",
     render: (node, ctx): RenderResult => {

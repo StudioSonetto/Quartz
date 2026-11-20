@@ -1,13 +1,8 @@
 import Panel from "./Panel.vue";
+import data from "./data";
 
 export default {
-  type: "core.path",
+  ...data,
   icon: "i-carbon-pen",
   inspector: Panel,
-  optional: true,
-  only: ["core.shape"],
-  defaultData: () => ({
-    points: [],
-    closed: false,
-  }),
-};
+} satisfies ComponentTypeDef;

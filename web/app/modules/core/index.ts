@@ -1,10 +1,9 @@
 import { defineModule } from "../registry";
 
 const nodeTypes = Object.values(
-  import.meta.glob("./nodes/*.ts", { eager: true, import: "default" }),
+  import.meta.glob("./nodes/*/index.ts", { eager: true, import: "default" }),
 ) as NodeTypeDef[];
 
-// Auto-register every default-exported definition in nodes/ and components/.
 export const core = defineModule({
   id: "core",
   nodeTypes,

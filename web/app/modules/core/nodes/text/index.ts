@@ -1,11 +1,9 @@
-import { typographyStyle } from "../components/typography/style";
+import { typographyStyle } from "../../components/typography/style";
+import data from "./data";
 
 export default {
-  type: "core.text",
-  label: "Text",
+  ...data,
   icon: "i-carbon-text-short-paragraph",
-  accepts: [],
-  defaultComponents: ["core.base", "core.transform", "core.typography"],
   renderer: {
     element: "p",
     render: (node, ctx) => {

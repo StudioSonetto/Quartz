@@ -15,7 +15,8 @@ const moduleImport = {
   message: "Core must never import a module.",
 };
 
-const sharedReason = "shared/ is built into the server too, where app code doesn't exist.";
+const sharedReason =
+  "shared/ is built into the server too, where app code doesn't exist.";
 
 export default [
   { ignores: [".nuxt/**", ".output/**", "node_modules/**"] },
@@ -59,25 +60,37 @@ export default [
         "error",
         ...["$fetch", "fetch"].map((name) => ({
           name,
-          message: "Use useRequestFetch() so session cookies reach the server during SSR.",
+          message:
+            "Use useRequestFetch() so session cookies reach the server during SSR.",
         })),
       ],
       "no-restricted-properties": [
         "error",
-        { object: "globalThis", property: "$fetch", message: "Use useRequestFetch()." },
-        { object: "globalThis", property: "fetch", message: "Use useRequestFetch()." },
+        {
+          object: "globalThis",
+          property: "$fetch",
+          message: "Use useRequestFetch().",
+        },
+        {
+          object: "globalThis",
+          property: "fetch",
+          message: "Use useRequestFetch().",
+        },
       ],
     },
   },
   {
-    files: ["shared/**/*.{ts,mts,js,mjs}"],
+    files: ["shared/**/*.{ts,mts,js,mjs}", "app/modules/**/data.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             moduleImport,
-            { regex: "^(~|@)/|^(#app|#imports|pinia)(/|$)|(^|/)app/", message: `${sharedReason} Even \`import type\`.` },
+            {
+              regex: "^(~|@)/|^(#app|#imports|pinia)(/|$)|(^|/)app/",
+              message: `${sharedReason} Even \`import type\`.`,
+            },
           ],
         },
       ],
@@ -92,9 +105,17 @@ export default [
       ],
       "no-restricted-globals": [
         "error",
-        ...["computed", "ref", "reactive", "watch", "watchEffect", "nextTick", "defineStore", "storeToRefs", "navigateTo"].map(
-          (name) => ({ name, message: sharedReason }),
-        ),
+        ...[
+          "computed",
+          "ref",
+          "reactive",
+          "watch",
+          "watchEffect",
+          "nextTick",
+          "defineStore",
+          "storeToRefs",
+          "navigateTo",
+        ].map((name) => ({ name, message: sharedReason })),
       ],
     },
   },

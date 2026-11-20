@@ -1,14 +1,10 @@
 import { markRaw } from "vue";
 import Group from "~/components/atelier/render/Group.vue";
+import data from "./data";
 
 export default {
-  type: "core.group",
-  label: "Group",
+  ...data,
   icon: "i-carbon-caret-down",
-  accepts: ["core.group", "core.text"],
-  defaultComponents: ["core.base", "core.transform", "core.layout"],
-  creatable: false,
-  sizing: "derived",
   renderer: {
     element: "div",
     render: (node, ctx): RenderResult => {

@@ -1,9 +1,8 @@
 import Panel from "./Panel.vue";
+import data from "./data";
 
 export default {
-  type: "core.event",
+  ...data,
   icon: "i-carbon-cursor-1",
-  optional: true,
   inspector: Panel,
-  defaultData: () => ({ handlers: [] }),
-};
+} satisfies ComponentTypeDef;

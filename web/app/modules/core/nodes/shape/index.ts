@@ -1,10 +1,7 @@
+import data from "./data";
 export default {
-  type: "core.shape",
-  label: "Shape",
+  ...data,
   icon: "i-carbon-diamond-outline",
-  accepts: [],
-  parents: ["core.group"],
-  sizing: "free",
   editing: (node) => {
     const { activeTool } = useAtelierStore();
 
@@ -15,11 +12,6 @@ export default {
       "path"
     );
   },
-  defaultComponents: [
-    "core.base",
-    { type: "core.transform", data: { size: { width: 240, height: 240 } } },
-    "core.shape",
-  ],
   renderer: {
     element: "div",
     render: (node, ctx): RenderResult => {

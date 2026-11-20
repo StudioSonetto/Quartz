@@ -87,8 +87,6 @@ export interface NodeRenderer {
   render: (node: Tree, ctx: RenderContext) => RenderResult;
 }
 
-export type AiHint = { description?: string; fields?: Record<string, string> };
-
 export interface ComponentTypeData {
   type: ComponentType;
   defaultData: () => Record<string, any>;
@@ -101,7 +99,7 @@ export interface ComponentTypeData {
   clock?: (
     data: Record<string, any>,
   ) => { end: number; loops: boolean } | undefined;
-  ai?: AiHint;
+  ai?: { fields: string[] };
 }
 
 export interface ComponentTypeDef extends ComponentTypeData {
@@ -162,7 +160,8 @@ export interface NodeTypeData {
   defaultComponents: DefaultComponent[];
   creatable?: boolean;
   sizing?: "free" | "fixed" | "derived";
-  ai?: AiHint;
+  // Claude may create this type.
+  ai?: boolean;
 }
 
 export interface NodeTypeDef extends NodeTypeData {

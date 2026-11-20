@@ -1,9 +1,8 @@
 import Panel from "./Panel.vue";
+import data from "./data";
 
 export default {
-  type: "core.animation",
+  ...data,
   icon: "i-carbon-continue-filled",
-  optional: true,
   inspector: Panel,
-  defaultData: () => ({ tracks: [], stateKeys: [] }),
-};
+} satisfies ComponentTypeDef;
