@@ -1,5 +1,4 @@
-import { and, eq, inArray, isNotNull, ne, notInArray, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~~/server/db";
 import {
@@ -197,62 +196,7 @@ export default defineEventHandler(async (event) => {
         ...relocked.map((node) => node.id),
       ]),
     ].filter((id) => !created.has(id));
-    const peerIds = new Map<string, string[]>();
-    const unsynced = new Map<string, string[]>();
-
-    const peersFor = (source: string, channel: SyncChannel) =>
-      unsynced.get(source)?.includes(channel)
-        ? []
-        : (peerIds.get(source) ?? []);
-
-    if (peerLookupIds.length) {
-      const src = alias(nodes, "src");
-      const srcSlides = alias(slides, "src_slides");
-      const peerSlides = alias(slides, "peer_slides");
-
-      const peerRows = await tx
-        .select({
-          source: src.id,
-          peer: nodes.id,
-          path: src.path,
-          unsynced: src.unsynced,
-        })
-        .from(src)
-        .innerJoin(srcSlides, eq(src.slides, srcSlides.id))
-        .innerJoin(
-          peerSlides,
-          and(
-            eq(peerSlides.deck, srcSlides.deck),
-            ne(peerSlides.id, srcSlides.id),
-          ),
-        )
-        .innerJoin(
-          nodes,
-          and(
-            eq(nodes.slides, peerSlides.id),
-            eq(nodes.reference, src.reference),
-            eq(nodes.type, src.type),
-          ),
-        )
-        .where(
-          and(
-            inArray(src.id, peerLookupIds),
-            isNotNull(src.reference),
-            ne(src.reference, ""),
-            ne(nodes.id, src.id),
-          ),
-        );
-
-      for (const row of peerRows) {
-        const peers = peerIds.get(row.source);
-
-        if (peers) peers.push(row.peer);
-        else {
-          peerIds.set(row.source, [row.peer]);
-          unsynced.set(row.source, unsyncedOf(row));
-        }
-      }
-    }
+    const peersFor = await lookupPeers(tx, peerLookupIds);
 
     const namePushes = new Map<string, Set<string>>();
 
@@ -294,17 +238,7 @@ export default defineEventHandler(async (event) => {
         .where(inArray(nodes.id, [...targets]));
     }
 
-    const componentRows = expandComponentsToPeers(componentsToUpsert, peersFor);
-
-    if (componentRows.length) {
-      await tx
-        .insert(components)
-        .values(componentRows)
-        .onConflictDoUpdate({
-          target: [components.node, components.type],
-          set: { data: sql`excluded.data` },
-        });
-    }
+    await writeWithPeers(tx, componentsToUpsert, peersFor);
 
     if (created.size)
       await adoptFromPeers(tx, (t) => inArray(t.id, [...created]));
