@@ -1268,7 +1268,9 @@ export const useDeckStore = defineStore("deck", () => {
     setSlideNodes(slideId, nextFlat);
 
     // Group's default components (core.group ships transform + layout).
-    const groupDefaults = buildDefaultComponents(id, "core.group");
+    const groupDefaults = buildDefaultComponents(id, "core.group").map((c) =>
+      c.type === "core.layout" ? { ...c, data: { ...c.data, fill: true } } : c,
+    );
     const slideComponents = components.value.get(slideId) ?? [];
     slideComponents.push(...groupDefaults);
     setSlideComponents(slideId, slideComponents);

@@ -298,10 +298,25 @@ const render = computed(() => {
 const elementStyle = computed(() => {
   const base = render.value?.style;
 
-  const style =
-    base && isGridChild.value
-      ? { ...base, position: "relative", left: "", top: "", transform: "" }
-      : base;
+  let style = base;
+
+  if (base && isGridChild.value) {
+    const transform = renderData(props.node, "core.transform");
+    const fills =
+      transform.size.width === "auto" &&
+      props.node.parent &&
+      renderData(props.node.parent, "core.layout").fill;
+
+    style = {
+      ...base,
+      position: "relative",
+      left: "",
+      top: "",
+      transform: "",
+      rotate: `${transform.rotation}deg`,
+      ...(fills && { maxWidth: "100%" }),
+    };
+  }
 
   const def = getNodeType(props.node.type);
   const passThrough =

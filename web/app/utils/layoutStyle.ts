@@ -71,10 +71,9 @@ export function gridStyle(layout: Record<string, any>): Record<string, string> {
     justifyItems: layout.justify,
   };
 
+  const track = layout.fill ? "minmax(0, 1fr)" : "max-content";
+
   return layout.direction === "horizontal"
-    ? { ...base, gridAutoFlow: "column", gridAutoColumns: "max-content" }
-    : {
-        ...base,
-        gridTemplateColumns: `repeat(${layout.columns}, max-content)`,
-      };
+    ? { ...base, gridAutoFlow: "column", gridAutoColumns: track }
+    : { ...base, gridTemplateColumns: `repeat(${layout.columns}, ${track})` };
 }

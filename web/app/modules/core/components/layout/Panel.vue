@@ -77,6 +77,22 @@
         @update:value="(v) => set(['columns'], v)"
       />
     </NodeComponentRow>
+    <NodeComponentRow v-if="field(['mode']) === 'grid'" name="fill">
+      <NodeComponentRowFieldRadio
+        :options="[
+          { value: 'off', icon: 'i-carbon-fit-to-width' },
+          { value: 'on', icon: 'i-carbon-fit-to-screen' },
+        ]"
+        :value="
+          field(['fill']) === undefined
+            ? undefined
+            : field(['fill'])
+              ? 'on'
+              : 'off'
+        "
+        @update:value="(v) => set(['fill'], one(v) === 'on')"
+      />
+    </NodeComponentRow>
     <NodeComponentRow name="gap">
       <NodeComponentRowFieldNumber
         :min="0"

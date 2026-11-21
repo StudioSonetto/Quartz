@@ -9,6 +9,7 @@ export default {
     gap: 0,
     align: "start",
     justify: "start",
+    fill: false,
   }),
   ai: {
     fields: [

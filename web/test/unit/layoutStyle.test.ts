@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { backgroundStyle, coerceBackground } from "~/utils/layoutStyle";
+import {
+  backgroundStyle,
+  coerceBackground,
+  gridStyle,
+} from "~/utils/layoutStyle";
 
 const resolve = (name: string) => `http://x/${name}`;
 
@@ -74,5 +78,33 @@ describe("backgroundStyle", () => {
       resolve,
     );
     expect(style.backgroundColor).toBeUndefined();
+  });
+});
+
+describe("gridStyle fill", () => {
+  const layout = { gap: 0, padding: 0, align: "start", justify: "start" };
+
+  it("shares vertical columns equally when fill is on", () => {
+    expect(
+      gridStyle({ ...layout, direction: "vertical", columns: 2, fill: true })
+        .gridTemplateColumns,
+    ).toBe("repeat(2, minmax(0, 1fr))");
+  });
+
+  it("shares horizontal columns equally when fill is on", () => {
+    const style = gridStyle({ ...layout, direction: "horizontal", fill: true });
+
+    expect(style.gridAutoColumns).toBe("minmax(0, 1fr)");
+    expect(style.gridAutoFlow).toBe("column");
+  });
+
+  it("keeps max-content columns when fill is absent", () => {
+    expect(
+      gridStyle({ ...layout, direction: "vertical", columns: 2 })
+        .gridTemplateColumns,
+    ).toBe("repeat(2, max-content)");
+    expect(
+      gridStyle({ ...layout, direction: "horizontal" }).gridAutoColumns,
+    ).toBe("max-content");
   });
 });
