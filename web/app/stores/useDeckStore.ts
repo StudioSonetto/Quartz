@@ -56,8 +56,30 @@ export const useDeckStore = defineStore("deck", () => {
     slidesInLoading.value.delete(id);
   }
 
-  function releaseNode(node: Tree) {
+  function releaseNode(node: { id: string; type: NodeType }) {
     getNodeType(node.type)?.onDelete?.(node.id);
+  }
+
+  function cutSubtrees<T extends NodeModel>(
+    flat: T[],
+    list: ComponentModel[],
+    roots: { path: string }[],
+  ) {
+    const removed = flat.filter((n) =>
+      roots.some((r) => isSelfOrDescendantPath(n.path, r.path)),
+    );
+    const ids = new Set(removed.map((n) => n.id));
+
+    for (const n of removed) {
+      sync.dropNode(n.id);
+      releaseNode(n);
+    }
+
+    return {
+      ids,
+      nodes: flat.filter((n) => !ids.has(n.id)),
+      components: list.filter((c) => !ids.has(c.node)),
+    };
   }
 
   const treeAt = (i: number) => {
@@ -73,6 +95,17 @@ export const useDeckStore = defineStore("deck", () => {
   const currentComponents = computed(() =>
     componentsAt(currentSlidesIndex.value),
   );
+
+  const slideOfNode = computed(() => {
+    const index = new Map<string, string>();
+
+    for (const [slideId, tree] of trees.value) {
+      if (tree?.id)
+        for (const node of flattenTree(tree)) index.set(node.id, slideId);
+    }
+
+    return index;
+  });
 
   const componentIndex = computed(() => {
     const index = new Map<string, ComponentModel>();
@@ -1179,27 +1212,14 @@ export const useDeckStore = defineStore("deck", () => {
 
     if (!roots.length) return;
 
-    const slideComponents = components.value.get(slideId) ?? [];
-    const flat = currentFlat();
-    const removed = flat.filter((n) =>
-      roots.some((r) => isSelfOrDescendantPath(n.path, r.path)),
-    );
-    const removedIds = new Set(removed.map((n) => n.id));
-
-    setSlideNodes(
-      slideId,
-      stripTree(flat.filter((n) => !removedIds.has(n.id))),
+    const cut = cutSubtrees(
+      currentFlat(),
+      components.value.get(slideId) ?? [],
+      roots,
     );
 
-    setSlideComponents(
-      slideId,
-      slideComponents.filter((c) => !removedIds.has(c.node)),
-    );
-
-    for (const n of removed) {
-      sync.dropNode(n.id);
-      releaseNode(n);
-    }
+    setSlideNodes(slideId, stripTree(cut.nodes));
+    setSlideComponents(slideId, cut.components);
 
     for (const r of roots)
       sync.enqueueDelete({ path: r.path, slides: r.slides }, r.id);
@@ -1756,6 +1776,69 @@ export const useDeckStore = defineStore("deck", () => {
     }
   }
 
+  function applyRemote(slideId: string, rows: RemoteRow[]): boolean {
+    const tree = trees.value.get(slideId);
+
+    if (!tree?.id) return false;
+
+    let models = stripTree(flattenTree(tree));
+    let list = [...(components.value.get(slideId) ?? [])];
+    let changed = false;
+
+    for (const { table, event, row } of rows) {
+      if (table === "nodes") {
+        const at = models.findIndex((n) => n.id === row.id);
+
+        if (event === "DELETE") {
+          if (at < 0) continue;
+
+          const cut = cutSubtrees(models, list, [models[at]!]);
+
+          models = cut.nodes;
+          list = cut.components;
+          selectedNodeIds.value = selectedNodeIds.value.filter(
+            (s) => !cut.ids.has(s),
+          );
+          if (anchorId.value && cut.ids.has(anchorId.value))
+            anchorId.value = null;
+        } else {
+          const next = { ...models[at], ...row } as NodeModel;
+
+          if (at >= 0 && deepEqual(models[at], next)) continue;
+
+          if (at >= 0) models[at] = next;
+          else models.push(next);
+        }
+      } else {
+        const at = list.findIndex(
+          (c) => c.node === row.node && c.type === row.type,
+        );
+
+        if (event === "DELETE") {
+          if (at < 0) continue;
+
+          list.splice(at, 1);
+        } else {
+          if (at >= 0 && deepEqual(list[at]!.data, row.data)) continue;
+
+          const next = { node: row.node, type: row.type, data: row.data };
+
+          if (at >= 0) list[at] = next as ComponentModel;
+          else list.push(next as ComponentModel);
+        }
+      }
+
+      changed = true;
+    }
+
+    if (!changed) return false;
+
+    storeSlide(slideId, models, list);
+    animationVersion.value++;
+
+    return true;
+  }
+
   function nextSlides() {
     return goToSlide(currentSlidesIndex.value + 1);
   }
@@ -1844,6 +1927,8 @@ export const useDeckStore = defineStore("deck", () => {
     animatedComponents,
     componentIndex,
     removeComponent,
+    applyRemote,
+    slideOfNode,
     nextSlides,
     prevSlides,
   };

@@ -13,6 +13,8 @@ export const useDeckSync = defineStore("deck-sync", () => {
   const dirtyComponents = ref<Set<string>>(new Set());
   const deletedComponents = ref<Set<string>>(new Set());
 
+  const inFlight = new Set<string>();
+
   const status = ref<SaveStatus>("idle");
   const flushing = ref(false);
 
@@ -26,6 +28,15 @@ export const useDeckSync = defineStore("deck-sync", () => {
       dirtyComponents.value.size > 0 ||
       deletedComponents.value.size > 0,
   );
+
+  function isBusy(key: string): boolean {
+    return (
+      dirtyNodes.value.has(key) ||
+      dirtyComponents.value.has(key) ||
+      deletedComponents.value.has(key) ||
+      inFlight.has(key)
+    );
+  }
 
   function enqueueNode(id: string) {
     if (readOnly.value) return;
@@ -135,6 +146,13 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
     clearFlushed(snapshot);
 
+    for (const keys of [
+      snapshot.dirtyNodes,
+      snapshot.dirtyComponents,
+      snapshot.deletedComponents,
+    ])
+      for (const key of keys) inFlight.add(key);
+
     flushing.value = true;
     status.value = "saving";
 
@@ -173,6 +191,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
 
       setTimeout(() => flush(), backoff);
     } finally {
+      inFlight.clear();
       flushing.value = false;
     }
   }
@@ -235,6 +254,7 @@ export const useDeckSync = defineStore("deck-sync", () => {
   return {
     status,
     hasPending,
+    isBusy,
     enqueueNode,
     enqueueComponent,
     enqueueComponentDelete,

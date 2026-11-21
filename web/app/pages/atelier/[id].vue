@@ -43,6 +43,7 @@ const atelier = useAtelierStore();
 useKeybindings();
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
+let remote: ReturnType<typeof useRemoteChanges> | undefined;
 
 const snapshotScheduler = useSnapshotScheduler();
 
@@ -134,6 +135,8 @@ onMounted(async () => {
     )
     .subscribe();
 
+  remote = useRemoteChanges(id);
+
   await Promise.all([fetchAssets(id), fetchSnapshots(id)]);
 });
 
@@ -147,5 +150,7 @@ onUnmounted(() => {
   window.removeEventListener("pagehide", flushOnPageHide);
 
   for (const rc of [deckRC, slidesRC]) if (rc) client.removeChannel(rc);
+
+  remote?.stop();
 });
 </script>
