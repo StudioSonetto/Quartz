@@ -39,6 +39,15 @@ export const useAtelierStore = defineStore("atelier", () => {
 
   const recentCommands = ref<string[]>([]);
 
+  const notice = ref<string | null>(null);
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function showNotice(text: string) {
+    notice.value = text;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => (notice.value = null), 4000);
+  }
+
   const activeTool = ref<Tool>("select");
   const editingShapeId = ref<string | null>(null);
   const selectedPoints = ref<Set<number>>(new Set());
@@ -127,6 +136,8 @@ export const useAtelierStore = defineStore("atelier", () => {
     editingNodeId,
     textSelection,
     recentCommands,
+    notice,
+    showNotice,
     activeTool,
     editingShapeId,
     selectedPoints,

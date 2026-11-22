@@ -1836,6 +1836,11 @@ export const useDeckStore = defineStore("deck", () => {
     storeSlide(slideId, models, list);
     animationVersion.value++;
 
+    if (useHistoryStore().forgetSlide(slideId))
+      useAtelierStore().showNotice(
+        "Claude edited this slide, undo history cleared.",
+      );
+
     return true;
   }
 

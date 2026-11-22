@@ -145,6 +145,7 @@ export const useHistoryStore = defineStore("history", () => {
     record({
       label: pending.label,
       mergeKey: pending.mergeKey,
+      slides: [...pending.before.keys()],
       undo: () => {
         applySlides(pending.before);
         applyFocus(pending.focus);
@@ -292,7 +293,19 @@ export const useHistoryStore = defineStore("history", () => {
     redoStack.value = [];
   }
 
+  function forgetSlide(slideId: string): boolean {
+    const keep = (e: HistoryEntry) => !e.slides?.includes(slideId);
+    const dropped =
+      !undoStack.value.every(keep) || !redoStack.value.every(keep);
+
+    undoStack.value = undoStack.value.filter(keep);
+    redoStack.value = redoStack.value.filter(keep);
+
+    return dropped;
+  }
+
   return {
+    forgetSlide,
     canUndo,
     canRedo,
     replaying,

@@ -18,6 +18,7 @@
       </div>
     </div>
     <AtelierPalette />
+    <AtelierNotice />
   </div>
 </template>
 
