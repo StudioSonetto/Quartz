@@ -78,6 +78,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     discordBotToken: "",
     discordClientSecret: "",
+    viewPassSecret: "",
     polarAccessToken: "",
     polarWebhookSecret: "",
     polarServer: "",

@@ -604,7 +604,7 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   // The owner's copy, else the public one; resolves to whether it's the owner's.
-  async function openDeck(id: string) {
+  async function openDeck(id: string, pass?: string) {
     if (openedDeck.value !== id) clearDeck(id);
 
     try {
@@ -615,7 +615,7 @@ export const useDeckStore = defineStore("deck", () => {
       if (![401, 403, 404].includes((err as FetchError).statusCode ?? 0))
         throw err;
 
-      await loadPublicDeck(id);
+      await loadPublicDeck(id, pass);
 
       return false;
     }
@@ -996,8 +996,10 @@ export const useDeckStore = defineStore("deck", () => {
   }
 
   // Visitors can't save, so nothing is queued.
-  async function loadPublicDeck(id: string) {
-    const deck = await apiFetch(`/api/public/decks/${id}`);
+  async function loadPublicDeck(id: string, pass?: string) {
+    const deck = await apiFetch(`/api/public/decks/${id}`, {
+      headers: pass ? { Authorization: `Bearer ${pass}` } : undefined,
+    });
 
     if (openedDeck.value !== id) return;
 

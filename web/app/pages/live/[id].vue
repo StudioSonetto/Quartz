@@ -73,7 +73,13 @@ function leavePresentation() {
 
 let deckRC: RealtimeChannel, slidesRC: RealtimeChannel;
 
-const id = useRoute().params.id as string;
+const route = useRoute();
+
+const id = route.params.id as string;
+
+const pass = typeof route.query.pass === "string" ? route.query.pass : "";
+
+if (pass) useRouter().replace({ path: route.path });
 
 const mine = computed(() => openedDeck.value === id && !visitor.value);
 
@@ -88,9 +94,13 @@ onBeforeRouteLeave((to) => {
   if (morphing.value && mine.value) presented.value = id;
 });
 
-const { status } = await useAsyncData(`live-deck-${id}`, () => openDeck(id), {
-  lazy: mine.value,
-});
+const { status } = await useAsyncData(
+  `live-deck-${id}`,
+  () => openDeck(id, pass),
+  {
+    lazy: mine.value,
+  },
+);
 
 onMounted(async () => {
   const done = () => (morphing.value = false);

@@ -4,11 +4,16 @@ import { components, decks, nodes, slides } from "~~/server/db/schema";
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id")!;
+  const passed = readViewPass(event)?.deck === id;
 
   const [deck] = await db
     .select({ title: decks.title })
     .from(decks)
-    .where(and(eq(decks.id, id), eq(decks.is_public, true)));
+    .where(
+      passed
+        ? eq(decks.id, id)
+        : and(eq(decks.id, id), eq(decks.is_public, true)),
+    );
 
   if (!deck) throw createError({ statusCode: 404 });
 
